@@ -1,10 +1,9 @@
-import Link from 'next/link'
-import { ArrowRight, Zap, Globe, LayoutDashboard } from 'lucide-react'
+import Link from "next/link";
+import { ArrowRight, Zap, Globe, LayoutDashboard } from "lucide-react";
 
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-ink overflow-hidden">
-      {/* Nav */}
       <nav className="flex items-center justify-between px-8 py-6 border-b border-white/5">
         <span className="font-display text-xl font-bold text-paper">
           Store<span className="text-accent">Forge</span>
@@ -41,8 +40,8 @@ export default function HomePage() {
           </h1>
 
           <p className="text-muted text-lg md:text-xl max-w-xl mb-12 leading-relaxed opacity-0 animate-fade-up delay-200">
-            Fill one form. Get your store link. Start selling.
-            No code, no hosting headaches, no waiting.
+            Fill one form. Get your store link. Start selling. No code, no
+            hosting headaches, no waiting.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 opacity-0 animate-fade-up delay-300">
@@ -69,21 +68,21 @@ export default function HomePage() {
           {[
             {
               icon: <Zap className="w-6 h-6" />,
-              title: 'Instant setup',
-              desc: 'Fill the form and your store is live. No technical knowledge required.',
-              delay: '',
+              title: "Instant setup",
+              desc: "Fill the form and your store is live. No technical knowledge required.",
+              delay: "",
             },
             {
               icon: <Globe className="w-6 h-6" />,
-              title: 'Your own link',
-              desc: 'Get a clean, shareable URL for your store the moment you sign up.',
-              delay: 'delay-200',
+              title: "Your own link",
+              desc: "Get a clean, shareable URL for your store the moment you sign up.",
+              delay: "delay-200",
             },
             {
               icon: <LayoutDashboard className="w-6 h-6" />,
-              title: 'Full dashboard',
-              desc: 'Manage your store, track performance, and update your info anytime.',
-              delay: 'delay-400',
+              title: "Full dashboard",
+              desc: "Manage your store, track performance, and update your info anytime.",
+              delay: "delay-400",
             },
           ].map((f) => (
             <div
@@ -93,7 +92,9 @@ export default function HomePage() {
               <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-accent mb-4">
                 {f.icon}
               </div>
-              <h3 className="font-display text-lg font-semibold mb-2">{f.title}</h3>
+              <h3 className="font-display text-lg font-semibold mb-2">
+                {f.title}
+              </h3>
               <p className="text-muted text-sm leading-relaxed">{f.desc}</p>
             </div>
           ))}
@@ -107,5 +108,5 @@ export default function HomePage() {
         </p>
       </footer>
     </main>
-  )
+  );
 }
