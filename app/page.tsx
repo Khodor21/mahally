@@ -16,14 +16,11 @@ export default function HomePage() {
         </Link>
       </nav>
 
-      {/* Hero */}
       <section className="relative px-8 pt-24 pb-20 max-w-5xl mx-auto">
-        {/* Background accent */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent/3 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative">
-          {/* Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-accent/30 bg-accent/5 mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse-dot" />
             <span className="text-xs font-mono text-accent tracking-wider uppercase">
@@ -62,7 +59,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features */}
       <section className="px-8 py-20 max-w-5xl mx-auto">
         <div className="grid md:grid-cols-3 gap-6">
           {[
