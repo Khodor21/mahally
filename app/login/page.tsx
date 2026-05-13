@@ -4,10 +4,17 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, Loader2, AlertCircle, ArrowRight } from 'lucide-react'
+import {
+  Eye,
+  EyeOff,
+  Loader2,
+  AlertCircle,
+  ArrowLeft,
+} from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -16,6 +23,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
     setLoading(true)
     setError('')
 
@@ -26,7 +34,7 @@ export default function LoginPage() {
     })
 
     if (result?.error) {
-      setError('Invalid email or password')
+      setError('الإيميل أو كلمة المرور غير صحيحة')
       setLoading(false)
     } else {
       router.push('/dashboard')
@@ -34,78 +42,208 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-ink flex flex-col">
-      <nav className="flex items-center justify-between px-8 py-6 border-b border-white/5">
-        <Link href="/" className="font-display text-xl font-bold">
-          Store<span className="text-accent">Forge</span>
-        </Link>
+    <div
+      dir="rtl"
+      className="min-h-screen bg-brand-grey flex flex-col"
+    >
+      {/* Header */}
+      <nav className="border-b border-[#E8E0D5] bg-white/80 backdrop-blur-xl">
+        <div className="w-full mx-auto px-5 md:px-10">
+          <div className="h-[78px] flex items-center justify-between">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-[#C8392B] flex items-center justify-center shadow-sm">
+                <span className="text-white text-lg font-bold leading-none">
+                  م
+                </span>
+              </div>
+
+              <div>
+                <h2
+                  className="text-[22px] text-[#1E1E1E]"
+                  style={{ fontFamily: 'Lalezar, cursive' }}
+                >
+                  محلي
+                </h2>
+
+                <p className="text-[11px] text-[#6B6B6B] -mt-1">
+                  منصتك للتجارة الإلكترونية
+                </p>
+              </div>
+            </Link>
+
+            {/* Back */}
+            <Link
+              href="/"
+              className="hidden sm:flex items-center gap-2 text-[#6B6B6B] hover:text-[#C8392B] transition-colors text-sm font-medium"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              الرجوع للرئيسية
+            </Link>
+          </div>
+        </div>
       </nav>
 
-      <div className="flex-1 flex items-center justify-center px-6">
-        <div className="max-w-sm w-full animate-fade-up">
-          <h1 className="font-display text-4xl font-bold mb-2">Welcome back</h1>
-          <p className="text-muted mb-8">Sign in to manage your store.</p>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-paper/80 mb-1.5">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-paper placeholder-muted/50 focus:border-accent/50 transition-all"
-              />
+      {/* Content */}
+      <div className="flex-1 flex items-center justify-center py-10 md:py-16">
+        <div className="w-full px-3 md:px-12 mx-auto">
+          {/* Card */}
+          <div className="bg-white border border-[#E8E0D5] rounded-[32px] px-3 py-6 md:p-8 shadow-[0_10px_40px_rgba(0,0,0,0.06)]">
+            {/* Top badge */}
+            <div className="text-center w-fit mx-auto nline-flex items-center justify-center px-4 py-2 rounded-full bg-brand-light text-brand-dark text-sm font-semibold mb-6">
+              تسجيل الدخول
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-paper/80 mb-1.5">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="Your password"
-                  required
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 pr-12 text-paper placeholder-muted/50 focus:border-accent/50 transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(s => !s)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-paper transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-accent text-paper rounded-lg font-semibold hover:bg-accent/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+            {/* Title */}
+            <h1
+              className="text-[34px] md:text-[42px] leading-[1.15] text-brand-dark text-center mb-3"
+              style={{ fontFamily: 'Lalezar, cursive' }}
             >
-              {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Signing in...</>
-              ) : (
-                <>Sign in <ArrowRight className="w-4 h-4" /></>
-              )}
-            </button>
-          </form>
+              أهلاً بعودتك 👋
+            </h1>
 
-          <p className="text-center text-muted text-sm mt-6">
-            Don&apos;t have a store?{' '}
-            <Link href="/onboarding" className="text-accent hover:underline">
-              Create one free
-            </Link>
-          </p>
+            <p className="text-[#6B6B6B] text-center text-[15px] md:text-[16px] leading-[1.9] mb-8">
+              سجّل دخولك وكفّي إدارة متجرك، الطلبات،
+              والزبائن من مكان واحد.
+            </p>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-semibold text-[#1E1E1E] mb-2">
+                  البريد الإلكتروني
+                </label>
+
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  className="w-full h-[52px] md:h-[58px] rounded md:rounded-xl border border-[#E8E0D5] bg-[#FAF7F2] px-5 text-[#1E1E1E] placeholder:text-[#A1A1A1] text-sm placeholder:text-xs outline-none transition-all focus:border-[#C8392B] focus:bg-white"
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-semibold text-[#1E1E1E]">
+                    كلمة المرور
+                  </label>
+
+                  <button
+                    type="button"
+                    className="text-[13px] text-brand-dark hover:underline"
+                  >
+                    نسيت كلمة المرور؟
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="أدخل كلمة المرور"
+                    required
+                    className="placeholder:text-sm text-xs w-full h-[52px] md:h-[58px] rounded md:rounded-xl border border-[#E8E0D5] bg-[#FAF7F2] px-5 pl-14 text-[#1E1E1E] placeholder:text-[#A1A1A1] outline-none transition-all focus:border-[#C8392B] focus:bg-white"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(s => !s)}
+                    className="absolute left-5 top-1/2 -translate-y-1/2 text-[#8B8B8B] hover:text-[#1E1E1E] transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div className="flex items-start gap-2 p-4 rounded-2xl bg-red-50 border border-red-100 text-red-500 text-sm leading-[1.7]">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-[60px] rounded-2xl bg-brand-dark text-white font-bold text-[16px] transition-all duration-300 hover:bg-brand-light hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-3  mt-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    جاري تسجيل الدخول...
+                  </>
+                ) : (
+                  <>
+                    دخول إلى لوحة التحكم
+                    <ArrowLeft className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Divider */}
+            <div className="relative my-8">
+              <div className="h-px bg-[#E8E0D5]" />
+
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="bg-white px-4 text-[13px] text-[#8B8B8B]">
+                  أو
+                </span>
+              </div>
+            </div>
+
+            {/* Create account */}
+            <div className="bg-[#FAF7F2] border border-[#E8E0D5] rounded-2xl p-5 text-center">
+              <h3 className="text-[#1E1E1E] font-bold mb-2">
+                بعدك ما عندك متجر؟
+              </h3>
+
+              <p className="text-[14px] text-[#6B6B6B] leading-[1.8] mb-4">
+                افتح متجرك خلال دقائق وابدأ البيع مباشرة
+                بدون أي خبرة تقنية.
+              </p>
+
+              <Link
+                href="/onboarding"
+                className="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl border-2 border-brand-dark text-brand-dark font-bold text-[15px] transition-all duration-300 hover:bg-brand-dark hover:text-white"
+              >
+                أنشئ متجرك مجاناً
+              </Link>
+            </div>
+          </div>
+
+          {/* Bottom trust */}
+          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-5 mt-6 text-[13px] text-[#6B6B6B]">
+            <div className="flex items-center gap-2">
+              <span>🔒</span>
+              <span>دخول آمن بالكامل</span>
+            </div>
+
+            <div className="hidden sm:block w-1 h-1 rounded-full bg-[#D1D1D1]" />
+
+            <div className="flex items-center gap-2">
+              <span>⚡</span>
+              <span>لوحة تحكم سريعة وسهلة</span>
+            </div>
+
+            <div className="hidden sm:block w-1 h-1 rounded-full bg-[#D1D1D1]" />
+
+            <div className="flex items-center gap-2">
+              <span>🇱🇧</span>
+              <span>دعم لبناني 100٪</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
