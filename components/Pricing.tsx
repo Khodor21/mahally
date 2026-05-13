@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { FiCheck, FiX } from "react-icons/fi";
 
@@ -7,63 +8,74 @@ const plans = [
     id: "starter",
     name: "المبتدئ",
     nameEn: "Starter",
-    price: { monthly: "مجاني", yearly: "مجاني" },
+    price: {
+      monthly: "مجاني",
+      yearly: "مجاني",
+    },
     period: "للأبد",
-    tag: null,
     popular: false,
     cta: "ابدأ مجاناً",
-    ctaSecondary: true,
+    outlined: true,
+
     features: [
       { text: "متجر واحد", included: true },
       { text: "حتى 10 منتجات", included: true },
       { text: "قالب واحد", included: true },
-      { text: "دومين فرعي (yourstore.محلي.lb)", included: true },
+      { text: "دومين فرعي مجاني", included: true },
       { text: "دعم عبر الإيميل", included: true },
       { text: "دومين خاص", included: false },
       { text: "تقارير متقدمة", included: false },
-      { text: "تكامل مع الشحن", included: false },
+      { text: "تكامل شحن ودفع", included: false },
     ],
   },
+
   {
     id: "growth",
     name: "النمو",
     nameEn: "Growth",
-    price: { monthly: "$19", yearly: "$15" },
+    price: {
+      monthly: "$19",
+      yearly: "$15",
+    },
     period: "/ شهر",
-    tag: "وفّر 20% مع الاشتراك السنوي",
     popular: true,
-    cta: "جرب 14 يوم مجاناً ←",
-    ctaSecondary: false,
+    badge: "الأكثر اختياراً",
+    cta: "ابدأ 14 يوم مجاناً",
+
     features: [
-      { text: "متجر واحد", included: true },
       { text: "حتى 500 منتج", included: true },
       { text: "كل القوالب", included: true },
-      { text: "دومين خاص مجاناً", included: true },
+      { text: "دومين خاص مجاني", included: true },
       { text: "تقارير كاملة", included: true },
-      { text: "تكامل مع الشحن والدفع", included: true },
-      { text: "دعم واتساب وشات", included: true },
-      { text: "SEO Tools", included: true },
+      { text: "تكامل شحن ودفع", included: true },
+      { text: "دعم واتساب مباشر", included: true },
+      { text: "SEO متقدم", included: true },
+      { text: "برنامج أفلييت", included: true },
     ],
   },
+
   {
     id: "pro",
     name: "الاحترافي",
     nameEn: "Pro",
-    price: { monthly: "$49", yearly: "$39" },
+    price: {
+      monthly: "$49",
+      yearly: "$39",
+    },
     period: "/ شهر",
-    tag: null,
     popular: false,
     cta: "تواصل معنا",
-    ctaSecondary: true,
+    outlined: true,
+
     features: [
       { text: "متاجر متعددة", included: true },
       { text: "منتجات غير محدودة", included: true },
       { text: "كل مميزات النمو", included: true },
       { text: "API Access", included: true },
-      { text: "Manager Account", included: true },
-      { text: "تقارير وتحليلات متقدمة", included: true },
-      { text: "أولوية الدعم الفني", included: true },
-      { text: "Custom domain", included: true },
+      { text: "صلاحيات فريق", included: true },
+      { text: "تحليلات متقدمة", included: true },
+      { text: "أولوية بالدعم", included: true },
+      { text: "دومين مخصص", included: true },
     ],
   },
 ];
@@ -72,162 +84,157 @@ export default function Pricing() {
   const [yearly, setYearly] = useState(false);
 
   return (
-    <section className="py-20 md:py-28 bg-[#FDF6EC]" id="pricing">
-      <div className="max-w-[1200px] mx-auto px-5 md:px-10">
+    <section id="pricing" className="py-24 bg-brand-grey overflow-hidden">
+      <div className="w-full mx-auto px-5 md:px-10">
         {/* Header */}
-        <div className="text-center mb-12">
-          <span className="inline-block bg-[#C8392B]/10 text-[#C8392B] rounded-full px-5 py-2 text-sm font-semibold mb-5">
+        <div className="text-center mb-14 md:mb-16">
+          <span className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-brand-light text-brand-dark text-sm font-medium mb-6">
             الأسعار
           </span>
+
           <h2
-            className="text-[32px] md:text-[38px] font-bold text-[#1E1E1E] mb-4"
-            style={{ fontFamily: "var(--font-display)" }}
+            className="text-[34px] md:text-[64px] leading-[1.15] text-brand-dark mb-4"
+            style={{ fontFamily: "Lalezar, cursive" }}
           >
-            أسعار بتناسب كل تاجر
+            خطط تناسب كل متجر
           </h2>
-          <p className="text-[18px] text-[#6B6B6B] font-medium mb-8">
-            ابدأ مجاناً — اشترك لما تكون جاهز
+
+          <p className="text-brand-dark/70 text-[16px] md:text-[18px] leading-[1.9] mb-8">
+            ابدأ مجاناً وطوّر متجرك لما تكبر مبيعاتك
           </p>
 
           {/* Toggle */}
-          <div className="inline-flex items-center gap-3 bg-white rounded-full p-1.5 border border-[#E8E0D5] shadow-sm">
+          <div className="inline-flex items-center gap-2 p-1.5 rounded-full border border-brand-light bg-brand-white">
             <button
               onClick={() => setYearly(false)}
-              className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ${
+              className={`h-[46px] px-6 rounded-full text-sm font-semibold transition-all duration-300 ${
                 !yearly
-                  ? "bg-[#C8392B] text-white shadow-md"
-                  : "text-[#6B6B6B] hover:text-[#1E1E1E]"
+                  ? "bg-brand-dark text-brand-white"
+                  : "text-brand-dark/60 hover:text-brand-dark"
               }`}
             >
               شهري
             </button>
+
             <button
               onClick={() => setYearly(true)}
-              className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${
+              className={`h-[46px] px-6 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${
                 yearly
-                  ? "bg-[#C8392B] text-white shadow-md"
-                  : "text-[#6B6B6B] hover:text-[#1E1E1E]"
+                  ? "bg-brand-dark text-brand-white"
+                  : "text-brand-dark/60 hover:text-brand-dark"
               }`}
             >
               <span>سنوي</span>
+
               <span
-                className={`text-xs px-2 py-0.5 rounded-full ${yearly ? "bg-white/20 text-white" : "bg-[#2ECC71]/15 text-[#2A5C45]"}`}
+                className={`text-[11px] px-2 py-1 rounded-full ${
+                  yearly
+                    ? "bg-brand-white/10 text-brand-white"
+                    : "bg-brand-light text-brand-dark"
+                }`}
               >
-                وفّر 20%
+                وفر 20%
               </span>
             </button>
           </div>
         </div>
 
-        {/* Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`relative rounded-2xl flex flex-col ${
-                plan.popular
-                  ? "pricing-popular text-white shadow-2xl shadow-[#C8392B]/30 scale-[1.02] md:scale-105 z-10"
-                  : "bg-white border border-[#E8E0D5] shadow-[0_4px_20px_rgba(0,0,0,0.06)]"
-              }`}
-            >
-              {/* Popular badge */}
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="bg-[#E8A838] text-white text-xs font-bold px-5 py-1.5 rounded-full shadow-md whitespace-nowrap">
-                    ⭐ الأكثر شيوعاً
-                  </span>
-                </div>
-              )}
+        {/* Pricing Cards */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-stretch">
+          {plans.map((plan) => {
+            const isPopular = plan.popular;
 
-              <div className="p-7 flex flex-col h-full">
-                {/* Plan name */}
-                <div className="mb-6">
+            return (
+              <div
+                key={plan.id}
+                className={`relative rounded-[34px] p-6 md:p-8 transition-all duration-300 flex flex-col ${
+                  isPopular
+                    ? "bg-brand-dark text-brand-white shadow-[0_20px_60px_rgba(0,0,0,0.12)] xl:-translate-y-3"
+                    : "bg-brand-white border border-brand-light"
+                }`}
+              >
+                {/* Badge */}
+                {plan.badge && (
+                  <div className="absolute top-5 left-5">
+                    <span className="px-4 py-2 rounded-full bg-brand-white text-brand-dark text-xs font-bold">
+                      {plan.badge}
+                    </span>
+                  </div>
+                )}
+
+                {/* Plan */}
+                <div className="mb-8">
                   <p
-                    className={`text-sm font-semibold mb-1 ${plan.popular ? "text-white/70" : "text-[#6B6B6B]"}`}
+                    className={`text-sm mb-2 ${
+                      isPopular ? "text-brand-white/60" : "text-brand-dark/50"
+                    }`}
                   >
                     {plan.nameEn}
                   </p>
-                  <h3
-                    className={`text-[22px] font-bold ${plan.popular ? "text-white" : "text-[#1E1E1E]"}`}
-                    style={{ fontFamily: "var(--font-display)" }}
-                  >
-                    {plan.name}
-                  </h3>
-                </div>
 
-                {/* Price */}
-                <div className="mb-6">
-                  <div className="flex items-end gap-1">
+                  <h3 className="text-[28px] font-bold mb-5">{plan.name}</h3>
+
+                  {/* Price */}
+                  <div className="flex items-end gap-2">
                     <span
-                      className={`text-[44px] font-bold leading-none ${plan.popular ? "text-white" : "text-[#1E1E1E]"}`}
-                      style={{ fontFamily: "var(--font-display)" }}
+                      className="text-[52px] leading-none"
+                      style={{ fontFamily: "Lalezar, cursive" }}
                     >
                       {yearly ? plan.price.yearly : plan.price.monthly}
                     </span>
-                    {plan.period !== "للأبد" && (
-                      <span
-                        className={`text-sm pb-2 ${plan.popular ? "text-white/70" : "text-[#6B6B6B]"}`}
-                      >
-                        {plan.period}
-                      </span>
-                    )}
-                    {plan.period === "للأبد" && (
-                      <span
-                        className={`text-sm pb-2 ${plan.popular ? "text-white/70" : "text-[#6B6B6B]"}`}
-                      >
-                        {plan.period}
-                      </span>
-                    )}
+
+                    <span
+                      className={`pb-2 text-sm ${
+                        isPopular ? "text-brand-white/60" : "text-brand-dark/50"
+                      }`}
+                    >
+                      {plan.period}
+                    </span>
                   </div>
-                  {plan.tag && yearly && (
-                    <p className="text-[#E8A838] text-xs font-semibold mt-2 bg-[#E8A838]/10 rounded-lg px-3 py-1 inline-block">
-                      {plan.tag}
-                    </p>
-                  )}
                 </div>
 
-                {/* Divider */}
-                <div
-                  className={`h-px mb-6 ${plan.popular ? "bg-white/20" : "bg-[#E8E0D5]"}`}
-                />
-
                 {/* Features */}
-                <ul className="space-y-3 flex-1 mb-8">
-                  {plan.features.map((f, i) => (
-                    <li key={i} className="flex items-center gap-3">
-                      {f.included ? (
-                        <div
-                          className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            plan.popular ? "bg-white/20" : "bg-[#2ECC71]/15"
-                          }`}
-                        >
-                          <FiCheck
-                            size={11}
-                            className={
-                              plan.popular ? "text-white" : "text-[#2ECC71]"
-                            }
-                            strokeWidth={3}
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-[#E8E0D5] flex items-center justify-center flex-shrink-0">
-                          <FiX
-                            size={10}
-                            className="text-[#6B6B6B]"
-                            strokeWidth={3}
-                          />
-                        </div>
-                      )}
-                      <span
-                        className={`text-[14px] ${
-                          f.included
-                            ? plan.popular
-                              ? "text-white/90"
-                              : "text-[#1E1E1E]"
-                            : "text-[#6B6B6B] line-through"
+                <ul className="space-y-4 flex-1 mb-8">
+                  {plan.features.map((feature, index) => (
+                    <li key={index} className="flex items-start gap-3">
+                      {/* Icon */}
+                      <div
+                        className={`w-5 h-5 rounded-full flex items-center justify-center mt-[2px] shrink-0 ${
+                          feature.included
+                            ? isPopular
+                              ? "bg-brand-white/10"
+                              : "bg-brand-light"
+                            : "bg-brand-grey"
                         }`}
                       >
-                        {f.text}
+                        {feature.included ? (
+                          <FiCheck
+                            size={12}
+                            strokeWidth={3}
+                            className={
+                              isPopular ? "text-brand-white" : "text-brand-dark"
+                            }
+                          />
+                        ) : (
+                          <FiX
+                            size={11}
+                            strokeWidth={3}
+                            className="text-brand-dark/40"
+                          />
+                        )}
+                      </div>
+
+                      {/* Text */}
+                      <span
+                        className={`text-[15px] leading-[1.9] ${
+                          feature.included
+                            ? isPopular
+                              ? "text-brand-white/85"
+                              : "text-brand-dark/80"
+                            : "text-brand-dark/35 line-through"
+                        }`}
+                      >
+                        {feature.text}
                       </span>
                     </li>
                   ))}
@@ -236,42 +243,42 @@ export default function Pricing() {
                 {/* CTA */}
                 <a
                   href="#"
-                  className={`block w-full text-center py-3.5 rounded-xl font-bold text-base transition-all duration-200 hover:-translate-y-0.5 ${
-                    plan.popular
-                      ? "bg-white text-[#C8392B] hover:bg-[#FDF6EC] shadow-md"
-                      : plan.ctaSecondary
-                        ? "border-2 border-[#C8392B] text-[#C8392B] hover:bg-[#C8392B] hover:text-white"
-                        : "bg-[#C8392B] text-white hover:bg-[#a82e22] shadow-md"
+                  className={`h-[56px] rounded-2xl text-[15px] font-bold flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5 ${
+                    isPopular
+                      ? "bg-brand-white text-brand-dark hover:opacity-90"
+                      : plan.outlined
+                        ? "border border-brand-light text-brand-dark hover:bg-brand-dark hover:text-brand-white"
+                        : "bg-brand-dark text-brand-white"
                   }`}
                 >
                   {plan.cta}
                 </a>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Bottom note */}
-        <div className="mt-10 text-center">
-          <div className="inline-flex flex-col sm:flex-row items-center gap-4 sm:gap-8 bg-white rounded-2xl px-8 py-5 border border-[#E8E0D5] shadow-sm">
-            <div className="flex items-center gap-2 text-sm text-[#6B6B6B]">
+        {/* Bottom Trust */}
+        <div className="flex justify-center mt-10">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 rounded-[28px] border border-brand-light bg-brand-white px-6 py-5">
+            <div className="flex items-center gap-2 text-brand-dark/70 text-sm">
               <span>🔒</span>
               <span>SSL مجاني</span>
             </div>
-            <div className="hidden sm:block w-px h-5 bg-[#E8E0D5]" />
-            <div className="flex items-center gap-2 text-sm text-[#6B6B6B]">
+
+            <div className="flex items-center gap-2 text-brand-dark/70 text-sm">
               <span>💾</span>
-              <span>نسخ احتياطي تلقائي</span>
+              <span>نسخ احتياطي يومي</span>
             </div>
-            <div className="hidden sm:block w-px h-5 bg-[#E8E0D5]" />
-            <div className="flex items-center gap-2 text-sm text-[#6B6B6B]">
+
+            <div className="flex items-center gap-2 text-brand-dark/70 text-sm">
               <span>🔄</span>
               <span>تحديثات مجانية</span>
             </div>
-            <div className="hidden sm:block w-px h-5 bg-[#E8E0D5]" />
-            <div className="flex items-center gap-2 text-sm text-[#6B6B6B]">
+
+            <div className="flex items-center gap-2 text-brand-dark/70 text-sm">
               <span>💳</span>
-              <span>بتقدر تدفع بالليرة اللبنانية أو الدولار</span>
+              <span>دفع بالدولار أو الليرة</span>
             </div>
           </div>
         </div>
