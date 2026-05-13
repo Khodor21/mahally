@@ -1,167 +1,172 @@
-import { FaFacebookF, FaInstagram, FaTiktok, FaLinkedinIn, FaWhatsapp } from 'react-icons/fa';
+import {
+  FaFacebookF,
+  FaInstagram,
+  FaTiktok,
+  FaLinkedinIn,
+  FaWhatsapp,
+} from "react-icons/fa";
 
 const platformLinks = [
-  { label: 'المميزات', href: '#features' },
-  { label: 'الأسعار', href: '#pricing' },
-  { label: 'قصص النجاح', href: '#testimonials' },
-  { label: 'المدونة', href: '#' },
-  { label: 'عن المنصة', href: '#' },
+  { label: "المميزات", href: "#features" },
+  { label: "الأسعار", href: "#pricing" },
+  { label: "قصص النجاح", href: "#testimonials" },
+  { label: "المدونة", href: "#" },
+  { label: "عن المنصة", href: "#" },
 ];
 
 const supportLinks = [
-  { label: 'مركز المساعدة', href: '#' },
-  { label: 'تواصل معنا', href: '#contact' },
-  { label: 'واتساب مباشر', href: 'https://wa.me/9611234567', external: true },
-  { label: 'الأسئلة الشائعة', href: '#faq' },
-  { label: 'hello@mahalli.lb', href: 'mailto:hello@mahalli.lb', external: true },
+  { label: "مركز المساعدة", href: "#" },
+  { label: "تواصل معنا", href: "#contact" },
+  {
+    label: "واتساب مباشر",
+    href: "https://wa.me/9611234567",
+    external: true,
+  },
+  { label: "الأسئلة الشائعة", href: "#faq" },
+  {
+    label: "hello@mahalli.lb",
+    href: "mailto:hello@mahalli.lb",
+    external: true,
+  },
 ];
 
 const legalLinks = [
-  { label: 'سياسة الخصوصية', href: '#' },
-  { label: 'الشروط والأحكام', href: '#' },
-  { label: 'سياسة الاسترداد', href: '#' },
-  { label: 'سياسة الكوكيز', href: '#' },
+  { label: "سياسة الخصوصية", href: "#" },
+  { label: "الشروط والأحكام", href: "#" },
+  { label: "سياسة الاسترداد", href: "#" },
+  { label: "سياسة الكوكيز", href: "#" },
+];
+
+const socials = [
+  { icon: FaFacebookF, href: "#", label: "Facebook" },
+  { icon: FaInstagram, href: "#", label: "Instagram" },
+  { icon: FaTiktok, href: "#", label: "TikTok" },
+  { icon: FaLinkedinIn, href: "#", label: "LinkedIn" },
+  {
+    icon: FaWhatsapp,
+    href: "https://wa.me/9611234567",
+    label: "WhatsApp",
+  },
 ];
 
 export default function Footer() {
   return (
-    <footer className="bg-[#1E1E1E] text-white" id="footer">
-      <div className="max-w-[1200px] mx-auto px-5 md:px-10 pt-16 pb-8">
-        {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-14">
-          
-          {/* Column 1: Brand */}
-          <div className="lg:col-span-1">
+    <footer
+      id="footer"
+      className="bg-brand-light text-brand-dark overflow-hidden"
+    >
+      <div className="w-full mx-auto px-5 md:px-10 pt-20 pb-8">
+        {/* Top */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-12 xl:gap-10 mb-14">
+          {/* Brand */}
+          <div className="xl:col-span-1">
             {/* Logo */}
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 bg-[#C8392B] rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg leading-none">م</span>
+            <a href="#" className="flex items-center gap-3 mb-5">
+              <div className="w-12 h-12 rounded-2xl border border-brand-dark/10 bg-brand-dark/5 hover:bg-brand-dark hover:text-brand-dark text-brand-dark flex items-center justify-center transition-all duration-300 hover:-translate-y-1">
+                <span className="text-brand-dark text-xl font-bold leading-none">
+                  م
+                </span>
               </div>
-              <span
-                className="text-2xl font-bold text-white"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                محلي
-              </span>
-            </div>
+
+              <div className="flex flex-col leading-none">
+                <span
+                  className="text-[34px] text-brand-dark"
+                  style={{ fontFamily: "Lalezar, cursive" }}
+                >
+                  محلي
+                </span>
+              </div>
+            </a>
 
             {/* Tagline */}
-            <p className="text-[#E8A838] font-semibold text-sm mb-3">
-              "افتح متجرك من لبنان للعالم 🇱🇧"
+            <p className="text-brand-light text-[15px] font-medium mb-4 leading-[1.9]">
+              افتح متجرك من لبنان للعالم 🇱🇧
             </p>
 
-            {/* Short desc */}
-            <p className="text-white/60 text-[14px] leading-[1.8] mb-6">
-              منصة لبنانية لبناء المتاجر الإلكترونية
-              بسهولة وبسعر يناسبك.
+            {/* Description */}
+            <p className="text-brand-dark/65 text-[14px] leading-[2] max-w-[320px] mb-7">
+              منصة لبنانية تساعدك تنشئ متجر إلكتروني احترافي بسهولة، بدون تعقيد
+              وبدون خبرة تقنية.
             </p>
 
-            {/* Social icons */}
+            {/* Socials */}
             <div className="flex items-center gap-3">
-              {[
-                { icon: FaFacebookF, href: '#', label: 'Facebook' },
-                { icon: FaInstagram, href: '#', label: 'Instagram' },
-                { icon: FaTiktok, href: '#', label: 'TikTok' },
-                { icon: FaLinkedinIn, href: '#', label: 'LinkedIn' },
-                { icon: FaWhatsapp, href: 'https://wa.me/9611234567', label: 'WhatsApp' },
-              ].map((s, i) => (
+              {socials.map((social, index) => (
                 <a
-                  key={i}
-                  href={s.href}
-                  aria-label={s.label}
-                  className="w-9 h-9 rounded-lg bg-white/10 hover:bg-[#C8392B] flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5"
-                  target={s.href.startsWith('http') ? '_blank' : undefined}
-                  rel={s.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  key={index}
+                  href={social.href}
+                  aria-label={social.label}
+                  target={social.href.startsWith("http") ? "_blank" : undefined}
+                  rel={
+                    social.href.startsWith("http")
+                      ? "noopener noreferrer"
+                      : undefined
+                  }
+                  className="w-11 h-11 rounded-2xl border border-brand-dark/10 bg-brand-dark/5 hover:bg-brand-dark hover:text-brand-dark text-brand-dark flex items-center justify-center transition-all duration-300 hover:-translate-y-1"
                 >
-                  <s.icon size={15} />
+                  <social.icon size={16} />
                 </a>
               ))}
             </div>
           </div>
 
-          {/* Column 2: Platform */}
-          <div>
-            <h4
-              className="text-white font-bold text-[16px] mb-5"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              المنصة
-            </h4>
-            <ul className="space-y-3">
-              {platformLinks.map((link, i) => (
-                <li key={i}>
-                  <a
-                    href={link.href}
-                    className="text-white/60 hover:text-white text-[14px] transition-colors duration-200 hover:text-[#E8A838]"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* Links */}
+          <FooterColumn title="المنصة" links={platformLinks} />
 
-          {/* Column 3: Support */}
-          <div>
-            <h4
-              className="text-white font-bold text-[16px] mb-5"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              الدعم
-            </h4>
-            <ul className="space-y-3">
-              {supportLinks.map((link, i) => (
-                <li key={i}>
-                  <a
-                    href={link.href}
-                    className="text-white/60 hover:text-[#E8A838] text-[14px] transition-colors duration-200"
-                    target={(link as any).external ? '_blank' : undefined}
-                    rel={(link as any).external ? 'noopener noreferrer' : undefined}
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <FooterColumn title="الدعم" links={supportLinks} />
 
-          {/* Column 4: Legal */}
-          <div>
-            <h4
-              className="text-white font-bold text-[16px] mb-5"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              القانوني
-            </h4>
-            <ul className="space-y-3">
-              {legalLinks.map((link, i) => (
-                <li key={i}>
-                  <a
-                    href={link.href}
-                    className="text-white/60 hover:text-[#E8A838] text-[14px] transition-colors duration-200"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <FooterColumn title="القانوني" links={legalLinks} />
         </div>
 
         {/* Divider */}
-        <div className="h-px bg-white/10 mb-8" />
+        <div className="h-[1px] bg-brand-dark/10 mb-7" />
 
-        {/* Bottom bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-white/50">
-          <p>
-            © 2024 <span className="text-white/70 font-semibold">محلي</span> — صنع بـ ❤️ في لبنان 🇱🇧
+        {/* Bottom */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-[13px] md:text-[14px] text-brand-dark/50 text-center md:text-right leading-[1.9]">
+            © 2026 <span className="text-brand-dark font-semibold">محلي</span> —
+            جميع الحقوق محفوظة
           </p>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[#2ECC71] animate-pulse" />
-            <span>كل الأنظمة شغالة</span>
+
+          <div className="flex items-center gap-2 text-brand-dark/60 text-sm">
+            <div className="w-2 h-2 rounded-full bg-brand-light animate-pulse" />
+            <span>كل الأنظمة تعمل بشكل طبيعي</span>
           </div>
         </div>
       </div>
     </footer>
+  );
+}
+
+function FooterColumn({
+  title,
+  links,
+}: {
+  title: string;
+  links: {
+    label: string;
+    href: string;
+    external?: boolean;
+  }[];
+}) {
+  return (
+    <div>
+      <h4 className="text-brand-dark text-[18px] font-bold mb-5">{title}</h4>
+
+      <ul className="space-y-3">
+        {links.map((link, index) => (
+          <li key={index}>
+            <a
+              href={link.href}
+              target={link.external ? "_blank" : undefined}
+              rel={link.external ? "noopener noreferrer" : undefined}
+              className="text-brand-dark/60 hover:text-brand-dark text-[14px] leading-[1.9] transition-colors duration-200"
+            >
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

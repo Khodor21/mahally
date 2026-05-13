@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { FiChevronDown } from "react-icons/fi";
 
@@ -8,116 +9,131 @@ const faqs = [
     a: "ولا شي! المنصة مصممة لحدا ما عنده أي خلفية تقنية أو تصميم. إذا بتعرف تحط صورة على واتساب — بتعرف تشغل منصتنا.",
   },
   {
-    q: "كيف بدفع؟ في إمكانية الدفع بالليرة اللبنانية؟",
-    a: "آه طبعاً! بتقدر تدفع اشتراكك بالليرة اللبنانية أو الدولار — حسب ما يريحك.",
-  },
-  {
     q: "شو إذا مش عاجبني بعد ما جربت؟",
-    a: "عندك 14 يوم تجربة مجانية كاملة بدون بطاقة ائتمانية. وإذا اشتركت ومش راضي — بترجع-لك مصاريك كاملة خلال 30 يوم.",
+    a: "إذا اشتركت ومش راضي — بترجعلك مصاريك كاملة خلال 30 يوم.",
   },
   {
     q: "بيشتغل المتجر صح على الموبايل؟",
-    a: "طبعاً! كل المتاجر responsive وبتبان تمام على الموبايل، التابلت، والكمبيوتر — من غير ما تعمل أي شي إضافي.",
+    a: "طبعاً! كل المتاجر responsive وبتبان ممتاز على الموبايل، التابلت، والكمبيوتر بدون أي إعدادات إضافية.",
   },
   {
     q: "في دعم فني بالعربي اللبناني؟",
-    a: "فريقنا لبناني 100٪ وجاهز يساعدك بالواتساب، الشات، والإيميل — مش رح تحكي مع bot أو ترجمة.",
+    a: "فريقنا لبناني 100٪ وجاهز يساعدك عبر الواتساب، الشات، والإيميل — بدون bots أو ترجمة.",
   },
   {
     q: "بقدر أربط دومين خاص باسم متجري؟",
-    a: "آه! بالباقة المدفوعة بتقدر تربط دومينك الخاص (مثل: متجرك.com) بسهولة كاملة من لوحة التحكم.",
+    a: "أكيد! بالباقة المدفوعة بتقدر تربط دومينك الخاص بسهولة كاملة من لوحة التحكم.",
   },
   {
     q: "شو إذا عندي أكتر من متجر؟",
-    a: "الباقة الاحترافية بتدعم متاجر متعددة من نفس الحساب — تواصل معنا وبنحكيك عن التفاصيل.",
+    a: "الباقة الاحترافية بتدعم إدارة عدة متاجر من نفس الحساب بكل سهولة.",
   },
   {
     q: "بيانات متجري وزبائني آمنة؟",
-    a: "كاملاً. SSL مجاني، تشفير كامل للبيانات، ونسخ احتياطي تلقائي — بياناتك ما بتروح وما بتوصلها أي حدا.",
+    a: "SSL مجاني، تشفير كامل للبيانات، ونسخ احتياطي تلقائي لحماية متجرك وزبائنك.",
   },
 ];
 
 export default function FAQ() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
 
-  const toggle = (i: number) => {
-    setOpenIndex(openIndex === i ? null : i);
+  const toggle = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index);
   };
 
   return (
-    <section className="py-20 md:py-28 bg-white" id="faq">
-      <div className="max-w-[800px] mx-auto px-5 md:px-10">
+    <section id="faq" className="py-24 bg-brand-grey overflow-hidden">
+      <div className="mx-auto px-5 md:px-10 w-full">
         {/* Header */}
-        <div className="text-center mb-14">
-          <span className="inline-block bg-[#C8392B]/10 text-[#C8392B] rounded-full px-5 py-2 text-sm font-semibold mb-5">
+        <div className="text-center mb-14 md:mb-16">
+          <span className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-brand-light text-brand-dark text-sm font-medium mb-6">
             الأسئلة الشائعة
           </span>
+
           <h2
-            className="text-[32px] md:text-[38px] font-bold text-[#1E1E1E] mb-4"
-            style={{ fontFamily: "var(--font-display)" }}
+            className="text-[34px] md:text-[64px] leading-[1.2] text-brand-dark mb-4"
+            style={{ fontFamily: "Lalezar, cursive" }}
           >
-            أسئلة كتير — جاوبنا عليها
+            جاوبنا على كل شي تقريباً
           </h2>
-          <p className="text-[18px] text-[#6B6B6B] font-medium">
-            ما لاقيت جوابك؟{" "}
-            <a
-              href="https://wa.me/9611234567"
-              className="text-[#C8392B] underline hover:text-[#a82e22] transition-colors"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              تواصل معنا بالواتساب
-            </a>
+
+          <p className="text-brand-dark/70 text-[16px] md:text-[18px] leading-[1.9] max-w-[620px] mx-auto">
+            وإذا بعد عندك أي سؤال — فريقنا جاهز يساعدك بأي وقت.
           </p>
         </div>
 
-        {/* Accordion */}
-        <div className="space-y-3">
-          {faqs.map((faq, i) => (
-            <div
-              key={i}
-              className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
-                openIndex === i
-                  ? "border-[#C8392B] shadow-md shadow-[#C8392B]/10"
-                  : "border-[#E8E0D5] hover:border-[#C8392B]/40"
-              }`}
-            >
-              <button
-                className="w-full flex items-center justify-between gap-4 p-5 md:p-6 text-right"
-                onClick={() => toggle(i)}
-              >
-                <span
-                  className={`text-[15px] md:text-[16px] font-semibold leading-[1.6] text-right flex-1 ${
-                    openIndex === i ? "text-[#C8392B]" : "text-[#1E1E1E]"
-                  }`}
-                >
-                  {faq.q}
-                </span>
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                    openIndex === i
-                      ? "bg-[#C8392B] text-white rotate-180"
-                      : "bg-[#FDF6EC] text-[#6B6B6B]"
-                  }`}
-                >
-                  <FiChevronDown size={16} />
-                </div>
-              </button>
+        {/* FAQ List */}
+        <div className="space-y-4">
+          {faqs.map((faq, index) => {
+            const open = openIndex === index;
 
+            return (
               <div
-                className={`transition-all duration-300 ${
-                  openIndex === i ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-                } overflow-hidden`}
+                key={index}
+                className={`group rounded-[28px] border bg-brand-white transition-all duration-300 overflow-hidden ${
+                  open
+                    ? "border-brand-dark shadow-[0_10px_40px_rgba(0,0,0,0.05)]"
+                    : "border-brand-light hover:border-brand-dark/30"
+                }`}
               >
-                <div className="px-5 md:px-6 pb-5 md:pb-6">
-                  <div className="h-px bg-[#E8E0D5] mb-4" />
-                  <p className="text-[15px] text-[#6B6B6B] leading-[1.85]">
-                    {faq.a}
-                  </p>
+                <button
+                  onClick={() => toggle(index)}
+                  className="w-full flex items-start md:items-center justify-between gap-4 text-right p-5 md:p-7"
+                >
+                  {/* Question */}
+                  <span
+                    className={`flex-1 text-[16px] md:text-[18px] leading-[1.9] font-bold transition-colors duration-200 ${
+                      open ? "text-brand-dark" : "text-brand-dark/85"
+                    }`}
+                  >
+                    {faq.q}
+                  </span>
+
+                  {/* Icon */}
+                  <div
+                    className={`shrink-0 w-10 h-10 rounded-2xl border flex items-center justify-center transition-all duration-300 ${
+                      open
+                        ? "bg-brand-dark border-brand-dark text-brand-white rotate-180"
+                        : "bg-brand-grey border-brand-light text-brand-dark"
+                    }`}
+                  >
+                    <FiChevronDown size={18} />
+                  </div>
+                </button>
+
+                {/* Answer */}
+                <div
+                  className={`grid transition-all duration-300 ease-in-out ${
+                    open
+                      ? "grid-rows-[1fr] opacity-100"
+                      : "grid-rows-[0fr] opacity-0"
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <div className="px-5 md:px-7 pb-6 md:pb-7">
+                      <div className="h-[1px] bg-brand-light mb-5" />
+
+                      <p className="text-[15px] md:text-[16px] leading-[2] text-brand-dark/70 max-w-[95%]">
+                        {faq.a}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+
+        {/* Bottom CTA */}
+        <div className="flex justify-center mt-12 md:mt-14">
+          <a
+            href="https://wa.me/9611234567"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center h-[56px] px-8 rounded-2xl bg-brand-dark text-brand-white text-[15px] md:text-[16px] font-bold transition-all duration-300 hover:opacity-90 hover:-translate-y-0.5"
+          >
+            تواصل معنا على واتساب
+          </a>
         </div>
       </div>
     </section>

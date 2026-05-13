@@ -1,109 +1,117 @@
+import Image from "next/image";
+
 const features = [
   {
-    icon: '🏪',
-    title: 'ابني متجرك بدون ما تعرف كود',
-    body: 'اختار قالب، حط اسم متجرك، وابدأ تضيف منتجاتك. كل شي drag & drop — ما في تعقيد وما في لازمية تعرف تصميم.',
+    icon: "/icons/click.svg",
+    title: "ابني متجرك بدون كود",
+    body: "اختار قالب، عدّل عليه، وابدأ البيع خلال دقائق بسهولة كاملة.",
   },
   {
-    icon: '📱',
-    title: 'شايف حلو على كل الأجهزة',
-    body: 'زبائنك بيتصفحوا من التليفون؟ لا مشكلة. متجرك بيبان محترف على الموبايل، التابلت، والكمبيوتر — تلقائياً.',
+    icon: "/icons/devices.svg",
+    title: "متوافق مع كل الأجهزة",
+    body: "متجرك بيظهر بشكل احترافي على الموبايل، التابلت، والكمبيوتر.",
   },
   {
-    icon: '💳',
-    title: 'قبض فلوسك بالطريقة اللي بتريحك',
-    body: 'OMT، WhishMoney، كاش عند الاستلام، Visa وMaster — كل طرق الدفع اللبنانية والعربية متاحة من أول يوم.',
+    icon: "/icons/pay.svg",
+    title: "طرق دفع متعددة",
+    body: "ادعم OMT، Whish، الدفع عند الاستلام، والبطاقات بسهولة.",
   },
   {
-    icon: '🚚',
-    title: 'وصّل طلباتك لكل لبنان',
-    body: 'ربط مباشر مع Aramex، Toters، وشركات التوصيل اللبنانية. تابع كل طلب وحالته بنقرة وحدة.',
+    icon: "/icons/affiliate.svg",
+    title: "برنامج أفلييت وتسويق",
+    body: "وفّر مسوقين يساعدوا متجرك يبيع أكتر مقابل عمولات تلقائية.",
   },
   {
-    icon: '📊',
-    title: 'اعرف شو بيصير بمتجرك بكل وقت',
-    body: 'لوحة تحكم واضحة بتعطيك مبيعاتك، أكتر المنتجات مبيعاً، ومين زبائنك — كل الأرقام بمكان واحد وبشكل مفهوم.',
+    icon: "/icons/stats.svg",
+    title: "إحصائيات واضحة",
+    body: "تابع المبيعات، المنتجات الأكثر طلباً، وأداء متجرك بلحظة.",
   },
   {
-    icon: '🔍',
-    title: 'خليك تنبسط على Google',
-    body: 'أدوات SEO مدمجة بتساعد متجرك يطلع بأول نتائج البحث — وصل لزبائن جدد بدون ما تدفع إعلانات كتير.',
+    icon: "/icons/google.svg",
+    title: "جاهز لـ Google",
+    body: "أدوات SEO مدمجة تساعد متجرك يوصل لنتائج بحث أفضل.",
   },
   {
-    icon: '🎨',
-    title: 'قوالب لكل نوع تجارة',
-    body: 'عشرات القوالب الاحترافية مصممة لملابس، أكل، إلكترونيات، عطور وأكتر — اختار وعدّل كما بدك.',
+    icon: "/icons/website.svg",
+    title: "قوالب احترافية",
+    body: "قوالب جاهزة لكل أنواع المتاجر مع تخصيص كامل بسهولة.",
   },
   {
-    icon: '📦',
-    title: 'تحكم بمنتجاتك والمخزون',
-    body: 'ضيف منتجاتك، حدد الكميات، رتبهم بالفئات — النظام بيتابع المخزون حالياً وبيحذرك لما يخلص.',
+    icon: "/icons/box.svg",
+    title: "إدارة مخزون ذكية",
+    body: "تحكم بالكميات، المنتجات، والتنبيهات من لوحة واحدة.",
   },
   {
-    icon: '💬',
-    title: 'في حدا معك على طول',
-    body: 'فريق دعم لبناني فاهم مشاكلك وجاهز يساعدك بالواتساب، الشات، والإيميل — بالعربي اللبناني مش بالفصحى.',
+    icon: "/icons/comments.svg",
+    title: "دعم لبناني سريع",
+    body: "فريقنا جاهز يساعدك عبر واتساب والشات بالعربي اللبناني.",
   },
   {
-    icon: '🔗',
-    title: 'بيع من إنستغرام وفيسبوك مباشرة',
-    body: 'ربط متجرك مع صفحاتك على السوشيال ميديا وخلي زبائنك يشتروا من غير ما يطلعوا من التطبيق.',
+    icon: "/icons/social.svg",
+    title: "بيع عبر السوشيال",
+    body: "اربط متجرك بإنستغرام وفيسبوك وخلي الشراء أسهل.",
   },
   {
-    icon: '🌍',
-    title: 'بالعربي والإنجليزي — بيع محلياً وعالمياً',
-    body: 'متجرك بيدعم اللغتين تلقائياً — استهدف الزبائن اللبنانيين والعرب بنفس الوقت.',
+    icon: "/icons/languages.svg",
+    title: "عربي وإنجليزي",
+    body: "متجرك يدعم اللغتين لتبيع محلياً وعالمياً بسهولة.",
   },
   {
-    icon: '🔒',
-    title: 'بياناتك وبيانات زبائنك بأمان تام',
-    body: 'SSL مجاني، حماية من الاختراق، وبياناتك محفوظة على سيرفرات موثوقة — تجارتك بأيد أمينة.',
+    icon: "/icons/shield.svg",
+    title: "حماية وأمان كامل",
+    body: "SSL مجاني وحماية كاملة لبياناتك وطلبات زبائنك.",
   },
 ];
 
 export default function Features() {
   return (
-    <section className="py-20 md:py-28 bg-[#FDF6EC]" id="features">
-      <div className="max-w-[1200px] mx-auto px-5 md:px-10">
+    <section id="features" className="py-24 bg-brand-light overflow-hidden">
+      <div className="w-full mx-auto px-5 md:px-10">
         {/* Header */}
-        <div className="text-center mb-14">
-          <span className="inline-block bg-[#C8392B]/10 text-[#C8392B] rounded-full px-5 py-2 text-sm font-semibold mb-5">
+        <div className="text-center mb-14 md:mb-16">
+          <span className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-brand-white text-brand-dark text-sm font-medium mb-6">
             المميزات
           </span>
+
           <h2
-            className="text-[32px] md:text-[38px] font-bold text-[#1E1E1E] mb-4"
-            style={{ fontFamily: 'var(--font-display)' }}
+            className="text-[34px] md:text-[64px] leading-[1.15] text-brand-dark mb-4"
+            style={{ fontFamily: "Lalezar, cursive" }}
           >
-            كل اللي بتحتاجه بمكان واحد
+            كل اللي تحتاجه لتبيع أونلاين
           </h2>
-          <p className="text-[18px] text-[#6B6B6B] font-medium max-w-xl mx-auto">
-            من بناء المتجر لأول طلبية — نحنا معك بكل خطوة
+
+          <p className="text-brand-dark/70 text-[16px] md:text-[18px] leading-[1.9] max-w-[700px] mx-auto">
+            أدوات احترافية، تصميم سريع، وتجربة سهلة تساعدك تطلق متجرك بدون
+            تعقيد.
           </p>
         </div>
 
         {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {features.map((f, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
+          {features.map((feature, index) => (
             <div
-              key={i}
-              className="feature-card bg-white rounded-2xl p-7 border border-[#E8E0D5] shadow-[0_4px_20px_rgba(0,0,0,0.06)] group cursor-default"
+              key={index}
+              className="group bg-brand-white border border-brand-white/50 rounded-[30px] p-5 md:p-7 transition-all duration-300 hover:-translate-y-1 hover:border-brand-dark/10 hover:shadow-[0_10px_40px_rgba(0,0,0,0.05)]"
             >
               {/* Icon */}
-              <div className="w-14 h-14 rounded-2xl bg-[#FDF6EC] flex items-center justify-center text-3xl mb-5 transition-transform duration-300 group-hover:scale-110">
-                {f.icon}
+              <div className="w-[58px] h-[58px] rounded-2xl bg-brand-grey border border-brand-light flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110">
+                <Image
+                  src={feature.icon}
+                  alt={feature.title}
+                  width={28}
+                  height={28}
+                  className="object-contain"
+                />
               </div>
 
               {/* Title */}
-              <h3
-                className="text-[18px] font-bold text-[#1E1E1E] mb-3 leading-[1.4]"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                {f.title}
+              <h3 className="text-[19px] md:text-[20px] font-bold text-brand-dark leading-[1.5] mb-3">
+                {feature.title}
               </h3>
 
               {/* Body */}
-              <p className="text-[14px] text-[#6B6B6B] leading-[1.8]">
-                {f.body}
+              <p className="text-[14px] md:text-[15px] leading-[1.9] text-brand-dark/70">
+                {feature.body}
               </p>
             </div>
           ))}

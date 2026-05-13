@@ -5,7 +5,7 @@ import Features from "../components/Features";
 import HowItWorks from "../components/HowItWorks";
 import Pricing from "../components/Pricing";
 import Testimonials from "../components/Testimonials";
-import Integrations from "../components/Integrations";
+// import Integrations from "../components/Integrations";
 import FAQ from "../components/FAQ";
 import FinalCTA from "../components/FinalCTA";
 import Footer from "../components/Footer";
@@ -23,7 +23,7 @@ export default function App() {
         <HowItWorks />
         <Pricing />
         <Testimonials />
-        <Integrations />
+        {/* <Integrations /> */}
         <FAQ />
         <FinalCTA />
       </main>

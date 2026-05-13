@@ -1,65 +1,88 @@
 export default function FinalCTA() {
   return (
-    <section className="py-20 md:py-28 relative overflow-hidden" id="contact" style={{ background: 'linear-gradient(135deg, #C8392B 0%, #a82e22 60%, #8a2218 100%)' }}>
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/5 rounded-full translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-white/5 rounded-full -translate-x-1/2 translate-y-1/2" />
-        <div className="absolute top-1/2 left-1/4 w-[200px] h-[200px] bg-[#E8A838]/10 rounded-full -translate-y-1/2" />
-        {/* Lebanese flag accent */}
-        <div className="absolute top-8 left-1/2 -translate-x-1/2 text-white/5 text-[200px] select-none font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-          🇱🇧
+    <section
+      id="contact"
+      className="relative overflow-hidden py-24 md:py-32 bg-brand-dark"
+    >
+      {/* Background */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Gradient glow */}
+        <div className="absolute top-0 right-0 w-[420px] h-[420px] rounded-full bg-brand-light/10 blur-3xl translate-x-1/3 -translate-y-1/3" />
+
+        <div className="absolute bottom-0 left-0 w-[320px] h-[320px] rounded-full bg-brand-white/5 blur-3xl -translate-x-1/3 translate-y-1/3" />
+
+        {/* Noise */}
+        <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(circle_at_center,white_1px,transparent_1px)] bg-[length:18px_18px]" />
+
+        {/* Huge Text */}
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[140px] md:text-[220px] text-brand-white/[0.03] leading-none select-none"
+          style={{ fontFamily: "Lalezar, cursive" }}
+        >
+          محلي
         </div>
       </div>
 
-      <div className="relative z-10 max-w-[700px] mx-auto px-5 md:px-10 text-center">
-        {/* Eyebrow */}
-        <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white rounded-full px-5 py-2 text-sm font-semibold mb-8">
-          <span>🚀</span>
-          <span>جاهز تبدأ؟</span>
-        </div>
-
-        {/* Main title */}
-        <h2
-          className="text-[38px] md:text-[50px] font-bold text-white leading-[1.2] mb-6"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
-          افتح متجرك هلق
-          <br />
-          <span className="text-[#E8A838]">وابدأ تبيع من اليوم</span>
-        </h2>
-
-        {/* Subtitle */}
-        <p className="text-[18px] text-white/80 font-medium leading-[1.75] mb-10">
-          أكتر من 2,000 تاجر لبناني بدأوا هيك —
-          <br />
-          <strong className="text-white">هلق دورك!</strong>
-        </p>
-
-        {/* CTA */}
-        <a
-          href="#pricing"
-          className="inline-flex items-center gap-3 bg-white text-[#C8392B] font-bold text-lg px-10 py-5 rounded-xl shadow-2xl transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)] group"
-        >
-          <span>ابدأ مجاناً — بدون بطاقة ائتمانية</span>
-          <span className="transition-transform group-hover:-translate-x-1">←</span>
-        </a>
-
-        {/* Trust microcopy */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mt-8 text-sm text-white/70">
-          <div className="flex items-center gap-2">
-            <span className="text-[#2ECC71]">✅</span>
-            <span>مجاني 14 يوم</span>
+      {/* Content */}
+      <div className="relative z-10 w-full mx-auto px-5 md:px-10">
+        <div className="max-w-[900px] mx-auto text-center">
+          {/* Eyebrow */}
+          <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full border border-brand-white/10 bg-brand-white/5 backdrop-blur-sm text-brand-white text-sm font-medium mb-7">
+            <span>🚀</span>
+            <span>جاهز تطلق متجرك؟</span>
           </div>
-          <div className="hidden sm:block w-1 h-1 rounded-full bg-white/30" />
-          <div className="flex items-center gap-2">
-            <span className="text-[#2ECC71]">✅</span>
-            <span>إلغاء بأي وقت</span>
+
+          {/* Heading */}
+          <h2
+            className="text-[42px] sm:text-[52px] md:text-[84px] leading-[1.05] text-brand-white mb-5"
+            style={{ fontFamily: "Lalezar, cursive" }}
+          >
+            ابدأ البيع
+            <br />
+            خلال دقائق
+          </h2>
+
+          {/* Description */}
+          <p className="text-brand-white/70 text-[16px] md:text-[20px] leading-[2] max-w-[700px] mx-auto mb-10">
+            أنشئ متجرك الإلكتروني، أضف منتجاتك، وابدأ تستقبل الطلبات بسهولة —
+            بدون تعقيد وبدون خبرة تقنية.
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a
+              href="#pricing"
+              className="w-full sm:w-auto h-[58px] px-8 rounded-2xl bg-brand-white text-brand-dark text-[16px] font-bold flex items-center justify-center transition-all duration-300 hover:-translate-y-1 hover:opacity-90"
+            >
+              أنشئ متجرك الآن
+            </a>
+
+            <a
+              href="https://wa.me/9611234567"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto h-[58px] px-8 rounded-2xl border border-brand-white/15 bg-brand-white/5 backdrop-blur-sm text-brand-white text-[16px] font-semibold flex items-center justify-center transition-all duration-300 hover:bg-brand-white/10"
+            >
+              تواصل معنا
+            </a>
           </div>
-          <div className="hidden sm:block w-1 h-1 rounded-full bg-white/30" />
-          <div className="flex items-center gap-2">
-            <span className="text-[#2ECC71]">✅</span>
-            <span>متجرك جاهز بدقيقتين</span>
+
+          {/* Trust Row */}
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 mt-10 text-brand-white/60 text-sm md:text-[15px]">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-brand-light" />
+              <span>إطلاق سريع خلال دقائق</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-brand-light" />
+              <span>دعم لبناني مباشر</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-brand-light" />
+              <span>بدون أي خبرة تقنية</span>
+            </div>
           </div>
         </div>
       </div>
