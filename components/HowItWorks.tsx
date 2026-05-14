@@ -30,19 +30,19 @@ export default function HowItWorks() {
     <section id="how-it-works" className="py-24 bg-brand-white overflow-hidden">
       <div className="w-full mx-auto px-5 md:px-10">
         {/* Header */}
-        <div className="text-center mb-20">
-          <span className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-brand-light text-brand-dark text-sm font-medium mb-6">
+        <div className="text-center mb- md:mb-20">
+          <span className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-brand-light text-brand-dark text-xs font-medium mb-6">
             كيف بتشتغل المنصة
           </span>
 
           <h2
-            className="text-[34px] md:text-[64px] leading-[1.2] text-brand-dark mb-2"
+            className="text-[28px] md:text-[60px] leading-[1.2] text-brand-dark mb-2"
             style={{ fontFamily: "Lalezar, cursive" }}
           >
             متجرك جاهز خلال دقائق
           </h2>
 
-          <p className="text-brand-dark/70 text-[17px] md:text-[19px] max-w-[620px] mx-auto leading-[1.9]">
+          <p className="text-brand-dark/70 text-[13px] md:text-[15px] max-w-[620px] mx-auto">
             كل شي مصمم ليكون سريع، واضح، وسهل حتى لو أول مرة بتنشئ متجر إلكتروني
           </p>
         </div>
@@ -63,8 +63,8 @@ export default function HowItWorks() {
               >
                 {/* Number */}
                 <div className="relative z-10 shrink-0 lg:mb-8">
-                  <div className="w-[86px] h-[86px] rounded-[28px] border border-brand-light bg-brand-white flex items-center justify-center shadow-sm">
-                    <span className="text-[30px] font-bold text-brand-dark">
+                  <div className="w-[68px] h-[68px] md:w-[86px] md:h-[86px] rounded-[28px] border border-brand-light bg-brand-white flex items-center justify-center shadow-sm">
+                    <span className="text-[24px] md:text-[30px] font-bold text-brand-dark">
                       {step.number}
                     </span>
                   </div>
@@ -74,18 +74,18 @@ export default function HowItWorks() {
                     <img
                       src={step.icon}
                       alt={step.title}
-                      className="w-4 h-4 object-contain"
+                      className="md:w-4 md:h-4 w-3 h-3 object-contain"
                     />
                   </div>
                 </div>
 
                 {/* Content */}
                 <div className="pt-2 lg:pt-0">
-                  <h3 className="text-[21px] font-bold text-brand-dark mb-2">
+                  <h3 className="text-[18px] md:text-[21px] font-bold text-brand-dark mb-2">
                     {step.title}
                   </h3>
 
-                  <p className="text-[15px] leading-[2] text-brand-dark/70 max-w-[260px]">
+                  <p className="text-[13px] md:text-[15px] text-brand-dark/70 max-w-[260px]">
                     {step.body}
                   </p>
                 </div>
@@ -98,7 +98,7 @@ export default function HowItWorks() {
         <div className="flex justify-center mt-8 md:mt-12">
           <a
             href="#pricing"
-            className="inline-flex items-center justify-center h-[58px] px-10 rounded-2xl bg-brand-dark text-brand-white text-[17px] font-bold transition-all duration-300 hover:opacity-90 hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center h-[50px] md:h-[58px] px-6 md:px-10 rounded-2xl bg-brand-dark text-brand-white text-[14px] md:text-[17px] font-bold transition-all duration-300 hover:opacity-90 hover:-translate-y-0.5"
           >
             أنشئ متجرك الآن
           </a>

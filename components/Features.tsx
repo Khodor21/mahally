@@ -69,20 +69,19 @@ export default function Features() {
       <div className="w-full mx-auto px-5 md:px-10">
         {/* Header */}
         <div className="text-center mb-14 md:mb-16">
-          <span className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-brand-white text-brand-dark text-sm font-medium mb-6">
+          <span className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-brand-white text-brand-dark text-xs font-medium mb-6">
             المميزات
           </span>
 
           <h2
-            className="text-[34px] md:text-[64px] leading-[1.15] text-brand-dark mb-4"
+            className="text-[28px] md:text-[60px] leading-[1.15] text-brand-dark mb-4"
             style={{ fontFamily: "Lalezar, cursive" }}
           >
             كل اللي تحتاجه لتبيع أونلاين
           </h2>
 
-          <p className="text-brand-dark/70 text-[16px] md:text-[18px] leading-[1.9] max-w-[700px] mx-auto">
-            أدوات احترافية، تصميم سريع، وتجربة سهلة تساعدك تطلق متجرك بدون
-            تعقيد.
+          <p className="text-brand-dark/70 text-[13px] md:text-[15px] max-w-[700px] mx-auto">
+            أدوات احترافية، تصميم سريع، وتجربة سهلة تساعدك تطلق متجرك بدون تعقيد
           </p>
         </div>
 
@@ -94,23 +93,23 @@ export default function Features() {
               className="group bg-brand-white border border-brand-white/50 rounded-[30px] p-5 md:p-7 transition-all duration-300 hover:-translate-y-1 hover:border-brand-dark/10 hover:shadow-[0_10px_40px_rgba(0,0,0,0.05)]"
             >
               {/* Icon */}
-              <div className="w-[58px] h-[58px] rounded-2xl bg-brand-grey border border-brand-light flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110">
+              <div className="w-12 h-12 md:w-[58px] md:h-[58px] rounded-2xl bg-brand-grey border border-brand-light flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110">
                 <Image
                   src={feature.icon}
                   alt={feature.title}
                   width={28}
                   height={28}
-                  className="object-contain"
+                  className="object-contain w-6 h-6 md:w-7 md:h-7"
                 />
               </div>
 
               {/* Title */}
-              <h3 className="text-[19px] md:text-[20px] font-bold text-brand-dark leading-[1.5] mb-3">
+              <h3 className="text-[16px] md:text-[19px] font-bold text-brand-dark leading-[1.5] mb-3">
                 {feature.title}
               </h3>
 
               {/* Body */}
-              <p className="text-[14px] md:text-[15px] leading-[1.9] text-brand-dark/70">
+              <p className="text-[12px] md:text-[14px] leading-[1.9] text-brand-dark/70">
                 {feature.body}
               </p>
             </div>

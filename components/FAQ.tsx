@@ -46,18 +46,18 @@ export default function FAQ() {
       <div className="mx-auto px-5 md:px-10 w-full">
         {/* Header */}
         <div className="text-center mb-14 md:mb-16">
-          <span className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-brand-light text-brand-dark text-sm font-medium mb-6">
+          <span className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-brand-light text-brand-dark text-xs font-medium mb-6">
             الأسئلة الشائعة
           </span>
 
           <h2
-            className="text-[34px] md:text-[64px] leading-[1.2] text-brand-dark mb-4"
+            className="text-[28px] md:text-[60px] leading-[1.2] text-brand-dark mb-4"
             style={{ fontFamily: "Lalezar, cursive" }}
           >
             جاوبنا على كل شي تقريباً
           </h2>
 
-          <p className="text-brand-dark/70 text-[16px] md:text-[18px] leading-[1.9] max-w-[620px] mx-auto">
+          <p className="text-brand-light text-[13px] md:text-[15px]  max-w-[620px] mx-auto">
             وإذا بعد عندك أي سؤال — فريقنا جاهز يساعدك بأي وقت.
           </p>
         </div>
@@ -70,7 +70,7 @@ export default function FAQ() {
             return (
               <div
                 key={index}
-                className={`group rounded-[28px] border bg-brand-white transition-all duration-300 overflow-hidden ${
+                className={`group rounded-[20px] md:rounded-[28px] border bg-brand-white transition-all duration-300 overflow-hidden ${
                   open
                     ? "border-brand-dark shadow-[0_10px_40px_rgba(0,0,0,0.05)]"
                     : "border-brand-light hover:border-brand-dark/30"
@@ -82,7 +82,7 @@ export default function FAQ() {
                 >
                   {/* Question */}
                   <span
-                    className={`flex-1 text-[16px] md:text-[18px] leading-[1.9] font-bold transition-colors duration-200 ${
+                    className={`flex-1 text-[14px] md:text-[16px] leading-[1.9] font-bold transition-colors duration-200 ${
                       open ? "text-brand-dark" : "text-brand-dark/85"
                     }`}
                   >
@@ -91,7 +91,7 @@ export default function FAQ() {
 
                   {/* Icon */}
                   <div
-                    className={`shrink-0 w-10 h-10 rounded-2xl border flex items-center justify-center transition-all duration-300 ${
+                    className={`shrink-0 w-8 md:w-10 h-8 md:h-10 rounded-2xl border flex items-center justify-center transition-all duration-300 ${
                       open
                         ? "bg-brand-dark border-brand-dark text-brand-white rotate-180"
                         : "bg-brand-grey border-brand-light text-brand-dark"
@@ -113,7 +113,7 @@ export default function FAQ() {
                     <div className="px-5 md:px-7 pb-6 md:pb-7">
                       <div className="h-[1px] bg-brand-light mb-5" />
 
-                      <p className="text-[15px] md:text-[16px] leading-[2] text-brand-dark/70 max-w-[95%]">
+                      <p className="text-[13px] md:text-[15px] leading-[1.5] text-brand-dark/70 max-w-[95%]">
                         {faq.a}
                       </p>
                     </div>
@@ -125,12 +125,12 @@ export default function FAQ() {
         </div>
 
         {/* Bottom CTA */}
-        <div className="flex justify-center mt-12 md:mt-14">
+        <div className="flex justify-center mt-6 md:mt-10">
           <a
             href="https://wa.me/9611234567"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center h-[56px] px-8 rounded-2xl bg-brand-dark text-brand-white text-[15px] md:text-[16px] font-bold transition-all duration-300 hover:opacity-90 hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center h-[50px] md:h-[56px] px-6 md:px-8 r md:rounded-2xl bg-brand-dark text-brand-white text-[15px] md:text-[16px] font-bold transition-all duration-300 hover:opacity-90 hover:-translate-y-0.5"
           >
             تواصل معنا على واتساب
           </a>

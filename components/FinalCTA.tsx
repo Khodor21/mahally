@@ -2,7 +2,7 @@ export default function FinalCTA() {
   return (
     <section
       id="contact"
-      className="relative overflow-hidden py-24 md:py-32 bg-brand-dark"
+      className="relative overflow-hidden py-16 md:py-32 bg-brand-dark"
     >
       {/* Background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -43,7 +43,7 @@ export default function FinalCTA() {
           </h2>
 
           {/* Description */}
-          <p className="text-brand-white/70 text-[16px] md:text-[20px] leading-[2] max-w-[700px] mx-auto mb-10">
+          <p className="text-brand-light text-[14px] md:text-[18px] max-w-[700px] mx-auto mb-10">
             أنشئ متجرك الإلكتروني، أضف منتجاتك، وابدأ تستقبل الطلبات بسهولة —
             بدون تعقيد وبدون خبرة تقنية.
           </p>
@@ -52,23 +52,23 @@ export default function FinalCTA() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
               href="#pricing"
-              className="w-full sm:w-auto h-[58px] px-8 rounded-2xl bg-brand-white text-brand-dark text-[16px] font-bold flex items-center justify-center transition-all duration-300 hover:-translate-y-1 hover:opacity-90"
+              className="w-full sm:w-auto h-[52px] md:h-[58px] px-8 rounded-2xl bg-brand-white text-brand-dark text-[14px] md:text-[16px] font-bold flex items-center justify-center transition-all duration-300 hover:-translate-y-1 hover:opacity-90"
             >
-              أنشئ متجرك الآن
+              أنشـئ متجرك الآن
             </a>
 
             <a
               href="https://wa.me/9611234567"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:w-auto h-[58px] px-8 rounded-2xl border border-brand-white/15 bg-brand-white/5 backdrop-blur-sm text-brand-white text-[16px] font-semibold flex items-center justify-center transition-all duration-300 hover:bg-brand-white/10"
+              className="w-full sm:w-auto h-[52px] md:h-[58px] px-8 rounded-2xl border border-brand-white/15 bg-brand-white/5 backdrop-blur-sm text-brand-white text-[14px] md:text-[16px] font-semibold flex items-center justify-center transition-all duration-300 hover:bg-brand-white/10"
             >
               تواصل معنا
             </a>
           </div>
 
           {/* Trust Row */}
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 mt-10 text-brand-white/60 text-sm md:text-[15px]">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 mt-10 text-brand-light text-sm md:text-[15px]">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-brand-light" />
               <span>إطلاق سريع خلال دقائق</span>

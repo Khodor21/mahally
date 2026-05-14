@@ -55,13 +55,13 @@ export default function Footer() {
       id="footer"
       className="bg-brand-light text-brand-dark overflow-hidden"
     >
-      <div className="w-full mx-auto px-5 md:px-10 pt-20 pb-8">
+      <div className="w-full mx-auto px-5 md:px-10 pt-8 md:pt-20 pb-8">
         {/* Top */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-12 xl:gap-10 mb-14">
           {/* Brand */}
           <div className="xl:col-span-1">
             {/* Logo */}
-            <a href="#" className="flex it gap-3 mb-5">
+            <a href="#" className="mb-5">
               {/* <div className="w-12 h-12 rounded-2xl border border-brand-dark/10 bg-brand-dark/5 hover:bg-brand-dark hover:text-brand-dark text-brand-dark flex items-center justify-center transition-all duration-300 hover:-translate-y-1">
                 <span className="text-brand-dark text-xl font-bold leading-none">
                   م
@@ -80,12 +80,12 @@ export default function Footer() {
             </a>
 
             {/* Tagline */}
-            <p className="text-brand-light text-[15px] font-medium mb-4 leading-[1.9]">
+            <p className="text-brand-dark text-[15px] font-medium mb-4 leading-[1.9]">
               افتح متجرك من لبنان للعالم 🇱🇧
             </p>
 
             {/* Description */}
-            <p className="text-brand-dark/65 text-[14px] leading-[2] max-w-[320px] mb-7">
+            <p className="text-brand-dark/65 text-[13px] max-w-[320px] mb-7">
               منصة لبنانية تساعدك تنشئ متجر إلكتروني احترافي بسهولة، بدون تعقيد
               وبدون خبرة تقنية.
             </p>
