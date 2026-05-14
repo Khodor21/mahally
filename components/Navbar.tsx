@@ -35,12 +35,16 @@ export default function Navbar() {
         }`}
       >
         <div className="w-full mx-auto px-5 md:px-10">
-          <div className="h-[74px] flex items-center justify-between">
+          <div className="h-[60px] md:h-[74px] flex items-center justify-between">
             {/* Right Side */}
             <div className="flex items-center gap-12">
               {/* Logo */}
               <a href="#" className="flex items-center gap-3 shrink-0">
-                <img alt="logo here" src="/Logo.svg" className="w-32 h-32" />
+                <img
+                  alt="logo here"
+                  src="/Logo.svg"
+                  className="w-16 h-16 md:w-32 md:h-32"
+                />
               </a>
 
               {/* Desktop Nav */}
@@ -92,10 +96,10 @@ export default function Navbar() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="lg:hidden w-11 h-11 rounded-2xl border border-brand-light bg-brand-white text-brand-dark flex items-center justify-center transition-all duration-200"
+              className="lg:hidden w-9 h-9 rounded-2xl border border-brand-light bg-brand-white text-brand-dark flex items-center justify-center transition-all duration-200"
               aria-label="القائمة"
             >
-              {mobileOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+              {mobileOpen ? <FiX size={16} /> : <FiMenu size={16} />}
             </button>
           </div>
         </div>
@@ -116,7 +120,7 @@ export default function Navbar() {
                     setActiveLink(link.href);
                     setMobileOpen(false);
                   }}
-                  className="h-[52px] px-4 rounded-2xl flex items-center text-brand-dark font-medium transition-all duration-200 hover:bg-brand-grey"
+                  className="h-[42px] px-4 rounded-2xl flex items-center text-brand-dark font-medium transition-all duration-200 hover:bg-brand-grey text-sm"
                 >
                   {link.label}
                 </a>
@@ -127,14 +131,14 @@ export default function Navbar() {
             <div className="flex flex-col gap-3 pt-5 mt-5 border-t border-brand-light">
               <a
                 href="#login"
-                className="h-[52px] rounded-2xl border border-brand-light text-brand-dark font-semibold flex items-center justify-center"
+                className="h-[40px] rounded-xl text-xs border border-brand-light text-brand-dark font-semibold flex items-center justify-center"
               >
                 تسجيل الدخول
               </a>
 
               <a
                 href="#pricing"
-                className="h-[52px] rounded-2xl bg-brand-dark text-brand-white font-bold flex items-center justify-center"
+                className="h-[40px] rounded-xl text-xs bg-brand-dark text-brand-white font-bold flex items-center justify-center"
               >
                 أنشئ متجرك الآن
               </a>

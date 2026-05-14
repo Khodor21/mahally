@@ -15,22 +15,25 @@ export default function ProblemSolution() {
   ];
 
   return (
-    <section className="py-24 bg-brand-white overflow-hidden" id="why-us">
+    <section
+      className="py-8 md:py-18 bg-brand-white overflow-hidden"
+      id="why-us"
+    >
       <div className="w-full mx-auto px-5 md:px-10">
         {/* Header */}
-        <div className="text-center mb-12 md:mb-16">
-          <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-brand-grey text-brand-dark text-sm font-medium mb-6">
+        <div className="text-center mb-8 md:mb-12">
+          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-grey text-brand-dark text-xs font-medium mb-6">
             <span>✦</span>
             <span>ليش نحنا؟</span>
           </span>
           <h2
-            className="text-[34px] md:text-[64px] leading-[1.15] text-brand-dark mb-4"
+            className="text-[28px] md:text-[60px] text-brand-dark mb-4"
             style={{ fontFamily: "Lalezar, cursive" }}
           >
             في حل لكل مشكلة
           </h2>
-          <p className="text-brand-dark/70 text-[16px] md:text-[18px] leading-[1.9] max-w-[600px] mx-auto">
-            كل ما زهقت منه، عندنا جواب عليه.
+          <p className="text-brand-light text-[13px] md:text-[15px] leading-[1.9] max-w-[600px] mx-auto">
+            كلشي زهقت منه، عندنا جواب عليه
           </p>
         </div>
 
@@ -39,11 +42,11 @@ export default function ProblemSolution() {
           {/* Problem Card */}
           <div className="bg-brand-grey border border-brand-white/50 rounded-[30px] p-6 md:p-8 hover:-translate-y-1 transition-all duration-300 hover:shadow-[0_10px_40px_rgba(0,0,0,0.05)]">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-[52px] h-[52px] rounded-2xl bg-brand-grey border border-brand-light flex items-center justify-center text-[22px]">
+              <div className="w-[44px] md:w-[52px] h-[44px] md:h-[52px] rounded-lg md:rounded-2xl bg-brand-grey border border-brand-light flex items-center justify-center text-[16px] md:text-[22px]">
                 😩
               </div>
               <h3
-                className="text-[22px] font-bold text-brand-dark leading-tight"
+                className="text-[18px] md:text-[22px] font-bold text-brand-dark leading-tight"
                 style={{ fontFamily: "Lalezar, cursive" }}
               >
                 زهقت من هيك؟
@@ -92,7 +95,7 @@ export default function ProblemSolution() {
           {/* Solution Card */}
           <div className="bg-brand-dark rounded-[30px] p-6 md:p-8 hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-[52px] h-[52px] rounded-2xl bg-white/10 flex items-center justify-center text-[22px]">
+              <div className="w-[44px] md:w-[52px] h-[44px] md:h-[52px] rounded-lg md:rounded-2xl bg-white/10 flex items-center justify-center text-[16px] md:text-[22px]">
                 ✨
               </div>
               <h3

@@ -84,22 +84,22 @@ export default function Pricing() {
   const [yearly, setYearly] = useState(false);
 
   return (
-    <section id="pricing" className="py-24 bg-brand-grey overflow-hidden">
+    <section id="pricing" className="py-8 md:py-18 bg-brand-grey overflow-hidden">
       <div className="w-full mx-auto px-5 md:px-10">
         {/* Header */}
         <div className="text-center mb-14 md:mb-16">
-          <span className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-brand-light text-brand-dark text-sm font-medium mb-6">
+          <span className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-brand-light text-brand-dark text-xs font-medium mb-6">
             الأسعار
           </span>
 
           <h2
-            className="text-[34px] md:text-[64px] leading-[1.15] text-brand-dark mb-4"
+            className="text-[28px] md:text-[60px] leading-[1.15] text-brand-dark mb-4"
             style={{ fontFamily: "Lalezar, cursive" }}
           >
             خطط تناسب كل متجر
           </h2>
 
-          <p className="text-brand-dark/70 text-[16px] md:text-[18px] leading-[1.9] mb-8">
+          <p className="text-brand-light text-[13px] md:text-[15px] mb-8">
             ابدأ مجاناً وطوّر متجرك لما تكبر مبيعاتك
           </p>
 
@@ -107,7 +107,7 @@ export default function Pricing() {
           <div className="inline-flex items-center gap-2 p-1.5 rounded-full border border-brand-light bg-brand-white">
             <button
               onClick={() => setYearly(false)}
-              className={`h-[46px] px-6 rounded-full text-sm font-semibold transition-all duration-300 ${
+              className={`h-[38px] px-3 rounded-full text-xs  transition-all duration-300 ${
                 !yearly
                   ? "bg-brand-dark text-brand-white"
                   : "text-brand-dark/60 hover:text-brand-dark"
@@ -118,7 +118,7 @@ export default function Pricing() {
 
             <button
               onClick={() => setYearly(true)}
-              className={`h-[46px] px-6 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${
+              className={`h-[38px] px-3 rounded-full text-sm  transition-all duration-300 flex items-center gap-2 ${
                 yearly
                   ? "bg-brand-dark text-brand-white"
                   : "text-brand-dark/60 hover:text-brand-dark"
@@ -127,7 +127,7 @@ export default function Pricing() {
               <span>سنوي</span>
 
               <span
-                className={`text-[11px] px-2 py-1 rounded-full ${
+                className={`text-[9px] px-2 py-1 rounded-full ${
                   yearly
                     ? "bg-brand-white/10 text-brand-white"
                     : "bg-brand-light text-brand-dark"
@@ -147,7 +147,7 @@ export default function Pricing() {
             return (
               <div
                 key={plan.id}
-                className={`relative rounded-[34px] p-6 md:p-8 transition-all duration-300 flex flex-col ${
+                className={`relative rounded-[28px] p-4 md:p-8 transition-all duration-300 flex flex-col ${
                   isPopular
                     ? "bg-brand-dark text-brand-white shadow-[0_20px_60px_rgba(0,0,0,0.12)] xl:-translate-y-3"
                     : "bg-brand-white border border-brand-light"
@@ -156,7 +156,7 @@ export default function Pricing() {
                 {/* Badge */}
                 {plan.badge && (
                   <div className="absolute top-5 left-5">
-                    <span className="px-4 py-2 rounded-full bg-brand-white text-brand-dark text-xs font-bold">
+                    <span className="px-4 py-2 rounded-full bg-brand-white text-brand-dark text-[12px] font-bold">
                       {plan.badge}
                     </span>
                   </div>
@@ -165,14 +165,16 @@ export default function Pricing() {
                 {/* Plan */}
                 <div className="mb-8">
                   <p
-                    className={`text-sm mb-2 ${
+                    className={`text-xs mb-2 ${
                       isPopular ? "text-brand-white/60" : "text-brand-dark/50"
                     }`}
                   >
                     {plan.nameEn}
                   </p>
 
-                  <h3 className="text-[28px] font-bold mb-5">{plan.name}</h3>
+                  <h3 className="text-[20px] md:text-[28px] font-bold mb-5">
+                    {plan.name}
+                  </h3>
 
                   {/* Price */}
                   <div className="flex items-end gap-2">
@@ -184,8 +186,8 @@ export default function Pricing() {
                     </span>
 
                     <span
-                      className={`pb-2 text-sm ${
-                        isPopular ? "text-brand-white/60" : "text-brand-dark/50"
+                      className={`pb-2 text-xs ${
+                        isPopular ? "text-brand-light" : "text-brand-dark/50"
                       }`}
                     >
                       {plan.period}
@@ -199,7 +201,7 @@ export default function Pricing() {
                     <li key={index} className="flex items-start gap-3">
                       {/* Icon */}
                       <div
-                        className={`w-5 h-5 rounded-full flex items-center justify-center mt-[2px] shrink-0 ${
+                        className={`md:w-5 md:h-5 w-4 h-4 rounded-full flex items-center justify-center mt-[2px] shrink-0 ${
                           feature.included
                             ? isPopular
                               ? "bg-brand-white/10"
@@ -226,7 +228,7 @@ export default function Pricing() {
 
                       {/* Text */}
                       <span
-                        className={`text-[15px] leading-[1.9] ${
+                        className={`text-[13px] md:text-[15px] leading-[1.9] ${
                           feature.included
                             ? isPopular
                               ? "text-brand-white/85"
@@ -243,7 +245,7 @@ export default function Pricing() {
                 {/* CTA */}
                 <a
                   href="#"
-                  className={`h-[56px] rounded-2xl text-[15px] font-bold flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5 ${
+                  className={`h-[48px] md:h-[56px] rounded-xl md:rounded-2xl text-[13px] md:text-[15px] font-bold flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5 ${
                     isPopular
                       ? "bg-brand-white text-brand-dark hover:opacity-90"
                       : plan.outlined
@@ -274,11 +276,6 @@ export default function Pricing() {
             <div className="flex items-center gap-2 text-brand-dark/70 text-sm">
               <span>🔄</span>
               <span>تحديثات مجانية</span>
-            </div>
-
-            <div className="flex items-center gap-2 text-brand-dark/70 text-sm">
-              <span>💳</span>
-              <span>دفع بالدولار أو الليرة</span>
             </div>
           </div>
         </div>

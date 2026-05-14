@@ -19,7 +19,7 @@ export default function ScrollToTop() {
     <button
       onClick={scrollUp}
       aria-label="العودة للأعلى"
-      className="fixed bottom-28 left-7 z-50 w-11 h-11 bg-white border border-[#E8E0D5] rounded-full shadow-lg flex items-center justify-center text-brand-dark hover:bg-brand-dark hover:text-white hover:border-brand-dark transition-all duration-200 hover:-translate-y-0.5"
+      className="fixed bottom-28 left-7 z-50 md:w-11 md:h-11 bg-white border border-[#E8E0D5] rounded-full shadow-lg flex items-center justify-center text-brand-dark hover:bg-brand-dark hover:text-white hover:border-brand-dark transition-all duration-200 hover:-translate-y-0.5"
     >
       <FiArrowUp size={18} />
     </button>

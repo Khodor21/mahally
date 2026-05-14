@@ -2,7 +2,7 @@ export default function FinalCTA() {
   return (
     <section
       id="contact"
-      className="relative overflow-hidden py-16 md:py-32 bg-brand-dark"
+      className="relative overflow-hidden py-8 md:py-18 bg-brand-dark"
     >
       {/* Background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">

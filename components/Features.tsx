@@ -65,7 +65,10 @@ const features = [
 
 export default function Features() {
   return (
-    <section id="features" className="py-24 bg-brand-light overflow-hidden">
+    <section
+      id="features"
+      className="py-8 md:py-18 bg-brand-light overflow-hidden"
+    >
       <div className="w-full mx-auto px-5 md:px-10">
         {/* Header */}
         <div className="text-center mb-14 md:mb-16">
@@ -97,8 +100,8 @@ export default function Features() {
                 <Image
                   src={feature.icon}
                   alt={feature.title}
-                  width={28}
-                  height={28}
+                  width={24}
+                  height={24}
                   className="object-contain w-6 h-6 md:w-7 md:h-7"
                 />
               </div>
