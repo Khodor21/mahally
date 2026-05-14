@@ -1,5 +1,5 @@
 import Navbar from "../components/Navbar";
-import Hero from "../components/Hero";
+import Main from "../components/Main";
 import ProblemSolution from "../components/ProblemSolution";
 import Features from "../components/Features";
 import HowItWorks from "../components/HowItWorks";
@@ -17,7 +17,7 @@ export default function App() {
     <div className="min-h-screen bg-[#FDF6EC]" dir="rtl" lang="ar">
       <Navbar />
       <main>
-        <Hero />
+        <Main />
         <ProblemSolution />
         <Features />
         <HowItWorks />
@@ -28,7 +28,6 @@ export default function App() {
         <FinalCTA />
       </main>
       <Footer />
-      <WhatsAppFloat />
       <ScrollToTop />
     </div>
   );

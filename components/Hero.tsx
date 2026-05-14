@@ -229,7 +229,7 @@ export default function Hero() {
                   size={16}
                 />
                 <span>
-                  بدون بطاقة — مجاني{" "}
+                  بدون دفعة مسبقة{" "}
                   <strong className="text-[#1E1E1E]">14 يوم</strong>
                 </span>
               </div>
