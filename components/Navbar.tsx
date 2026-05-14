@@ -40,20 +40,7 @@ export default function Navbar() {
             <div className="flex items-center gap-12">
               {/* Logo */}
               <a href="#" className="flex items-center gap-3 shrink-0">
-                <div className="w-11 h-11 rounded-2xl bg-brand-dark flex items-center justify-center shadow-sm">
-                  <span className="text-brand-white text-xl font-bold leading-none">
-                    م
-                  </span>
-                </div>
-
-                <div className="flex flex-col leading-none">
-                  <span
-                    className="text-[28px] text-brand-dark"
-                    style={{ fontFamily: "Lalezar, cursive" }}
-                  >
-                    محلي
-                  </span>
-                </div>
+                <img alt="logo here" src="/Logo.svg" className="w-32 h-32" />
               </a>
 
               {/* Desktop Nav */}
@@ -66,7 +53,7 @@ export default function Navbar() {
                       key={link.href}
                       href={link.href}
                       onClick={() => setActiveLink(link.href)}
-                      className={`relative text-[15px] font-medium transition-all duration-200 ${
+                      className={`relative text-sm font-medium transition-all duration-200 ${
                         active
                           ? "text-brand-dark"
                           : "text-brand-dark/70 hover:text-brand-dark"

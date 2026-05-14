@@ -61,8 +61,8 @@ export default function Footer() {
           {/* Brand */}
           <div className="xl:col-span-1">
             {/* Logo */}
-            <a href="#" className="flex items-center gap-3 mb-5">
-              <div className="w-12 h-12 rounded-2xl border border-brand-dark/10 bg-brand-dark/5 hover:bg-brand-dark hover:text-brand-dark text-brand-dark flex items-center justify-center transition-all duration-300 hover:-translate-y-1">
+            <a href="#" className="flex it gap-3 mb-5">
+              {/* <div className="w-12 h-12 rounded-2xl border border-brand-dark/10 bg-brand-dark/5 hover:bg-brand-dark hover:text-brand-dark text-brand-dark flex items-center justify-center transition-all duration-300 hover:-translate-y-1">
                 <span className="text-brand-dark text-xl font-bold leading-none">
                   م
                 </span>
@@ -75,7 +75,8 @@ export default function Footer() {
                 >
                   محلي
                 </span>
-              </div>
+              </div> */}
+              <img alt="logo here" src="/Logo.svg" className="w-32 h-32" />
             </a>
 
             {/* Tagline */}
@@ -102,7 +103,7 @@ export default function Footer() {
                       ? "noopener noreferrer"
                       : undefined
                   }
-                  className="w-11 h-11 rounded-2xl border border-brand-dark/10 bg-brand-dark/5 hover:bg-brand-dark hover:text-brand-dark text-brand-dark flex items-center justify-center transition-all duration-300 hover:-translate-y-1"
+                  className="w-11 h-11 rounded-2xl border border-brand-dark/10 bg-brand-dark/5 hover:bg-brand-dark hover:text-brand-grey text-brand-dark flex items-center justify-center transition-all duration-300 hover:-translate-y-1"
                 >
                   <social.icon size={16} />
                 </a>
