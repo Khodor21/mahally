@@ -28,7 +28,7 @@ export default function FinalCTA() {
         <div className="max-w-[900px] mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-brand-light text-brand-dark rounded-full px-4 py-2 mb-6">
             <span className="text-sm font-semibold">
-              🇱🇧 المنصة اللبنانية الأولى للتجارة الإلكترونية
+              🇱🇧 المنصة اللبنانية الأفضل للتجارة الإلكترونية
             </span>
           </div>
 
@@ -52,14 +52,14 @@ export default function FinalCTA() {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
-              href="#pricing"
+              href="/onboarding"
               className="w-full sm:w-auto h-[52px] md:h-[58px] px-8 rounded-2xl bg-brand-white text-brand-dark text-[14px] md:text-[16px] font-bold flex items-center justify-center transition-all duration-300 hover:-translate-y-1 hover:opacity-90"
             >
               أنشـئ متجرك الآن
             </a>
 
             <a
-              href="https://wa.me/9611234567"
+              href="https://wa.me/96171708103"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto h-[52px] md:h-[58px] px-8 rounded-2xl border border-brand-white/15 bg-brand-white/5 backdrop-blur-sm text-brand-white text-[14px] md:text-[16px] font-semibold flex items-center justify-center transition-all duration-300 hover:bg-brand-white/10"
@@ -86,7 +86,7 @@ export default function FinalCTA() {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-brand-light" />
-              <span>بدون  دفعة </span>
+              <span>بدون دفعة مسبقة</span>
             </div>
           </div>
         </div>

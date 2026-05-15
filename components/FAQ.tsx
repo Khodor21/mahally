@@ -42,7 +42,7 @@ export default function FAQ() {
   };
 
   return (
-    <section id="faq" className="py-24 bg-brand-grey overflow-hidden">
+    <section id="faq" className="py-8 md:py-18 bg-brand-grey overflow-hidden">
       <div className="mx-auto px-5 md:px-10 w-full">
         {/* Header */}
         <div className="text-center mb-14 md:mb-16">
@@ -130,7 +130,7 @@ export default function FAQ() {
             href="https://wa.me/9611234567"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center h-[50px] md:h-[56px] px-6 md:px-8 r md:rounded-2xl bg-brand-dark text-brand-white text-[15px] md:text-[16px] font-bold transition-all duration-300 hover:opacity-90 hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center h-[50px] md:h-[56px] px-6 md:px-8 rouded-lg md:rounded-2xl bg-brand-dark text-brand-white text-[15px] md:text-[16px] font-bold transition-all duration-300 hover:opacity-90 hover:-translate-y-0.5"
           >
             تواصل معنا على واتساب
           </a>

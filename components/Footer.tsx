@@ -55,7 +55,7 @@ export default function Footer() {
       id="footer"
       className="bg-brand-light text-brand-dark overflow-hidden"
     >
-      <div className="w-full mx-auto px-5 md:px-10 pt-2 md:pt-20 pb-8">
+      <div className="w-full mx-auto px-5 md:px-10 pt-2 md:pt-12 pb-8">
         {/* Top */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-12 xl:gap-10 mb-14">
           {/* Brand */}

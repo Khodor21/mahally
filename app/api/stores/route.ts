@@ -1,102 +1,325 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
-import bcrypt from 'bcryptjs'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase";
+import bcrypt from "bcryptjs";
+import { z } from "zod";
 
-// POST /api/stores — create a new store from the onboarding form
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const { adminName, adminEmail, password, storeName, slug, location, phone, storeType } = body
+// ─── Validation Schema ────────────────────────────────────────────────────────
 
-    // Basic validation
-    if (!adminName || !adminEmail || !password || !storeName || !slug || !location || !phone || !storeType) {
-      return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
-    }
+const CreateStoreSchema = z.object({
+  adminName: z
+    .string()
+    .min(2, "الاسم قصير جداً")
+    .max(100, "الاسم طويل جداً")
+    .regex(
+      /^[\u0600-\u06FFa-zA-Z\s'-]+$/,
+      "الاسم يحتوي على رموز غير مسموح بها",
+    ),
 
-    if (password.length < 8) {
-      return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
-    }
+  adminEmail: z
+    .string()
+    .email("بريد إلكتروني غير صالح")
+    .max(255)
+    .toLowerCase()
+    .trim(),
 
-    if (!/^[a-z0-9-]+$/.test(slug)) {
-      return NextResponse.json({ error: 'Invalid slug format' }, { status: 400 })
-    }
+  phone: z
+    .string()
+    .regex(/^[\d\s+()-]{7,20}$/, "رقم هاتف غير صالح")
+    .optional()
+    .or(z.literal("")),
 
-    // Check slug not taken
-    const { data: existing } = await supabaseAdmin
-      .from('stores')
-      .select('id')
-      .eq('slug', slug)
-      .maybeSingle()
+  location: z
+    .string()
+    .max(200, "المدينة طويلة جداً")
+    .optional()
+    .or(z.literal("")),
 
-    if (existing) {
-      return NextResponse.json({ error: 'This store handle is already taken' }, { status: 409 })
-    }
+  storeName: z
+    .string()
+    .min(2, "اسم المتجر قصير جداً")
+    .max(100, "اسم المتجر طويل جداً")
+    .trim(),
 
-    // Check email not already registered
-    const { data: existingEmail } = await supabaseAdmin
-      .from('stores')
-      .select('id')
-      .eq('admin_email', adminEmail)
-      .maybeSingle()
+  storeType: z
+    .enum([
+      "fashion",
+      "electronics",
+      "food",
+      "beauty",
+      "home",
+      "sports",
+      "books",
+      "jewelry",
+      "toys",
+      "other",
+    ])
+    .optional(),
 
-    if (existingEmail) {
-      return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 })
-    }
+  slug: z
+    .string()
+    .min(2, "الرابط قصير جداً")
+    .max(30, "الرابط طويل جداً")
+    .regex(
+      /^[a-z0-9-]+$/,
+      "الرابط يجب أن يحتوي على أحرف إنجليزية وأرقام وشرطات فقط",
+    )
+    .refine((s) => !s.startsWith("-") && !s.endsWith("-"), {
+      message: "الرابط لا يمكن أن يبدأ أو ينتهي بشرطة",
+    }),
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 12)
+  password: z
+    .string()
+    .min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
+    .max(72, "كلمة المرور طويلة جداً") // bcrypt max
+    .regex(/[A-Z]/, "يجب أن تحتوي على حرف كبير")
+    .regex(/[0-9]/, "يجب أن تحتوي على رقم"),
+});
 
-    // Insert store
-    const { data: store, error } = await supabaseAdmin
-      .from('stores')
-      .insert({
-        admin_name: adminName,
-        admin_email: adminEmail,
-        password_hash: passwordHash,
-        store_name: storeName,
-        slug,
-        location,
-        phone,
-        store_type: storeType,
-        is_active: true,
-      })
-      .select()
-      .single()
+// ─── Reserved Slugs ───────────────────────────────────────────────────────────
 
-    if (error) {
-      console.error('Supabase insert error:', error)
-      return NextResponse.json({ error: 'Failed to create store' }, { status: 500 })
-    }
+const RESERVED_SLUGS = new Set([
+  "www",
+  "app",
+  "api",
+  "admin",
+  "dashboard",
+  "login",
+  "logout",
+  "signup",
+  "register",
+  "store",
+  "stores",
+  "shop",
+  "support",
+  "help",
+  "mail",
+  "smtp",
+  "ftp",
+  "cdn",
+  "static",
+  "assets",
+  "mahalli",
+  "محلي",
+  "about",
+  "contact",
+  "terms",
+  "privacy",
+]);
 
-    return NextResponse.json({ success: true, slug: store.slug, storeName: store.store_name })
-  } catch (err) {
-    console.error('Store creation error:', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+// ─── Rate Limiting (in-memory, good for single instance) ─────────────────────
+// For multi-instance, replace with Redis (Upstash)
+
+interface RateLimitEntry {
+  count: number;
+  firstRequest: number;
+  blockedUntil?: number;
 }
 
-// GET /api/stores — get current user's store (requires auth)
-export async function GET() {
-  const session = await getServerSession(authOptions)
+const rateLimitMap = new Map<string, RateLimitEntry>();
+const WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MAX_REQUESTS = 5; // 5 store creations per IP per hour
+const BLOCK_DURATION_MS = 24 * 60 * 60 * 1000; // 24h block after abuse
 
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+function getRateLimitKey(req: NextRequest): string {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
+function checkRateLimit(key: string): {
+  allowed: boolean;
+  retryAfter?: number;
+} {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+
+  // Blocked
+  if (entry?.blockedUntil && now < entry.blockedUntil) {
+    return {
+      allowed: false,
+      retryAfter: Math.ceil((entry.blockedUntil - now) / 1000),
+    };
   }
 
-  const { data: store, error } = await supabaseAdmin
-    .from('stores')
-    .select('*')
-    .eq('admin_email', session.user.email!)
-    .single()
-
-  if (error || !store) {
-    return NextResponse.json({ error: 'Store not found' }, { status: 404 })
+  // Reset window
+  if (!entry || now - entry.firstRequest > WINDOW_MS) {
+    rateLimitMap.set(key, { count: 1, firstRequest: now });
+    return { allowed: true };
   }
 
-  // Never return the password hash
-  const { password_hash, ...safeStore } = store
+  // Increment
+  entry.count += 1;
 
-  return NextResponse.json({ store: safeStore })
+  // Abuse: block
+  if (entry.count > MAX_REQUESTS * 2) {
+    entry.blockedUntil = now + BLOCK_DURATION_MS;
+    return { allowed: false, retryAfter: BLOCK_DURATION_MS / 1000 };
+  }
+
+  // Limit reached
+  if (entry.count > MAX_REQUESTS) {
+    return {
+      allowed: false,
+      retryAfter: Math.ceil((entry.firstRequest + WINDOW_MS - now) / 1000),
+    };
+  }
+
+  return { allowed: true };
+}
+
+// ─── Handler ──────────────────────────────────────────────────────────────────
+
+export async function POST(request: NextRequest) {
+  // ── Rate limit ────────────────────────────────────────────────────────────
+  const ipKey = getRateLimitKey(request);
+  const rateLimit = checkRateLimit(ipKey);
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "طلبات كثيرة جداً، يرجى المحاولة لاحقاً" },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfter ?? 3600),
+          "X-RateLimit-Limit": String(MAX_REQUESTS),
+        },
+      },
+    );
+  }
+
+  // ── Parse body ────────────────────────────────────────────────────────────
+  let rawBody: unknown;
+  try {
+    rawBody = await request.json();
+  } catch {
+    return NextResponse.json({ error: "طلب غير صالح" }, { status: 400 });
+  }
+
+  // ── Validate ──────────────────────────────────────────────────────────────
+  const parsed = CreateStoreSchema.safeParse(rawBody);
+
+  if (!parsed.success) {
+    const firstError = parsed.error.errors[0];
+    return NextResponse.json(
+      {
+        error: firstError.message,
+        field: firstError.path[0],
+        // Only expose full errors in dev
+        ...(process.env.NODE_ENV === "development" && {
+          errors: parsed.error.errors,
+        }),
+      },
+      { status: 422 },
+    );
+  }
+
+  const {
+    adminName,
+    adminEmail,
+    phone,
+    location,
+    storeName,
+    storeType,
+    slug,
+    password,
+  } = parsed.data;
+
+  // ── Reserved slug check ───────────────────────────────────────────────────
+  if (RESERVED_SLUGS.has(slug)) {
+    return NextResponse.json(
+      { error: "هذا الرابط محجوز، يرجى اختيار رابط آخر", field: "slug" },
+      { status: 409 },
+    );
+  }
+
+  // ── Duplicate checks (parallel) ───────────────────────────────────────────
+  const [slugCheck, emailCheck] = await Promise.all([
+    supabaseAdmin.from("stores").select("id").eq("slug", slug).maybeSingle(),
+    supabaseAdmin
+      .from("stores")
+      .select("id")
+      .eq("admin_email", adminEmail)
+      .maybeSingle(),
+  ]);
+
+  if (slugCheck.error || emailCheck.error) {
+    console.error("DB check error:", slugCheck.error ?? emailCheck.error);
+    return NextResponse.json(
+      { error: "خطأ في التحقق من البيانات، حاول مجدداً" },
+      { status: 500 },
+    );
+  }
+
+  if (slugCheck.data) {
+    return NextResponse.json(
+      { error: "هذا الرابط محجوز، يرجى اختيار رابط آخر", field: "slug" },
+      { status: 409 },
+    );
+  }
+
+  if (emailCheck.data) {
+    return NextResponse.json(
+      { error: "هذا البريد الإلكتروني مسجّل مسبقاً", field: "email" },
+      { status: 409 },
+    );
+  }
+
+  // ── Hash password ─────────────────────────────────────────────────────────
+  // Cost factor 12: ~300ms on modern hardware — good balance
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  // ── Insert ────────────────────────────────────────────────────────────────
+  const { data: newStore, error: insertError } = await supabaseAdmin
+    .from("stores")
+    .insert({
+      admin_name: adminName,
+      admin_email: adminEmail,
+      phone: phone || null,
+      location: location || null,
+      store_name: storeName,
+      store_type: storeType || null,
+      slug,
+      password_hash: passwordHash,
+      is_active: true,
+      created_at: new Date().toISOString(),
+    })
+    .select("id, slug, store_name, admin_email")
+    .single();
+
+  if (insertError) {
+    console.error("Insert error:", insertError);
+
+    // Unique constraint violations (race condition fallback)
+    if (insertError.code === "23505") {
+      const isSlug = insertError.message.includes("slug");
+      return NextResponse.json(
+        {
+          error: isSlug
+            ? "هذا الرابط محجوز، يرجى اختيار رابط آخر"
+            : "هذا البريد الإلكتروني مسجّل مسبقاً",
+          field: isSlug ? "slug" : "email",
+        },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: "فشل إنشاء المتجر، يرجى المحاولة مجدداً" },
+      { status: 500 },
+    );
+  }
+
+  // ── Success ───────────────────────────────────────────────────────────────
+  return NextResponse.json(
+    {
+      success: true,
+      store: {
+        slug: newStore.slug,
+        storeName: newStore.store_name,
+      },
+    },
+    { status: 201 },
+  );
 }

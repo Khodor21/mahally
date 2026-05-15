@@ -43,7 +43,7 @@ export default function Navbar() {
                 <img
                   alt="logo here"
                   src="/Logo.svg"
-                  className="w-16 h-16 md:w-32 md:h-32"
+                  className="w-20 h-20 md:w-32 md:h-32"
                 />
               </a>
 

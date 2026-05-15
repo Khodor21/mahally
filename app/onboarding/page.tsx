@@ -1,45 +1,52 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
-  Eye, EyeOff, MapPin, Phone, Loader2, AlertCircle,
-  CheckCircle, ArrowLeft, ArrowRight, Copy, User, Store,
-  Link2, Check,
+  Eye,
+  EyeOff,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  ArrowLeft,
+  ArrowRight,
+  Copy,
+  ChevronDown,
 } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STORE_TYPES = [
-  { value: "fashion",     label: "ملابس وأزياء",       emoji: "👗" },
-  { value: "electronics", label: "إلكترونيات",          emoji: "📱" },
-  { value: "food",        label: "مأكولات ومشروبات",    emoji: "🍔" },
-  { value: "beauty",      label: "تجميل وعناية",        emoji: "💄" },
-  { value: "home",        label: "منزل وأثاث",          emoji: "🏠" },
-  { value: "sports",      label: "رياضة وهوايات",       emoji: "⚽" },
-  { value: "books",       label: "كتب وتعليم",          emoji: "📚" },
-  { value: "jewelry",     label: "مجوهرات وإكسسوارات", emoji: "💍" },
-  { value: "toys",        label: "ألعاب أطفال",         emoji: "🧸" },
-  { value: "other",       label: "متجر متنوع",          emoji: "🏪" },
+  { value: "fashion", label: "ملابس وأزياء", emoji: "👗" },
+  { value: "electronics", label: "إلكترونيات", emoji: "📱" },
+  { value: "food", label: "مأكولات ومشروبات", emoji: "🍔" },
+  { value: "beauty", label: "تجميل وعناية", emoji: "💄" },
+  { value: "home", label: "منزل وأثاث", emoji: "🏠" },
+  { value: "sports", label: "رياضة وهوايات", emoji: "⚽" },
+  { value: "books", label: "كتب وتعليم", emoji: "📚" },
+  { value: "jewelry", label: "مجوهرات وإكسسوارات", emoji: "💍" },
+  { value: "toys", label: "ألعاب أطفال", emoji: "🧸" },
+  { value: "other", label: "متجر متنوع", emoji: "🏪" },
 ];
 
 const STEPS = [
-  { id: 1, label: "حسابك",  sublabel: "معلوماتك الشخصية", icon: User  },
-  { id: 2, label: "متجرك",  sublabel: "بيانات النشاط",    icon: Store },
-  { id: 3, label: "رابطك",  sublabel: "هويتك الرقمية",    icon: Link2 },
-];
-
-const STEP_COPY = [
-  { title: "أهلاً، من نكون؟",    sub: "ابدأ بإنشاء حسابك — هو بوابتك لإدارة كل شيء." },
-  { title: "أخبرنا عن متجرك",    sub: "كل تفصيل تكتبه الآن يُقرّب زبائنك منك أكثر." },
-  { title: "اختر هويتك الرقمية", sub: "الرابط هو عنوانك على الإنترنت — اجعله بسيطًا ولا يُنسى." },
+  { id: 1, label: "البريد" },
+  { id: 2, label: "معلوماتك" },
+  { id: 3, label: "متجرك" },
+  { id: 4, label: "رابطك" },
+  { id: 5, label: "كلمة المرور" },
 ];
 
 const INPUT_BASE =
-  "w-full h-14 px-4 rounded-2xl border border-[#e8e3db] bg-[#faf8f5] " +
-  "text-[#1a1a1a] placeholder:text-[#bbb] text-sm outline-none " +
-  "transition-all duration-200 focus:border-[#1a1a1a] focus:bg-white " +
-  "focus:ring-4 focus:ring-[#1a1a1a]/5";
+  "w-full h-12 md:h-14 px-4 rounded-lg md:rounded-2xl border border-[#e8e3db] bg-[#faf8f5] " +
+  "text-brand-dark placeholder:text-[#bbb] text-sm outline-none " +
+  "transition-all duration-200 focus:border-brand-dark focus:bg-white " +
+  "focus:ring-4 focus:ring-brand-dark/5";
+
+const LABEL_BASE = "text-sm font-semibold text-brand-dark tracking-wide";
+
+const STORAGE_KEY = "mahalli_onboarding";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -53,19 +60,136 @@ function generateSlug(name: string) {
     .slice(0, 30);
 }
 
+type FormState = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  location: string;
+  storeName: string;
+  storeType: string;
+  slug: string;
+  password: string;
+  confirmPassword: string;
+};
+
+const DEFAULT_FORM: FormState = {
+  email: "",
+  firstName: "",
+  lastName: "",
+  phone: "",
+  location: "",
+  storeName: "",
+  storeType: "",
+  slug: "",
+  password: "",
+  confirmPassword: "",
+};
+
+function loadFromStorage(): { form: FormState; step: number } {
+  if (typeof window === "undefined") return { form: DEFAULT_FORM, step: 1 };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { form: DEFAULT_FORM, step: 1 };
+    const parsed = JSON.parse(raw);
+    return {
+      form: { ...DEFAULT_FORM, ...parsed.form },
+      step: parsed.step ?? 1,
+    };
+  } catch {
+    return { form: DEFAULT_FORM, step: 1 };
+  }
+}
+
+function saveToStorage(form: FormState, step: number) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ form, step }));
+  } catch {}
+}
+
+function clearStorage() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {}
+}
+
+// ─── Progress Bar (fixed top) ─────────────────────────────────────────────────
+
+function ProgressBar({ current, total }: { current: number; total: number }) {
+  const pct = ((current - 1) / (total - 1)) * 100;
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-[#e8e3db]">
+      <div
+        className="h-full bg-brand-dark transition-all duration-700"
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+// ─── Step Pills ───────────────────────────────────────────────────────────────
+
+function StepPills({ current }: { current: number }) {
+  return (
+    <div className="flex justify-center pt-3 pb-2">
+      <div className="flex items-center gap-1.5">
+        {STEPS.map((s) => {
+          const isDone = s.id < current;
+          const isActive = s.id === current;
+          return (
+            <div key={s.id} className="flex items-center gap-1.5">
+              <div
+                className={[
+                  "flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold transition-all duration-300",
+                  isDone
+                    ? "bg-brand-dark text-white"
+                    : isActive
+                      ? "bg-[#f5f0e8] text-brand-dark"
+                      : "bg-transparent text-[#ccc]",
+                ].join(" ")}
+              >
+                {isDone && <CheckCircle className="w-3 h-3" />}
+                <span>{s.label}</span>
+              </div>
+              {s.id < STEPS.length && (
+                <div
+                  className={[
+                    "w-3 h-px transition-all duration-500",
+                    isDone ? "bg-brand-dark" : "bg-[#e8e3db]",
+                  ].join(" ")}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Field ────────────────────────────────────────────────────────────────────
 
 function Field({
-  label, hint, error, children,
+  label,
+  hint,
+  error,
+  children,
 }: {
-  label: string; hint?: string; error?: string; children: React.ReactNode;
+  label?: string;
+  hint?: string;
+  error?: string;
+  children: React.ReactNode;
 }) {
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-2">
-        <label className="text-sm font-semibold text-[#1a1a1a] tracking-wide">{label}</label>
-        {hint && !error && <span className="text-xs text-[#aaa]">{hint}</span>}
-      </div>
+      {label && (
+        <div className="flex items-baseline justify-between mb-2">
+          <label className={LABEL_BASE}>{label}</label>
+          {hint && !error && (
+            <span className="text-xs text-[#aaa]">{hint}</span>
+          )}
+        </div>
+      )}
       {children}
       {error && (
         <p className="mt-2 text-xs text-red-500 flex items-center gap-1.5">
@@ -77,56 +201,32 @@ function Field({
   );
 }
 
-// ─── Step Indicator ───────────────────────────────────────────────────────────
+// ─── Animated Step Wrapper ────────────────────────────────────────────────────
 
-function StepIndicator({ current }: { current: number }) {
+function StepWrapper({
+  children,
+  stepKey,
+}: {
+  children: React.ReactNode;
+  stepKey: number;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    // Trigger entrance animation on mount
+    const t = setTimeout(() => setVisible(true), 10);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
-    <div className="flex items-center justify-center gap-0 mb-12">
-      {STEPS.map((s, i) => {
-        const Icon     = s.icon;
-        const isDone   = s.id < current;
-        const isActive = s.id === current;
-
-        return (
-          <div key={s.id} className="flex items-center">
-            <div className="flex flex-col items-center gap-2">
-              <div className={[
-                "relative w-11 h-11 rounded-full flex items-center justify-center transition-all duration-500",
-                isDone   ? "bg-[#1a1a1a]" :
-                isActive ? "bg-[#1a1a1a] ring-4 ring-[#1a1a1a]/10" :
-                           "bg-[#f0ede8] border border-[#ddd9d2]",
-              ].join(" ")}>
-                {isDone
-                  ? <Check className="w-4 h-4 text-[#f5f0e8]" strokeWidth={2.5} />
-                  : <Icon  className={`w-4 h-4 ${isActive ? "text-[#f5f0e8]" : "text-[#999]"}`} strokeWidth={1.8} />
-                }
-                {isActive && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#c8a97e] border-2 border-white" />
-                )}
-              </div>
-              <div className="text-center">
-                <p className={[
-                  "text-xs font-bold tracking-wide transition-colors duration-300",
-                  isActive ? "text-[#1a1a1a]" : isDone ? "text-[#1a1a1a]/60" : "text-[#bbb]",
-                ].join(" ")}>{s.label}</p>
-                <p className={[
-                  "text-[10px] tracking-wide transition-all duration-300",
-                  isActive ? "text-[#c8a97e]" : "text-transparent select-none",
-                ].join(" ")}>{s.sublabel}</p>
-              </div>
-            </div>
-
-            {i < STEPS.length - 1 && (
-              <div className="w-16 md:w-24 h-px mx-3 mb-6 relative overflow-hidden bg-[#e8e4de]">
-                <div
-                  className="absolute inset-y-0 right-0 bg-[#1a1a1a] transition-all duration-700"
-                  style={{ width: isDone ? "100%" : "0%" }}
-                />
-              </div>
-            )}
-          </div>
-        );
-      })}
+    <div
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0px)" : "translateY(16px)",
+        transition: "opacity 0.35s ease, transform 0.35s ease",
+      }}
+    >
+      {children}
     </div>
   );
 }
@@ -134,7 +234,7 @@ function StepIndicator({ current }: { current: number }) {
 // ─── Success Screen ───────────────────────────────────────────────────────────
 
 function SuccessScreen({ slug }: { slug: string }) {
-  const domain   = process.env.NEXT_PUBLIC_APP_DOMAIN || "mahalli.lb";
+  const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mahalli.lb";
   const storeUrl = `${slug}.${domain}`;
   const [copied, setCopied] = useState(false);
 
@@ -145,29 +245,50 @@ function SuccessScreen({ slug }: { slug: string }) {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#f5f0e8] flex items-center justify-center px-5">
-      <div
-        className="fixed inset-0 opacity-[0.035] pointer-events-none"
-        style={{ backgroundImage: "radial-gradient(circle, #1a1a1a 1px, transparent 1px)", backgroundSize: "28px 28px" }}
-      />
-      <div className="w-full max-w-md relative">
-        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full bg-[#c8a97e]/20 blur-3xl pointer-events-none" />
-        <div className="relative bg-white border border-[#e8e3db] rounded-3xl p-8 md:p-10 shadow-[0_4px_40px_rgba(0,0,0,0.06)] text-center">
+    <div
+      dir="rtl"
+      className="min-h-screen bg-white flex items-center justify-center px-5"
+    >
+      <div className="w-full max-w-sm">
+        {/* Logo */}
+        <div className="flex justify-center mb-10">
+          <Image src="/Logo.svg" alt="محلي" width={90} height={32} />
+        </div>
+
+        <div className="text-center">
           <div className="w-16 h-16 rounded-2xl bg-[#f5f0e8] border border-[#e8e3db] flex items-center justify-center mx-auto mb-6 rotate-3">
-            <CheckCircle className="w-8 h-8 text-[#1a1a1a]" strokeWidth={1.5} />
+            <CheckCircle
+              className="w-8 h-8 text-brand-dark"
+              strokeWidth={1.5}
+            />
           </div>
-          <h1 className="text-4xl md:text-5xl text-[#1a1a1a] mb-3 leading-tight" style={{ fontFamily: "Lalezar, sans-serif" }}>
+
+          <h1
+            className="text-4xl text-brand-dark mb-3 leading-tight"
+            style={{ fontFamily: "Lalezar, sans-serif" }}
+          >
             متجرك صار حقيقي 🎉
           </h1>
+
           <p className="text-[#777] text-sm leading-relaxed mb-8 max-w-xs mx-auto">
-            خلال دقائق، أنشأت حضورًا رقميًا كاملًا لنشاطك. ما راح ينتظر زبائنك كتير.
+            خلال دقائق، أنشأت حضورًا رقميًا كاملًا لنشاطك. ما راح ينتظر زبائنك
+            كتير.
           </p>
-          <div className="bg-[#f5f0e8] border border-[#e8e3db] rounded-2xl p-5 mb-8 text-right">
-            <p className="text-xs font-semibold text-[#aaa] uppercase tracking-widest mb-2">رابط متجرك</p>
-            <p className="text-[#1a1a1a] font-bold text-lg break-all leading-snug" dir="ltr">
-              {slug}<span className="text-[#c8a97e]">.{domain}</span>
+
+          {/* URL Card */}
+          <div className="bg-[#f5f0e8] border border-[#e8e3db] rounded-2xl p-5 mb-6 text-right">
+            <p className="text-xs font-semibold text-[#aaa] uppercase tracking-widest mb-2">
+              رابط متجرك
+            </p>
+            <p
+              className="text-brand-dark font-bold text-lg break-all leading-snug"
+              dir="ltr"
+            >
+              {slug}
+              <span className="text-[#c8a97e]">.{domain}</span>
             </p>
           </div>
+
           <div className="flex flex-col gap-3">
             <button
               onClick={handleCopy}
@@ -175,7 +296,7 @@ function SuccessScreen({ slug }: { slug: string }) {
                 "h-12 rounded-2xl border font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-300",
                 copied
                   ? "border-green-300 bg-green-50 text-green-700"
-                  : "border-[#e8e3db] text-[#1a1a1a] hover:border-[#1a1a1a] hover:bg-[#f5f0e8]",
+                  : "border-[#e8e3db] text-brand-dark hover:border-brand-dark",
               ].join(" ")}
             >
               <Copy className="w-4 h-4" />
@@ -183,7 +304,7 @@ function SuccessScreen({ slug }: { slug: string }) {
             </button>
             <Link
               href="/login"
-              className="h-12 rounded-2xl bg-[#1a1a1a] text-[#f5f0e8] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#333] transition-all duration-300"
+              className="h-12 rounded-2xl bg-brand-dark text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#333] transition-all duration-300"
             >
               ادخل للوحة التحكم
               <ArrowLeft className="w-4 h-4" />
@@ -195,312 +316,760 @@ function SuccessScreen({ slug }: { slug: string }) {
   );
 }
 
+// ─── Shared Nav Row (back + next) ─────────────────────────────────────────────
+
+function NavRow({
+  onBack,
+  onNext,
+}: {
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between pt-4 border-t border-[#f0ede8] mt-2">
+      <button
+        type="button"
+        onClick={onBack}
+        className="flex items-center gap-1.5 px-7 h-12 rounded-lg md:rounded-2xl text-sm bg-[#f0ede8] text-[#1e1e1e] hover:text-brand-dark transition-colors"
+      >
+        <ArrowRight className="w-4 h-4" /> رجوع
+      </button>
+      <button
+        type="button"
+        onClick={onNext}
+        className="h-12 px-7 rounded-lg md:rounded-2xl bg-brand-dark text-white text-sm font-bold flex items-center gap-2 hover:bg-[#333] transition-all duration-200"
+      >
+        التالي <ArrowLeft className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+function PasswordStrength({ password }: { password: string }) {
+  const checks = [
+    { label: "8 أحرف على الأقل", pass: password.length >= 8 },
+    { label: "حرف كبير", pass: /[A-Z]/.test(password) },
+    { label: "رقم", pass: /[0-9]/.test(password) },
+  ];
+
+  const score = checks.filter((c) => c.pass).length;
+  const colors = ["bg-red-400", "bg-yellow-400", "bg-emerald-400"];
+  const labels = ["ضعيفة", "متوسطة", "قوية"];
+
+  if (!password) return null;
+
+  return (
+    <div className="space-y-2">
+      {/* Bar */}
+      <div className="flex gap-1.5">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className={[
+              "h-1.5 flex-1 rounded-full transition-all duration-300",
+              i < score ? colors[score - 1] : "bg-[#e8e3db]",
+            ].join(" ")}
+          />
+        ))}
+      </div>
+      {/* Checks */}
+      <div className="flex gap-3 flex-wrap">
+        {checks.map((c) => (
+          <span
+            key={c.label}
+            className={[
+              "text-[11px] flex items-center gap-1 transition-colors duration-200",
+              c.pass ? "text-emerald-600" : "text-[#bbb]",
+            ].join(" ")}
+          >
+            <CheckCircle className="w-3 h-3" />
+            {c.label}
+          </span>
+        ))}
+      </div>
+      {password && (
+        <p className="text-xs text-[#888]">
+          قوة كلمة المرور:{" "}
+          <span
+            className={
+              score === 3 ? "text-emerald-600 font-semibold" : "text-[#aaa]"
+            }
+          >
+            {labels[score - 1] ?? "ضعيفة جداً"}
+          </span>
+        </p>
+      )}
+    </div>
+  );
+}
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
-  const [step,          setStep]          = useState(1);
-  const [loading,       setLoading]       = useState(false);
-  const [slugChecking,  setSlugChecking]  = useState(false);
+  // ── Hydration-safe localStorage init ──────────────────────────────────────
+  const [hydrated, setHydrated] = useState(false);
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState<FormState>(DEFAULT_FORM);
+
+  // Load from localStorage only after hydration to avoid SSR mismatch
+  useEffect(() => {
+    const saved = loadFromStorage();
+    setForm(saved.form);
+    setStep(saved.step);
+    setHydrated(true);
+  }, []);
+
+  // Persist to localStorage whenever form or step changes (after hydration)
+  useEffect(() => {
+    if (!hydrated) return;
+    saveToStorage(form, step);
+  }, [form, step, hydrated]);
+
+  const [loading, setLoading] = useState(false);
+  const [slugChecking, setSlugChecking] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
-  const [showPassword,  setShowPassword]  = useState(false);
-  const [errors,        setErrors]        = useState<Record<string, string>>({});
-  const [success,       setSuccess]       = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [form, setForm] = useState({
-    adminName: "", adminEmail: "", password: "",
-    storeName: "", slug: "", location: "", phone: "", storeType: "",
-  });
+  // Track whether slug was manually edited so auto-gen doesn't override it
+  const slugManuallyEdited = useRef(false);
 
+  // Auto-generate slug from storeName ONLY if not manually edited
   useEffect(() => {
-    if (form.storeName && step === 2) {
-      setForm((f) => ({ ...f, slug: generateSlug(form.storeName) }));
+    if (!hydrated) return;
+    if (slugManuallyEdited.current) return;
+    if (form.storeName) {
+      const generated = generateSlug(form.storeName);
+      setForm((f) => ({ ...f, slug: generated }));
     }
-  }, [form.storeName]);
+  }, [form.storeName, hydrated]);
 
+  // Slug availability check — debounced
   useEffect(() => {
-    if (!form.slug || form.slug.length < 2) { setSlugAvailable(null); return; }
+    if (!form.slug || form.slug.length < 2) {
+      setSlugAvailable(null);
+      return;
+    }
     setSlugChecking(true);
+    setSlugAvailable(null);
     const t = setTimeout(async () => {
       try {
-        const res  = await fetch(`/api/check-slug?slug=${form.slug}`);
+        const res = await fetch(`/api/check-slug?slug=${form.slug}`);
         const data = await res.json();
         setSlugAvailable(data.available);
-      } catch { setSlugAvailable(null); }
-      finally  { setSlugChecking(false); }
-    }, 500);
-    return () => clearTimeout(t);
+      } catch {
+        setSlugAvailable(null);
+      } finally {
+        setSlugChecking(false);
+      }
+    }, 600);
+    return () => {
+      clearTimeout(t);
+    };
   }, [form.slug]);
 
-  const set = (key: string, value: string) => {
-    setForm((f)  => ({ ...f, [key]: value }));
-    setErrors((e) => ({ ...e, [key]: ""   }));
-  };
+  const set = useCallback((key: string, value: string) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    setErrors((e) => ({ ...e, [key]: "" }));
+  }, []);
 
-  const validate = (): boolean => {
-    const errs: Record<string, string> = {};
-    if (step === 1) {
-      if (!form.adminName.trim())                 errs.adminName  = "الاسم الكامل مطلوب";
-      if (!/\S+@\S+\.\S+/.test(form.adminEmail)) errs.adminEmail = "بريد إلكتروني غير صالح";
-      if (form.password.length < 8)               errs.password   = "8 أحرف على الأقل";
-    }
-    if (step === 2) {
-      if (!form.storeName.trim()) errs.storeName = "اسم المتجر مطلوب";
-      if (!form.location.trim())  errs.location  = "المدينة مطلوبة";
-      if (!form.phone.trim())     errs.phone     = "رقم الهاتف مطلوب";
-      if (!form.storeType)        errs.storeType = "اختر نوع المتجر";
-    }
-    if (step === 3) {
-      if (!form.slug || form.slug.length < 2) errs.slug = "اختر رابطًا للمتجر";
-      if (slugAvailable === false)             errs.slug = "هذا الرابط محجوز، جرّب آخر";
-      if (slugChecking)                        errs.slug = "يرجى الانتظار…";
-    }
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
+  const validate = useCallback(
+    (targetStep: number): boolean => {
+      const errs: Record<string, string> = {};
 
-  const handleNext   = () => { if (validate()) setStep((s) => s + 1); };
-  const handleSubmit = async () => {
-    if (!validate()) return;
+      if (targetStep === 1) {
+        if (!/\S+@\S+\.\S+/.test(form.email))
+          errs.email = "بريد إلكتروني غير صالح";
+      }
+      if (targetStep === 2) {
+        if (!form.firstName.trim()) errs.firstName = "الاسم الأول مطلوب";
+        if (!form.lastName.trim()) errs.lastName = "الاسم الأخير مطلوب";
+        if (!form.phone.trim()) errs.phone = "رقم الهاتف مطلوب";
+        if (!form.location.trim()) errs.location = "المدينة مطلوبة";
+      }
+      if (targetStep === 3) {
+        if (!form.storeName.trim()) errs.storeName = "اسم المتجر مطلوب";
+        if (!form.storeType) errs.storeType = "اختر نوع المتجر";
+      }
+      if (targetStep === 4) {
+        if (!form.slug || form.slug.length < 2)
+          errs.slug = "اختر رابطًا للمتجر";
+        if (slugAvailable === false) errs.slug = "هذا الرابط محجوز، جرّب آخر";
+        if (slugChecking) errs.slug = "يرجى الانتظار…";
+      }
+      if (targetStep === 5) {
+        if (!form.password) {
+          errs.password = "كلمة المرور مطلوبة";
+        } else if (form.password.length < 8) {
+          errs.password = "8 أحرف على الأقل";
+        } else if (!/[A-Z]/.test(form.password)) {
+          errs.password = "يجب أن تحتوي على حرف كبير";
+        } else if (!/[0-9]/.test(form.password)) {
+          errs.password = "يجب أن تحتوي على رقم";
+        }
+        if (form.password !== form.confirmPassword) {
+          errs.confirmPassword = "كلمتا المرور غير متطابقتين";
+        }
+      }
+      setErrors(errs);
+      return Object.keys(errs).length === 0;
+    },
+    [form, slugAvailable, slugChecking],
+  );
+
+  const handleStep1Next = async () => {
+    if (!validate(1)) return;
     setLoading(true);
     try {
-      const res  = await fetch("/api/stores", {
+      await fetch("/api/send-welcome-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ email: form.email }),
+      });
+    } catch {
+      // non-blocking
+    } finally {
+      setLoading(false);
+      setStep(2);
+    }
+  };
+
+  const handleNext = () => {
+    if (validate(step)) setStep((s) => s + 1);
+  };
+
+  const handleSubmit = async () => {
+    if (!validate(4)) return;
+    // Extra guard
+    if (slugAvailable === false || slugChecking || !form.slug) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/stores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          adminName: `${form.firstName} ${form.lastName}`,
+          adminEmail: form.email,
+          phone: form.phone,
+          location: form.location,
+          storeName: form.storeName,
+          storeType: form.storeType,
+          slug: form.slug,
+          password: form.password,
+        }),
       });
       const data = await res.json();
-      if (!res.ok) { setErrors({ global: data.error || "حدث خطأ غير متوقع" }); return; }
+      if (!res.ok) {
+        setErrors({ global: data.error || "حدث خطأ غير متوقع" });
+        return;
+      }
+      // Clear persisted data on success
+      clearStorage();
       setSuccess(true);
     } catch {
-      setErrors({ global: "تعذّر الاتصال بالخادم، تحقق من اتصالك وحاول مجددًا." });
-    } finally { setLoading(false); }
+      setErrors({
+        global: "تعذّر الاتصال بالخادم، تحقق من اتصالك وحاول مجددًا.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (success) return <SuccessScreen slug={form.slug} />;
 
-  const copy   = STEP_COPY[step - 1];
+  // Don't render form content until hydrated (avoids flicker)
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-brand-dark/30" />
+      </div>
+    );
+  }
+
   const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mahalli.lb";
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#f5f0e8] flex flex-col">
-      {/* Dot grid */}
-      <div
-        className="fixed inset-0 opacity-[0.035] pointer-events-none"
-        style={{ backgroundImage: "radial-gradient(circle, #1a1a1a 1px, transparent 1px)", backgroundSize: "28px 28px" }}
-      />
-      {/* Warm glow */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-72 rounded-full bg-[#c8a97e]/15 blur-3xl pointer-events-none" />
+    <div dir="rtl" className="min-h-screen bg-white flex flex-col">
+      {/* Fixed progress bar */}
+      <ProgressBar current={step} total={STEPS.length} />
 
-      {/* Navbar */}
-      <nav className="relative flex items-center justify-between px-6 md:px-12 py-5 border-b border-[#e8e3db] bg-[#f5f0e8]/80 backdrop-blur-sm">
-        <Link href="/" className="text-3xl text-[#1a1a1a] leading-none hover:opacity-70 transition-opacity" style={{ fontFamily: "Lalezar, sans-serif" }}>
-          محلي
-        </Link>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-[#aaa] font-medium tracking-wide">{step} / 3</span>
-          <div className="flex gap-1.5">
-            {[1, 2, 3].map((n) => (
-              <div key={n} className={["h-1 rounded-full transition-all duration-500", n <= step ? "bg-[#1a1a1a] w-6" : "bg-[#ddd9d2] w-3"].join(" ")} />
-            ))}
-          </div>
+      {/* ── Static Header (logo + CTA) ──────────────────────────────────── */}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-sm border-b border-[#f0ede8]">
+        {/* Progress bar sits at very top */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-[#e8e3db]">
+          <div
+            className="h-full bg-brand-dark transition-all duration-700"
+            style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
+          />
         </div>
-      </nav>
 
-      {/* Body */}
-      <div className="relative flex-1 flex items-start justify-center px-5 py-10 md:py-16">
-        <div className="w-full max-w-[540px]">
-          <StepIndicator current={step} />
+        <div className="flex items-center justify-between px-5 pt-3 pb-2">
+          <Image src="/Logo.svg" alt="محلي" width={86} height={86} />
+          <a
+            href="#demo"
+            className="text-xs text-brand-dark/50 border-[2px] border-brand-dark/20 p-3 rounded-full hover:text-brand-dark transition-colors"
+          >
+            تصفّح المتجر التجريبي
+          </a>
+        </div>
 
-          {/* Card */}
-          <div className="bg-white border border-[#e8e3db] rounded-3xl shadow-[0_4px_40px_rgba(0,0,0,0.05)] overflow-hidden">
-            <div className="h-1 bg-gradient-to-l from-[#c8a97e] via-[#1a1a1a] to-[#1a1a1a]" />
+        {/* Step pills below logo row */}
+        <StepPills current={step} />
+      </header>
 
-            <div className="p-6 md:p-8">
-              {/* Headline */}
-              <div className="mb-8">
-                <h2 className="text-3xl md:text-4xl text-[#1a1a1a] mb-2 leading-tight" style={{ fontFamily: "Lalezar, sans-serif" }}>
-                  {copy.title}
-                </h2>
-                <p className="text-sm text-[#888] leading-relaxed">{copy.sub}</p>
-              </div>
-
-              {/* Step 1 */}
-              {step === 1 && (
-                <div className="space-y-5">
-                  <Field label="الاسم الكامل" error={errors.adminName}>
-                    <input type="text" placeholder="مثلاً: سارة العلي" value={form.adminName}
-                      onChange={(e) => set("adminName", e.target.value)} className={INPUT_BASE} />
-                  </Field>
-
-                  <Field label="البريد الإلكتروني" hint="ستستخدمه لتسجيل الدخول" error={errors.adminEmail}>
-                    <input type="email" placeholder="name@example.com" value={form.adminEmail} dir="ltr"
-                      onChange={(e) => set("adminEmail", e.target.value)} className={INPUT_BASE} />
-                  </Field>
-
-                  <Field label="كلمة المرور" hint="8 أحرف على الأقل" error={errors.password}>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="اختر كلمة مرور قوية"
-                        value={form.password}
-                        onChange={(e) => set("password", e.target.value)}
-                        className={INPUT_BASE + " pl-12"}
-                      />
-                      <button type="button" tabIndex={-1}
-                        onClick={() => setShowPassword((s) => !s)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-[#bbb] hover:text-[#1a1a1a] transition-colors"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </Field>
-
-                  <p className="text-xs text-[#aaa] pt-1">
-                    بإنشاء الحساب، أنت توافق على{" "}
-                    <Link href="/terms" className="text-[#1a1a1a] underline underline-offset-2">شروط الاستخدام</Link>.
+      {/* ── Body: vertically centered ───────────────────────────────────── */}
+      {/* 
+        The header is ~88px tall (progress 4px + logo row ~44px + pills ~40px).
+        We use pt to offset the fixed header, then flex-1 + flex to center content.
+      */}
+      <main className="flex-1 flex flex-col items-center justify-center px-5 pt-[100px] pb-16 min-h-screen">
+        <div className="w-full max-w-sm">
+          {/* ── Step 1: Email ── */}
+          {step === 1 && (
+            <StepWrapper stepKey={1}>
+              <div className="space-y-6">
+                <div className="mb-8">
+                  <h1
+                    className="text-[32px] leading-[1.25] text-brand-dark mb-3"
+                    style={{ fontFamily: "Lalezar, sans-serif" }}
+                  >
+                    ابدأ متجرك اليوم
+                  </h1>
+                  <p className="text-[#777] text-sm leading-[1.9]">
+                    مع محلي، حوّل فكرتك إلى متجر إلكتروني ناجح بسهولة وثقة.
+                    <br />
+                    خطوتك الأولى لبناء ونمو متجرك تبدأ هنا.
                   </p>
                 </div>
-              )}
 
-              {/* Step 2 */}
-              {step === 2 && (
-                <div className="space-y-5">
-                  <Field label="اسم المتجر" hint="يظهر للزبائن على متجرك" error={errors.storeName}>
-                    <input type="text" placeholder="مثلاً: بوتيك نور" value={form.storeName}
-                      onChange={(e) => set("storeName", e.target.value)} className={INPUT_BASE} />
+                <Field label="بريدك الإلكتروني" error={errors.email}>
+                  <input
+                    type="email"
+                    dir="ltr"
+                    placeholder="name@example.com"
+                    value={form.email}
+                    onChange={(e) => set("email", e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleStep1Next()}
+                    className={INPUT_BASE}
+                    autoFocus
+                  />
+                </Field>
+
+                <button
+                  type="button"
+                  onClick={handleStep1Next}
+                  disabled={loading}
+                  className="w-full h-12 md:h-14 rounded-2xl bg-brand-dark text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#333] transition-all duration-200 disabled:opacity-40"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> جاري الإرسال…
+                    </>
+                  ) : (
+                    <>
+                      ابدأ الآن <ArrowLeft className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+
+                <p className="text-center text-base text-brand-dark/70 mt-2">
+                  عندك حساب سابق؟{" "}
+                  <Link
+                    href="/login"
+                    className="text-brand-dark font-semibold underline underline-offset-2"
+                  >
+                    سجّل دخول
+                  </Link>
+                </p>
+              </div>
+            </StepWrapper>
+          )}
+
+          {/* ── Step 2: Personal Info ── */}
+          {step === 2 && (
+            <StepWrapper stepKey={2}>
+              <div className="space-y-5">
+                <div className="mb-6">
+                  <h2
+                    className="text-[28px] text-brand-dark mb-2 leading-tight"
+                    style={{ fontFamily: "Lalezar, sans-serif" }}
+                  >
+                    أهلاً، من تكون؟
+                  </h2>
+                  <p className="text-sm text-[#888] leading-relaxed">
+                    معلوماتك الشخصية تساعدنا نحضّر تجربة مخصصة لك.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="الاسم الأول" error={errors.firstName}>
+                    <input
+                      type="text"
+                      placeholder="سارة"
+                      value={form.firstName}
+                      onChange={(e) => set("firstName", e.target.value)}
+                      className={INPUT_BASE}
+                    />
                   </Field>
+                  <Field label="الاسم الأخير" error={errors.lastName}>
+                    <input
+                      type="text"
+                      placeholder="العلي"
+                      value={form.lastName}
+                      onChange={(e) => set("lastName", e.target.value)}
+                      className={INPUT_BASE}
+                    />
+                  </Field>
+                </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="المدينة" error={errors.location}>
-                      <div className="relative">
-                        <MapPin className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#ccc]" />
-                        <input type="text" placeholder="بيروت" value={form.location}
-                          onChange={(e) => set("location", e.target.value)} className={INPUT_BASE + " pr-10"} />
-                      </div>
-                    </Field>
-                    <Field label="رقم الهاتف" error={errors.phone}>
-                      <div className="relative">
-                        <Phone className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#ccc]" />
-                        <input type="tel" placeholder="+961 70 …" value={form.phone} dir="ltr"
-                          onChange={(e) => set("phone", e.target.value)} className={INPUT_BASE + " pr-10"} />
-                      </div>
-                    </Field>
+                <Field label="رقم الهاتف" error={errors.phone}>
+                  <div className="flex gap-2">
+                    <div className="flex items-center gap-1.5 h-12 md:h-14 px-3 rounded-lg md:rounded-2xl border border-[#e8e3db] bg-[#faf8f5] text-sm text-brand-dark font-medium whitespace-nowrap select-none">
+                      🇱🇧 <span dir="ltr">+961</span>
+                    </div>
+                    <input
+                      type="tel"
+                      dir="ltr"
+                      placeholder="70 000 000"
+                      value={form.phone}
+                      onChange={(e) => set("phone", e.target.value)}
+                      className={INPUT_BASE + " flex-1"}
+                    />
                   </div>
+                </Field>
 
-                  <Field label="ما الذي تبيعه؟" error={errors.storeType}>
-                    <div className="grid grid-cols-2 gap-2.5 mt-1">
-                      {STORE_TYPES.map((t) => (
-                        <button key={t.value} type="button" onClick={() => set("storeType", t.value)}
+                <Field label="المدينة / المنطقة" error={errors.location}>
+                  <input
+                    type="text"
+                    placeholder="بيروت"
+                    value={form.location}
+                    onChange={(e) => set("location", e.target.value)}
+                    className={INPUT_BASE}
+                  />
+                </Field>
+
+                <NavRow onBack={() => setStep(1)} onNext={handleNext} />
+              </div>
+            </StepWrapper>
+          )}
+
+          {/* ── Step 3: Store Info ── */}
+          {step === 3 && (
+            <StepWrapper stepKey={3}>
+              <div className="space-y-5">
+                <div className="mb-6">
+                  <h2
+                    className="text-[28px] text-brand-dark mb-2 leading-tight"
+                    style={{ fontFamily: "Lalezar, sans-serif" }}
+                  >
+                    أخبرنا عن متجرك
+                  </h2>
+                  <p className="text-sm text-[#888] leading-relaxed">
+                    كل تفصيل تكتبه يُقرّب زبائنك منك أكثر.
+                  </p>
+                </div>
+
+                <Field
+                  label="اسم المتجر"
+                  hint="يظهر للزبائن"
+                  error={errors.storeName}
+                >
+                  <input
+                    type="text"
+                    placeholder="مثلاً: بوتيك نور"
+                    value={form.storeName}
+                    onChange={(e) => set("storeName", e.target.value)}
+                    className={INPUT_BASE}
+                  />
+                </Field>
+
+                <Field label="ما الذي تبيعه؟" error={errors.storeType}>
+                  <div className="grid grid-cols-2 gap-2.5 mt-1">
+                    {STORE_TYPES.map((t) => {
+                      const active = form.storeType === t.value;
+                      return (
+                        <button
+                          key={t.value}
+                          type="button"
+                          onClick={() => set("storeType", t.value)}
                           className={[
-                            "flex items-center gap-2.5 px-4 py-3 rounded-2xl border text-sm text-right transition-all duration-200",
-                            form.storeType === t.value
-                              ? "border-[#1a1a1a] bg-[#1a1a1a] text-white font-semibold shadow-md"
-                              : "border-[#e8e3db] bg-[#faf8f5] text-[#555] hover:border-[#1a1a1a]/30 hover:bg-[#f5f0e8]",
+                            "group relative flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-right transition-all duration-200 overflow-hidden",
+                            active
+                              ? "border-brand-dark bg-brand-dark text-white shadow-md scale-[1.02]"
+                              : "border-[#e8e3db] bg-[#faf8f5] text-[#555] hover:border-brand-dark/20 hover:bg-[#f5f0e8]",
                           ].join(" ")}
                         >
-                          <span className="text-lg leading-none">{t.emoji}</span>
-                          <span>{t.label}</span>
+                          <span
+                            className={[
+                              "flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-lg transition-all duration-200",
+                              active
+                                ? "bg-white/15"
+                                : "bg-[#f0ede8] group-hover:bg-[#e8e4de]",
+                            ].join(" ")}
+                          >
+                            {t.emoji}
+                          </span>
+                          <span
+                            className={[
+                              "text-[13px] font-semibold leading-snug",
+                              active ? "text-white" : "text-brand-dark",
+                            ].join(" ")}
+                          >
+                            {t.label}
+                          </span>
+                          {active && (
+                            <CheckCircle className="absolute top-2 left-2 w-3.5 h-3.5 text-white/60" />
+                          )}
                         </button>
-                      ))}
-                    </div>
-                  </Field>
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                </Field>
 
-              {/* Step 3 */}
-              {step === 3 && (
-                <div className="space-y-5">
-                  <Field label="رابط المتجر" hint="حروف إنجليزية وأرقام وشرطات فقط" error={errors.slug}>
-                    <div className={[
-                      "flex items-center h-14 rounded-2xl border bg-[#faf8f5] overflow-hidden transition-all duration-200",
+                <NavRow onBack={() => setStep(2)} onNext={handleNext} />
+              </div>
+            </StepWrapper>
+          )}
+
+          {/* ── Step 4: Slug / Domain ── */}
+          {step === 4 && (
+            <StepWrapper stepKey={4}>
+              <div className="space-y-5">
+                <div className="mb-6">
+                  <h2
+                    className="text-[28px] text-brand-dark mb-2 leading-tight"
+                    style={{ fontFamily: "Lalezar, sans-serif" }}
+                  >
+                    اختر هويتك الرقمية
+                  </h2>
+                  <p className="text-sm text-[#888] leading-relaxed">
+                    الرابط هو عنوانك على الإنترنت — اجعله بسيطًا ولا يُنسى.
+                  </p>
+                </div>
+
+                <Field
+                  label="رابط المتجر"
+                  hint="حروف إنجليزية، أرقام وشرطات"
+                  error={errors.slug}
+                >
+                  <div
+                    className={[
+                      "flex items-center h-12 md:h-14 rounded-2xl border bg-[#faf8f5] overflow-hidden transition-all duration-200",
                       errors.slug
                         ? "border-red-300 focus-within:ring-4 focus-within:ring-red-100"
-                        : "border-[#e8e3db] focus-within:border-[#1a1a1a] focus-within:ring-4 focus-within:ring-[#1a1a1a]/5 focus-within:bg-white",
-                    ].join(" ")}>
-                      <input
-                        type="text" dir="ltr" value={form.slug} placeholder="my-store"
-                        onChange={(e) => set("slug", generateSlug(e.target.value))}
-                        className="flex-1 h-full px-4 bg-transparent text-[#1a1a1a] text-sm outline-none placeholder:text-[#bbb]"
-                      />
-                      <div className="h-full flex items-center px-3 border-r border-[#e8e3db] bg-[#f0ede8] text-[#999] text-xs font-medium whitespace-nowrap">
-                        .{domain}
-                      </div>
-                      <div className="w-10 flex items-center justify-center">
-                        {slugChecking                             && <Loader2      className="w-4 h-4 animate-spin text-[#bbb]" />}
-                        {!slugChecking && slugAvailable === true  && <CheckCircle  className="w-4 h-4 text-emerald-500"         />}
-                        {!slugChecking && slugAvailable === false && <AlertCircle  className="w-4 h-4 text-red-400"             />}
-                      </div>
+                        : "border-[#e8e3db] focus-within:border-brand-dark focus-within:ring-4 focus-within:ring-brand-dark/5 focus-within:bg-white",
+                    ].join(" ")}
+                  >
+                    {/* Domain suffix — shown on LEFT in RTL, so visually leads */}
+                    <div className="h-full flex items-center px-3 border-l border-[#e8e3db] bg-[#f0ede8] text-[#999] text-xs font-medium whitespace-nowrap">
+                      .{domain}
                     </div>
-                  </Field>
-
-                  {form.slug && (
-                    <div className="rounded-2xl border border-[#e8e3db] bg-[#f5f0e8] p-5">
-                      <p className="text-xs font-semibold text-[#aaa] uppercase tracking-widest mb-2">هكذا سيبدو رابطك</p>
-                      <p className="font-bold text-[#1a1a1a] break-all" dir="ltr">
-                        <span className="text-[#c8a97e]">https://</span>{form.slug}<span className="text-[#c8a97e]">.{domain}</span>
-                      </p>
+                    <input
+                      type="text"
+                      dir="ltr"
+                      value={form.slug}
+                      placeholder="my-store"
+                      onChange={(e) => {
+                        slugManuallyEdited.current = true;
+                        set("slug", generateSlug(e.target.value));
+                      }}
+                      className="flex-1 h-full px-4 bg-transparent text-brand-dark text-sm outline-none placeholder:text-[#bbb]"
+                    />
+                    {/* Status icon */}
+                    <div className="w-10 flex items-center justify-center">
+                      {slugChecking && (
+                        <Loader2 className="w-4 h-4 animate-spin text-[#bbb]" />
+                      )}
+                      {!slugChecking && slugAvailable === true && (
+                        <CheckCircle className="w-4 h-4 text-emerald-500" />
+                      )}
+                      {!slugChecking && slugAvailable === false && (
+                        <AlertCircle className="w-4 h-4 text-red-400" />
+                      )}
                     </div>
-                  )}
+                  </div>
+                </Field>
 
-                  {!errors.slug && slugAvailable === true && (
-                    <p className="text-xs text-emerald-600 flex items-center gap-1.5">
-                      <CheckCircle className="w-3.5 h-3.5" /> هذا الرابط متاح ومجاني
+                {/* Preview */}
+                {form.slug && (
+                  <div className="rounded-2xl border border-[#e8e3db] bg-[#f5f0e8] p-4">
+                    <p className="text-[10px] font-semibold text-[#aaa] uppercase tracking-widest mb-1.5">
+                      هكذا سيبدو رابطك
                     </p>
-                  )}
-
-                  {errors.global && (
-                    <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      <span>{errors.global}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Navigation */}
-              <div className="flex items-center justify-between mt-10 pt-6 border-t border-[#f0ede8]">
-                {step > 1 ? (
-                  <button onClick={() => setStep((s) => s - 1)}
-                    className="flex items-center gap-2 text-sm text-[#888] hover:text-[#1a1a1a] transition-colors group">
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                    رجوع
-                  </button>
-                ) : (
-                  <Link href="/"
-                    className="flex items-center gap-2 text-sm text-[#888] hover:text-[#1a1a1a] transition-colors group">
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                    الرئيسية
-                  </Link>
+                    <p
+                      className="font-bold text-brand-dark break-all text-sm"
+                      dir="ltr"
+                    >
+                      <span className="text-brand-dark/60">https://</span>
+                      {form.slug}
+                      <span className="text-brand-dark/60">.{domain}</span>
+                    </p>
+                  </div>
                 )}
 
-                {step < 3 ? (
-                  <button onClick={handleNext}
-                    className="h-12 px-7 rounded-2xl bg-[#1a1a1a] text-[#f5f0e8] text-sm font-bold flex items-center gap-2.5 hover:bg-[#333] transition-all duration-200 group">
-                    التالي
-                    <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+                {/* Availability message */}
+                {!errors.slug && slugAvailable === true && (
+                  <p className="text-xs text-emerald-600 flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5" /> هذا الرابط متاح
+                    ومجاني
+                  </p>
+                )}
+
+                {/* Global error */}
+                {errors.global && (
+                  <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>{errors.global}</span>
+                  </div>
+                )}
+
+                {/* Final Nav */}
+                <div className="flex items-center justify-between pt-4 border-t border-[#f0ede8] mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setStep(3)}
+                    className="flex items-center gap-1.5 px-7 h-12 rounded-lg md:rounded-2xl text-sm bg-[#f0ede8] text-brand-dark hover:bg-[#e8e4de] transition-colors"
+                  >
+                    <ArrowRight className="w-4 h-4" /> رجوع
                   </button>
-                ) : (
-                  <button onClick={handleSubmit}
-                    disabled={loading || slugAvailable === false || slugChecking || !form.slug}
-                    className="h-12 px-7 rounded-2xl bg-[#1a1a1a] text-[#f5f0e8] text-sm font-bold flex items-center gap-2.5 hover:bg-[#333] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed group">
-                    {loading
-                      ? <><Loader2 className="w-4 h-4 animate-spin" /> جاري الإنشاء…</>
-                      : <>أنشئ متجري الآن <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" /></>
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={
+                      loading ||
+                      slugAvailable === false ||
+                      slugChecking ||
+                      !form.slug
                     }
+                    className="h-12 px-7 rounded-2xl bg-brand-dark text-white text-sm font-bold flex items-center gap-2 hover:bg-[#333] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> جاري
+                        الإنشاء…
+                      </>
+                    ) : (
+                      <>
+                        إنشاء المتجر الآن <ArrowLeft className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
-                )}
+                </div>
               </div>
-            </div>
-          </div>
+            </StepWrapper>
+          )}
 
-          <p className="text-center text-xs text-[#aaa] mt-6">
-            عندك حساب سابق؟{" "}
-            <Link href="/login" className="text-[#1a1a1a] font-semibold underline underline-offset-2 hover:opacity-70 transition-opacity">
-              سجّل الدخول
-            </Link>
-          </p>
+          {step === 5 && (
+            <StepWrapper stepKey={5}>
+              <div className="space-y-5">
+                <div className="mb-6">
+                  <h2
+                    className="text-[28px] text-[#1a1a1a] mb-2 leading-tight"
+                    style={{ fontFamily: "Lalezar, sans-serif" }}
+                  >
+                    أنشئ كلمة مرورك
+                  </h2>
+                  <p className="text-sm text-[#888] leading-relaxed">
+                    ستستخدمها لتسجيل الدخول إلى لوحة التحكم.
+                  </p>
+                </div>
+
+                {/* Password strength indicator */}
+                <PasswordStrength password={form.password} />
+
+                <Field label="كلمة المرور" error={errors.password}>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      dir="ltr"
+                      placeholder="Min 8 chars, 1 uppercase, 1 number"
+                      value={form.password}
+                      onChange={(e) => set("password", e.target.value)}
+                      className={INPUT_BASE + " pr-12"}
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aaa] hover:text-[#1a1a1a] transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </Field>
+
+                <Field label="تأكيد كلمة المرور" error={errors.confirmPassword}>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      dir="ltr"
+                      placeholder="Repeat password"
+                      value={form.confirmPassword}
+                      onChange={(e) => set("confirmPassword", e.target.value)}
+                      className={INPUT_BASE + " pr-12"}
+                      autoComplete="new-password"
+                      onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aaa] hover:text-[#1a1a1a] transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </Field>
+
+                {errors.global && (
+                  <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>{errors.global}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-4 border-t border-[#f0ede8] mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setStep(4)}
+                    className="flex items-center gap-1.5 px-7 h-12 rounded-2xl text-sm bg-[#f0ede8] text-[#1a1a1a] hover:bg-[#e8e4de] transition-colors"
+                  >
+                    <ArrowRight className="w-4 h-4" /> رجوع
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="h-12 px-7 rounded-2xl bg-[#1a1a1a] text-white text-sm font-bold flex items-center gap-2 hover:bg-[#333] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> جاري
+                        الإنشاء…
+                      </>
+                    ) : (
+                      <>
+                        أنشئ متجري الآن <ArrowLeft className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </StepWrapper>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

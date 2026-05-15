@@ -27,10 +27,10 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-24 bg-brand-white overflow-hidden">
+    <section id="how-it-works" className="py-8 md:py-18 bg-brand-white overflow-hidden">
       <div className="w-full mx-auto px-5 md:px-10">
         {/* Header */}
-        <div className="text-center mb- md:mb-20">
+        <div className="text-center mb-8 md:mb-20">
           <span className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-brand-light text-brand-dark text-xs font-medium mb-6">
             كيف بتشتغل المنصة
           </span>

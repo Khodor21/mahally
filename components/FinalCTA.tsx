@@ -51,7 +51,7 @@ export default function FinalCTA() {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
-              href="#pricing"
+              href="/onboarding"
               className="w-full sm:w-auto h-[52px] md:h-[58px] px-8 rounded-2xl bg-brand-white text-brand-dark text-[14px] md:text-[16px] font-bold flex items-center justify-center transition-all duration-300 hover:-translate-y-1 hover:opacity-90"
             >
               أنشـئ متجرك الآن
