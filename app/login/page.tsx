@@ -46,43 +46,7 @@ export default function LoginPage() {
       dir="rtl"
       className="min-h-screen bg-brand-grey flex flex-col"
     >
-      {/* Header */}
-      <nav className="border-b border-[#E8E0D5] bg-white/80 backdrop-blur-xl">
-        <div className="w-full mx-auto px-5 md:px-10">
-          <div className="h-[78px] flex items-center justify-between">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-[#C8392B] flex items-center justify-center shadow-sm">
-                <span className="text-white text-lg font-bold leading-none">
-                  م
-                </span>
-              </div>
-
-              <div>
-                <h2
-                  className="text-[22px] text-[#1E1E1E]"
-                  style={{ fontFamily: 'Lalezar, cursive' }}
-                >
-                  محلي
-                </h2>
-
-                <p className="text-[11px] text-[#6B6B6B] -mt-1">
-                  منصتك للتجارة الإلكترونية
-                </p>
-              </div>
-            </Link>
-
-            {/* Back */}
-            <Link
-              href="/"
-              className="hidden sm:flex items-center gap-2 text-[#6B6B6B] hover:text-[#C8392B] transition-colors text-sm font-medium"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              الرجوع للرئيسية
-            </Link>
-          </div>
-        </div>
-      </nav>
+    
 
       {/* Content */}
       <div className="flex-1 flex items-center justify-center py-10 md:py-16">

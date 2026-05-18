@@ -97,7 +97,7 @@ export default function HowItWorks() {
         {/* CTA */}
         <div className="flex justify-center mt-8 md:mt-12">
           <a
-            href="#pricing"
+            href="/onboarding"
             className="inline-flex items-center justify-center h-[50px] md:h-[58px] px-6 md:px-10 rounded-2xl bg-brand-dark text-brand-white text-[14px] md:text-[17px] font-bold transition-all duration-300 hover:opacity-90 hover:-translate-y-0.5"
           >
             أنشئ متجرك الآن

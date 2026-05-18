@@ -539,43 +539,42 @@ export default function OnboardingPage() {
     if (validate(step)) setStep((s) => s + 1);
   };
 
-  const handleSubmit = async () => {
-    if (!validate(4)) return;
-    // Extra guard
-    if (slugAvailable === false || slugChecking || !form.slug) return;
+ const handleSubmit = async () => {
+  if (!validate(5)) return;  // ← was validate(4)
+  // Extra guard
+  if (slugAvailable === false || slugChecking || !form.slug) return;
 
-    setLoading(true);
-    try {
-      const res = await fetch("/api/stores", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          adminName: `${form.firstName} ${form.lastName}`,
-          adminEmail: form.email,
-          phone: form.phone,
-          location: form.location,
-          storeName: form.storeName,
-          storeType: form.storeType,
-          slug: form.slug,
-          password: form.password,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setErrors({ global: data.error || "حدث خطأ غير متوقع" });
-        return;
-      }
-      // Clear persisted data on success
-      clearStorage();
-      setSuccess(true);
-    } catch {
-      setErrors({
-        global: "تعذّر الاتصال بالخادم، تحقق من اتصالك وحاول مجددًا.",
-      });
-    } finally {
-      setLoading(false);
+  setLoading(true);
+  try {
+    const res = await fetch("/api/stores", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        adminName: `${form.firstName} ${form.lastName}`.trim(),
+        adminEmail: form.email,
+        phone: form.phone || undefined,       // ← avoid sending ""
+        location: form.location || undefined, // ← avoid sending ""
+        storeName: form.storeName,
+        storeType: form.storeType || undefined, // ← KEY FIX: "" fails .enum()
+        slug: form.slug,
+        password: form.password,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setErrors({ global: data.error || "حدث خطأ غير متوقع" });
+      return;
     }
-  };
+    clearStorage();
+    setSuccess(true);
+  } catch {
+    setErrors({
+      global: "تعذّر الاتصال بالخادم، تحقق من اتصالك وحاول مجددًا.",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (success) return <SuccessScreen slug={form.slug} />;
 
@@ -669,7 +668,7 @@ export default function OnboardingPage() {
                     </>
                   ) : (
                     <>
-                      ابدأ الآن <ArrowLeft className="w-4 h-4" />
+                       أكمل التسجيل <ArrowLeft className="w-4 h-4" />
                     </>
                   )}
                 </button>
@@ -936,7 +935,7 @@ export default function OnboardingPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={handleSubmit}
+                    onClick={() => setStep(5)}
                     disabled={
                       loading ||
                       slugAvailable === false ||
@@ -945,16 +944,8 @@ export default function OnboardingPage() {
                     }
                     className="h-12 px-7 rounded-2xl bg-brand-dark text-white text-sm font-bold flex items-center gap-2 hover:bg-[#333] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" /> جاري
-                        الإنشاء…
-                      </>
-                    ) : (
-                      <>
-                        إنشاء المتجر الآن <ArrowLeft className="w-4 h-4" />
-                      </>
-                    )}
+                    الانتقال للخطوة الأخيرة
+                    <ArrowLeft className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -1051,7 +1042,7 @@ export default function OnboardingPage() {
                     type="button"
                     onClick={handleSubmit}
                     disabled={loading}
-                    className="h-12 px-7 rounded-2xl bg-[#1a1a1a] text-white text-sm font-bold flex items-center gap-2 hover:bg-[#333] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="h-12 px-7 rounded-2xl bg-brand-dark text-white text-sm font-bold flex items-center gap-2 hover:bg-brand-dark/70 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <>

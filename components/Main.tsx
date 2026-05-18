@@ -1,3 +1,4 @@
+import {FaWhatsapp} from "react-icons/fa"
 export default function FinalCTA() {
   return (
     <section
@@ -58,14 +59,15 @@ export default function FinalCTA() {
               أنشـئ متجرك الآن
             </a>
 
-            <a
-              href="https://wa.me/96171708103"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto h-[52px] md:h-[58px] px-8 rounded-2xl border border-brand-white/15 bg-brand-white/5 backdrop-blur-sm text-brand-white text-[14px] md:text-[16px] font-semibold flex items-center justify-center transition-all duration-300 hover:bg-brand-white/10"
-            >
-              تواصل معنا
-            </a>
+             <a
+            href="https://wa.me/+96171708103"
+            target="_blank"
+            rel="noopener noreferrer"
+              className="w-full inline-flex items-center justify-center gap-1 sm:w-auto h-[52px] md:h-[58px] px-8 rounded-2xl border border-brand-white/15 bg-brand-white/5 backdrop-blur-sm text-brand-white text-[14px] md:text-[16px] font-semibold flex items-center justify-center transition-all duration-300 hover:bg-brand-white/10"
+          >
+            <FaWhatsapp size={18} />
+            تواصل معنا
+          </a>
           </div>
 
           {/* Trust Row */}

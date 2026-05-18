@@ -79,14 +79,14 @@ export default function Navbar() {
             {/* Left Side */}
             <div className="hidden md:flex items-center gap-3">
               <a
-                href="#login"
+                href="/login"
                 className="h-[48px] px-6 rounded-2xl border border-brand-light text-brand-dark text-sm font-semibold flex items-center justify-center transition-all duration-300 hover:bg-brand-grey"
               >
                 تسجيل الدخول
               </a>
 
               <a
-                href="#pricing"
+                href="/onboarding"
                 className="h-[48px] px-6 rounded-2xl bg-brand-dark text-brand-white text-sm font-bold flex items-center justify-center transition-all duration-300 hover:opacity-90 hover:-translate-y-0.5"
               >
                 أنشئ متجرك الآن
@@ -130,14 +130,14 @@ export default function Navbar() {
             {/* Mobile CTA */}
             <div className="flex flex-col gap-3 pt-5 mt-5 border-t border-brand-light">
               <a
-                href="#login"
+                href="/login"
                 className="h-[40px] rounded-xl text-xs border border-brand-light text-brand-dark font-semibold flex items-center justify-center"
               >
                 تسجيل الدخول
               </a>
 
               <a
-                href="#pricing"
+                href="/onboarding"
                 className="h-[40px] rounded-xl text-xs bg-brand-dark text-brand-white font-bold flex items-center justify-center"
               >
                 أنشئ متجرك الآن

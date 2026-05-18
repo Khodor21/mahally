@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FiChevronDown } from "react-icons/fi";
+import { FaWhatsapp } from "react-icons/fa";
 
 const faqs = [
   {
@@ -127,11 +128,12 @@ export default function FAQ() {
         {/* Bottom CTA */}
         <div className="flex justify-center mt-6 md:mt-10">
           <a
-            href="https://wa.me/9611234567"
+            href="https://wa.me/+96171708103"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center h-[50px] md:h-[56px] px-6 md:px-8 rouded-lg md:rounded-2xl bg-brand-dark text-brand-white text-[15px] md:text-[16px] font-bold transition-all duration-300 hover:opacity-90 hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center gap-1 h-[50px] md:h-[56px] px-6 md:px-8 rouded-lg md:rounded-2xl bg-brand-dark text-brand-white text-[15px] md:text-[16px] font-bold transition-all duration-300 hover:opacity-90 hover:-translate-y-0.5"
           >
+            <FaWhatsapp size={18} />
             تواصل معنا على واتساب
           </a>
         </div>

@@ -245,9 +245,10 @@ export async function POST(request: NextRequest) {
   ]);
 
   if (slugCheck.error || emailCheck.error) {
-    console.error("DB check error:", slugCheck.error ?? emailCheck.error);
+    const err = slugCheck.error ?? emailCheck.error;
+    console.error("SUPABASE ERROR:", JSON.stringify(err, null, 2));
     return NextResponse.json(
-      { error: "خطأ في التحقق من البيانات، حاول مجدداً" },
+      { error: err?.message ?? "DB error" },
       { status: 500 },
     );
   }
