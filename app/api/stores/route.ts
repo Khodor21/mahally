@@ -200,20 +200,25 @@ export async function POST(request: NextRequest) {
   // ── Validate ──────────────────────────────────────────────────────────────
   const parsed = CreateStoreSchema.safeParse(rawBody);
 
-  if (!parsed.success) {
-    const firstError = parsed.error.errors[0];
-    return NextResponse.json(
-      {
-        error: firstError.message,
-        field: firstError.path[0],
-        // Only expose full errors in dev
-        ...(process.env.NODE_ENV === "development" && {
-          errors: parsed.error.errors,
-        }),
-      },
-      { status: 422 },
-    );
-  }
+ if (!parsed.success) {
+  const firstError = parsed.error.issues[0];
+
+  return NextResponse.json(
+    {
+      error: firstError.message,
+      field:
+  typeof firstError.path[0] === "string"
+    ? firstError.path[0]
+    : undefined,
+
+      // Only expose full errors in dev
+      ...(process.env.NODE_ENV === "development" && {
+        errors: parsed.error.issues,
+      }),
+    },
+    { status: 422 },
+  );
+}
 
   const {
     adminName,
