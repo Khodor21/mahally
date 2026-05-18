@@ -2,7 +2,39 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
+export async function GET() {
+  // ── Auth guard ──────────────────────────────────────────────────────────
+  const session = await getServerSession(authOptions)
+
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const userId = (session.user as any).id
+
+  // ── Fetch store ─────────────────────────────────────────────────────────
+  const { data: store, error } = await supabaseAdmin
+    .from('stores')
+    .select(
+      'id, admin_name, admin_email, store_name, slug, location, phone, store_type, created_at, is_active'
+    )
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('GET /api/stores error:', error)
+    return NextResponse.json({ error: 'Database error' }, { status: 500 })
+  }
+
+  if (!store) {
+    return NextResponse.json({ store: null }, { status: 404 })
+  }
+
+  return NextResponse.json({ store })
+}
 // ─── Validation Schema ────────────────────────────────────────────────────────
 
 const CreateStoreSchema = z.object({
