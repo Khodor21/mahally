@@ -1,7 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase/server";
 import { z } from "zod";
 
 const LoginSchema = z.object({
@@ -43,7 +43,7 @@ export const authOptions: NextAuthOptions = {
         // If no store found, compare against a dummy hash so response
         // time is the same whether the email exists or not.
         const DUMMY_HASH =
-          "$2b$12$dummyhashfortimingprotectionxxxxxxxxxxxxxxxxxxxxxxxx";
+          "$2b$12$LKkY4JBLRSjfsMKjl5qNSebGk2cz5pnBjNDKNKMr4rKPOeX0VGqeK";
 
         const hashToCompare = store?.password_hash ?? DUMMY_HASH;
         const passwordValid = await bcrypt.compare(password, hashToCompare);

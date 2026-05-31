@@ -1,65 +1,81 @@
-"use client"
+"use client";
 
-import { useDashboard } from './DashboardContext'
-import Sidebar from './Sidebar'
-import Topbar from './Topbar'
-import HomePanel from './panels/HomePanel'
-import OrdersPanel from './panels/OrdersPanel'
-import ProductsPanel from './panels/ProductsPanel'
-import CustomersPanel from './panels/CustomersPanel'
-import AnalyticsPanel from './panels/AnalyticsPanel'
-import SettingsPanel from './panels/SettingsPanel'
-import CouponsPanel from './panels/CouponsPanel'
-import OccasionsPanel from './panels/OccasionsPanel'
-import PartnershipsPanel from './panels/PartnershipsPanel'
+import { useDashboard } from "./DashboardContext";
+import Sidebar from "./Sidebar";
+import Topbar from "./Topbar";
 
-export default function Dashboard() {
-  const { activeNav, setActiveNav, lang } = useDashboard()
-  const dir = lang === 'ar' ? 'rtl' : 'ltr'
+import HomePanel from "./panels/HomePanel";
+import AIChatPanel from "./panels/AIChatPanel";
+import OrdersPanel from "./panels/OrdersPanel";
+import ProductsPanel from "./panels/ProductsPanel";
+import CustomersPanel from "./panels/CustomersPanel";
+import AnalyticsPanel from "./panels/AnalyticsPanel";
+import SettingsPanel from "./panels/SettingsPanel";
+import CouponsPanel from "./panels/CouponsPanel";
+import OccasionsPanel from "./panels/OccasionsPanel";
+import PartnershipsPanel from "./panels/PartnershipsPanel";
+import type { StoreData } from "./types";
+interface DashboardProps {
+  store: StoreData;
+}
+export default function Dashboard({ store }: DashboardProps) {
+  const { activeNav, setActiveNav, lang } = useDashboard();
+
+  const isRTL = lang === "ar";
 
   const renderPanel = () => {
     switch (activeNav) {
-      case 'home':
-        return <HomePanel setActiveNav={setActiveNav} />
-      case 'orders':
-        return <OrdersPanel />
-      case 'products':
-        return <ProductsPanel />
-      case 'customers':
-        return <CustomersPanel />
-      case 'analytics':
-        return <AnalyticsPanel />
-      case 'settings':
-        return <SettingsPanel />
-      case 'coupons':
-        return <CouponsPanel />
-      case 'occasions':
-        return <OccasionsPanel />
-      case 'partnerships':
-        return <PartnershipsPanel />
+      case "home":
+        return <HomePanel setActiveNav={setActiveNav} store={store} />;
+      case "orders":
+        return <OrdersPanel store={store} />;
+      case "products":
+        return <ProductsPanel />;
+      case "customers":
+        return <CustomersPanel />;
+      case "analytics":
+        return <AnalyticsPanel />;
+      case "settings":
+        return <SettingsPanel />;
+      case "ai":
+        return <AIChatPanel />;
+      case "coupons":
+        return <CouponsPanel />;
+      case "occasions":
+        return <OccasionsPanel />;
+      case "partnerships":
+        return <PartnershipsPanel />;
       default:
-        return <HomePanel setActiveNav={setActiveNav} />
+        return <HomePanel setActiveNav={setActiveNav} store={store} />;
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen w-screen bg-white" dir={dir}>
-      {/* Sidebar */}
-      <Sidebar />
+    <div className="min-h-screen bg-white" dir={isRTL ? "rtl" : "ltr"}>
+      <Sidebar store={store} />
 
-      {/* Main area */}
       <div
-        className={`transition-all duration-300 ${
-          dir === 'rtl' ? 'md:me-64' : 'md:ms-64'
-        }`}
+        className={`
+      min-h-screen
+      transition-all duration-300
+      ${isRTL ? "md:pr-64" : "md:pl-64"}
+    `}
       >
         <Topbar />
-        <main className="p-5 md:p-8 min-h-[calc(100vh-64px)] bg-[rgb(244_242_245)]/30">
+
+        <main
+          className={`
+    bg-[rgb(244_242_245)]/30
+    min-h-[calc(100vh-64px)]
+    ${activeNav === "ai" ? "p-0" : "p-5 md:p-8"}
+  `}
+        >
+          {" "}
           <div key={activeNav} className="animate-fade-in">
             {renderPanel()}
           </div>
         </main>
       </div>
     </div>
-  )
+  );
 }

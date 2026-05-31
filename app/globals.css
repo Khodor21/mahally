@@ -6,6 +6,32 @@
    FONT FACES
 ========================================================= */
 
+/* --- Montserrat (English) --- */
+@font-face {
+  font-family: "Montserrat";
+  src: url("/fonts/Montserrat-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Montserrat";
+  src: url("/fonts/Montserrat-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Montserrat";
+  src: url("/fonts/Montserrat-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* --- Thmanyah Sans (Arabic) --- */
 @font-face {
   font-family: "Thmanyah Sans";
   src: url("/fonts/thmanyahsans-Regular.otf") format("opentype");
@@ -14,7 +40,6 @@
   font-display: swap;
 }
 
-/* --- Thmanyah Sans Medium --- */
 @font-face {
   font-family: "Thmanyah Sans";
   src: url("/fonts/thmanyahsans-Medium.otf") format("opentype");
@@ -23,7 +48,6 @@
   font-display: swap;
 }
 
-/* --- Thmanyah Sans Bold --- */
 @font-face {
   font-family: "Thmanyah Sans";
   src: url("/fonts/thmanyahsans-Bold.otf") format("opentype");
@@ -32,7 +56,7 @@
   font-display: swap;
 }
 
-/* --- Lalezar Titles --- */
+/* --- Lalezar (Arabic Titles) --- */
 @font-face {
   font-family: "Lalezar";
   src: url("/fonts/Lalezar-Regular.ttf") format("truetype");
@@ -42,13 +66,12 @@
 }
 
 /* =========================================================
-   ROOT VARIABLES
+   ROOT VARIABLES - DEFAULT (ENGLISH)
 ========================================================= */
-
 :root {
   /* Fonts */
-  --font-display: "Lalezar", cursive;
-  --font-body: "Thmanyah Sans", sans-serif;
+  --font-display: "Montserrat", sans-serif;
+  --font-body: "Montserrat", sans-serif;
 
   /* Colors */
   --color-dark: 60 28 84;
@@ -58,9 +81,17 @@
 }
 
 /* =========================================================
+   ROOT VARIABLES - ARABIC
+========================================================= */
+html[lang="ar"],
+html[dir="rtl"] {
+  --font-display: "Lalezar", cursive;
+  --font-body: "Thmanyah Sans", sans-serif;
+}
+
+/* =========================================================
    BASE RESET
 ========================================================= */
-
 *,
 *::before,
 *::after {
@@ -70,8 +101,18 @@
 }
 
 html {
-  direction: rtl;
   scroll-behavior: smooth;
+}
+
+/* Set direction based on lang attribute */
+html[lang="ar"],
+html[dir="rtl"] {
+  direction: rtl;
+}
+
+html[lang="en"],
+html[dir="ltr"] {
+  direction: ltr;
 }
 
 body {
@@ -87,7 +128,6 @@ body {
 /* =========================================================
    TYPOGRAPHY
 ========================================================= */
-
 h1,
 h2,
 h4,
@@ -97,14 +137,15 @@ h6 {
   font-weight: 400;
   line-height: 1.2;
 }
+
 h3 {
   font-family: var(--font-body);
   font-weight: 700;
 }
+
 /* =========================================================
    TEXTURE OVERLAY
 ========================================================= */
-
 body::before {
   content: "";
   position: fixed;
@@ -118,7 +159,6 @@ body::before {
 /* =========================================================
    SELECTION
 ========================================================= */
-
 ::selection {
   background-color: rgb(var(--color-light));
   color: rgb(var(--color-dark));
@@ -127,7 +167,6 @@ body::before {
 /* =========================================================
    SCROLLBAR
 ========================================================= */
-
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -144,7 +183,6 @@ body::before {
 /* =========================================================
    FORM ELEMENTS
 ========================================================= */
-
 input,
 textarea,
 select,

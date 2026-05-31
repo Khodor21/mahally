@@ -1,30 +1,30 @@
-import { Menu, Bell, Search, Globe } from 'lucide-react'
-import { useDashboard } from './DashboardContext'
-import type { NavItem } from './types'
+import { Menu, Bell, Search, Globe } from "lucide-react";
+import { useDashboard } from "./DashboardContext";
+import type { NavItem } from "./types";
 
 const pageTitles: Record<NavItem, { ar: string; en: string }> = {
-  home: { ar: 'الرئيسية', en: 'Dashboard' },
-  orders: { ar: 'الطلبات', en: 'Orders' },
-  products: { ar: 'المنتجات', en: 'Products' },
-  customers: { ar: 'العملاء', en: 'Customers' },
-  analytics: { ar: 'الإحصاءات', en: 'Analytics' },
-  settings: { ar: 'الإعدادات', en: 'Settings' },
-  coupons: { ar: 'كوبونات الخصم', en: 'Discount Coupons' },
-  partnerships: { ar: 'الشراكات', en: 'Partnerships' },
-  occasions: { ar: 'المناسبات', en: 'Occasions' },
-}
+  home: { ar: "الرئيسية", en: "Dashboard" },
+  orders: { ar: "الطلبات", en: "Orders" },
+  products: { ar: "المنتجات", en: "Products" },
+  customers: { ar: "العملاء", en: "Customers" },
+  analytics: { ar: "الإحصاءات", en: "Analytics" },
+  settings: { ar: "الإعدادات", en: "Settings" },
+  coupons: { ar: "كوبونات الخصم", en: "Discount Coupons" },
+  partnerships: { ar: "الشراكات", en: "Partnerships" },
+  occasions: { ar: "المناسبات", en: "Occasions" },
+};
 
 export default function Topbar() {
-  const { activeNav, lang, setLang, setIsSidebarOpen } = useDashboard()
-  const dir = lang === 'ar' ? 'rtl' : 'ltr'
-  const title = pageTitles[activeNav][lang]
+  const { activeNav, lang, setLang, setIsSidebarOpen } = useDashboard();
+  const dir = lang === "ar" ? "rtl" : "ltr";
+  const title = pageTitles[activeNav][lang];
 
   return (
     <header
       className="h-16 bg-white border-b border-[rgb(244_242_245)] flex items-center px-4 md:px-6 gap-4 sticky top-0 z-30"
       dir={dir}
     >
-      {/* Mobile menu toggle */}
+      {/* Mobile menu */}
       <button
         onClick={() => setIsSidebarOpen(true)}
         className="md:hidden p-2 rounded-xl hover:bg-[rgb(244_242_245)] text-[rgb(60_28_84)] transition-colors"
@@ -32,7 +32,7 @@ export default function Topbar() {
         <Menu className="w-5 h-5" />
       </button>
 
-      {/* Page title */}
+      {/* Title */}
       <h1 className="font-bold text-[rgb(60_28_84)] text-lg flex-1">{title}</h1>
 
       {/* Search */}
@@ -40,19 +40,19 @@ export default function Topbar() {
         <Search className="w-4 h-4 text-[rgb(60_28_84)]/40" />
         <input
           type="text"
-          placeholder={lang === 'ar' ? 'بحث...' : 'Search...'}
+          placeholder={lang === "ar" ? "بحث..." : "Search..."}
           className="bg-transparent text-sm text-[rgb(60_28_84)] placeholder-[rgb(60_28_84)]/40 outline-none flex-1 w-full"
           dir={dir}
         />
       </div>
 
-      {/* Language toggle */}
+      {/* Language toggle (NOW PERSISTS) */}
       <button
-        onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
+        onClick={() => setLang(lang === "ar" ? "en" : "ar")}
         className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)] transition-all text-sm font-semibold"
       >
         <Globe className="w-4 h-4" />
-        <span>{lang === 'ar' ? 'EN' : 'ع'}</span>
+        <span>{lang === "ar" ? "EN" : "AR"}</span>
       </button>
 
       {/* Notifications */}
@@ -61,5 +61,5 @@ export default function Topbar() {
         <span className="absolute top-1.5 end-1.5 w-2 h-2 bg-[rgb(60_28_84)] rounded-full border-2 border-white" />
       </button>
     </header>
-  )
+  );
 }

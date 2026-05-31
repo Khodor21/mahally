@@ -1,19 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  async rewrites() {
-    return [
+  images: {
+    remotePatterns: [
       {
-        source: '/:path*',
-        has: [
-          {
-            type: 'host',
-            value: '(?<subdomain>[^.]+)\\.yoursaas\\.com',
-          },
-        ],
-        destination: '/store/:path*',
+        protocol: "https",
+        hostname: "placehold.co",
+        port: "",
+        pathname: "/**",
       },
-    ]
+      {
+        protocol: "https",
+        hostname: "icunicnvkchaumoynxhx.supabase.co",
+        port: "",
+        pathname: "/**",
+      },
+    ],
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

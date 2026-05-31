@@ -1,39 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function GET() {
   // ── Auth guard ──────────────────────────────────────────────────────────
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions);
 
   if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userId = (session.user as any).id
+  const userId = (session.user as any).id;
 
   // ── Fetch store ─────────────────────────────────────────────────────────
   const { data: store, error } = await supabaseAdmin
-    .from('stores')
+    .from("stores")
     .select(
-      'id, admin_name, admin_email, store_name, slug, location, phone, store_type, created_at, is_active'
+      "id, admin_name, admin_email, store_name, slug, location, phone, store_type, created_at, is_active",
     )
-    .eq('id', userId)
-    .maybeSingle()
+    .eq("id", userId)
+    .maybeSingle();
 
   if (error) {
-    console.error('GET /api/stores error:', error)
-    return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    console.error("GET /api/stores error:", error);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
   if (!store) {
-    return NextResponse.json({ store: null }, { status: 404 })
+    return NextResponse.json({ store: null }, { status: 404 });
   }
 
-  return NextResponse.json({ store })
+  return NextResponse.json({ store });
 }
 // ─── Validation Schema ────────────────────────────────────────────────────────
 
@@ -232,25 +232,25 @@ export async function POST(request: NextRequest) {
   // ── Validate ──────────────────────────────────────────────────────────────
   const parsed = CreateStoreSchema.safeParse(rawBody);
 
- if (!parsed.success) {
-  const firstError = parsed.error.issues[0];
+  if (!parsed.success) {
+    const firstError = parsed.error.issues[0];
 
-  return NextResponse.json(
-    {
-      error: firstError.message,
-      field:
-  typeof firstError.path[0] === "string"
-    ? firstError.path[0]
-    : undefined,
+    return NextResponse.json(
+      {
+        error: firstError.message,
+        field:
+          typeof firstError.path[0] === "string"
+            ? firstError.path[0]
+            : undefined,
 
-      // Only expose full errors in dev
-      ...(process.env.NODE_ENV === "development" && {
-        errors: parsed.error.issues,
-      }),
-    },
-    { status: 422 },
-  );
-}
+        // Only expose full errors in dev
+        ...(process.env.NODE_ENV === "development" && {
+          errors: parsed.error.issues,
+        }),
+      },
+      { status: 422 },
+    );
+  }
 
   const {
     adminName,
