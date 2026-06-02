@@ -344,4 +344,4 @@ export const t = {
 } as const;
 
 export type TranslationKey = keyof typeof t.ar;
-export type Translations = typeof t;
+export type Translations = typeof t.ar;
