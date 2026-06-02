@@ -4,6 +4,7 @@ import type { Translations } from "../i18n";
 interface Props {
   productTitle: string;
   tr: Translations;
+  lang: "ar" | "en";
   dir: "ltr" | "rtl";
   loading: boolean;
   onConfirm: () => void;
@@ -13,13 +14,19 @@ interface Props {
 export default function DeleteConfirmModal({
   productTitle,
   tr,
+  lang,
   dir,
   loading,
   onConfirm,
   onCancel,
 }: Props) {
+  const t = tr[lang];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" dir={dir}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      dir={dir}
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
@@ -42,13 +49,21 @@ export default function DeleteConfirmModal({
           <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
             <AlertTriangle className="w-7 h-7 text-red-600" />
           </div>
+
           <div>
-            <h2 className="text-lg font-bold text-[rgb(60_28_84)]">{tr.deleteTitle}</h2>
+            <h2 className="text-lg font-bold text-[rgb(60_28_84)]">
+              {t.deleteTitle}
+            </h2>
+
             <p className="text-sm text-[rgb(60_28_84)]/60 mt-1">
-              {tr.deleteConfirm}{" "}
-              <span className="font-semibold text-[rgb(60_28_84)]">"{productTitle}"</span>?
+              {t.deleteConfirm}{" "}
+              <span className="font-semibold text-[rgb(60_28_84)]">
+                "{productTitle}"
+              </span>
+              ?
             </p>
-            <p className="text-xs text-red-500 mt-2">{tr.deleteNote}</p>
+
+            <p className="text-xs text-red-500 mt-2">{t.deleteNote}</p>
           </div>
         </div>
 
@@ -59,8 +74,9 @@ export default function DeleteConfirmModal({
             disabled={loading}
             className="flex-1 py-2.5 rounded-xl border border-[rgb(207_195_223)] text-[rgb(60_28_84)] text-sm font-semibold hover:bg-[rgb(244_242_245)] transition-colors disabled:opacity-50"
           >
-            {tr.cancel}
+            {t.cancel}
           </button>
+
           <button
             onClick={onConfirm}
             disabled={loading}
@@ -71,7 +87,7 @@ export default function DeleteConfirmModal({
             ) : (
               <Trash2 className="w-4 h-4" />
             )}
-            {loading ? tr.deleting : tr.deleteBtn}
+            {loading ? t.deleting : t.deleteBtn}
           </button>
         </div>
       </div>
