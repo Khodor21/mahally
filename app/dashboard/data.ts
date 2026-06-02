@@ -80,57 +80,6 @@ export const mockOrders: Order[] = [
   },
 ];
 
-export const mockProducts: Product[] = [
-  {
-    id: "p1",
-    title: "عطر الفخامة الملكي",
-    description: "Royal Luxury Perfume",
-    price: 450,
-    stock: 24,
-    images: ["🎁"],
-  },
-  {
-    id: "p2",
-    title: "حقيبة جلدية فاخرة",
-    description: "Luxury Leather Bag",
-    price: 1200,
-    stock: 8,
-    images: ["👜"],
-  },
-  {
-    id: "p3",
-    title: "ساعة ذهبية كلاسيك",
-    description: "Classic Gold Watch",
-    price: 3500,
-    stock: 5,
-    images: ["⌚"],
-  },
-  {
-    id: "p4",
-    title: "عباءة تصميم حصري",
-    description: "Exclusive Design Abaya",
-    price: 680,
-    stock: 16,
-    images: ["👗"],
-  },
-  {
-    id: "p5",
-    title: "نظارة شمسية فاشون",
-    description: "Fashion Sunglasses",
-    price: 280,
-    stock: 30,
-    images: ["🕶️"],
-  },
-  {
-    id: "p6",
-    title: "كريم مرطب فاخر",
-    description: "Luxury Moisturizer",
-    price: 195,
-    stock: 45,
-    images: ["✨"],
-  },
-];
-
 export const mockCustomers: Customer[] = [
   {
     id: "c1",
