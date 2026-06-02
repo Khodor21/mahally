@@ -246,10 +246,24 @@ async function recordCouponUsage(
   customerId: string | undefined,
   orderId: string,
 ) {
+  // Fetch current used_count first (Supabase-safe way)
+  const { data: couponData, error: fetchError } = await supabaseAdmin
+    .from("coupons")
+    .select("used_count")
+    .eq("id", couponId)
+    .single();
+
+  if (fetchError) {
+    console.error("Failed to fetch coupon count:", fetchError);
+  }
+
+  const nextCount = (couponData?.used_count ?? 0) + 1;
+
+  // Increment usage counter safely (no .raw)
   const { error: updateError } = await supabaseAdmin
     .from("coupons")
     .update({
-      used_count: supabaseAdmin.raw("used_count + 1"),
+      used_count: nextCount,
       last_used_at: new Date().toISOString(),
     })
     .eq("id", couponId);
@@ -258,6 +272,7 @@ async function recordCouponUsage(
     console.error("Failed to update coupon usage count:", updateError);
   }
 
+  // Record usage if customer provided
   if (customerId) {
     const { error: insertError } = await supabaseAdmin
       .from("coupon_usage")
