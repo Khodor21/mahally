@@ -28,6 +28,9 @@ export default function ProductCard({
   onDelete,
 }: Props) {
   const dir = lang === "ar" ? "rtl" : "ltr";
+
+  // ✅ FIX: do NOT do tr[lang]
+  // Translations already contains flat keys in your project structure
   const t = tr;
 
   const getStockStatus = (stock: number) => {
@@ -51,7 +54,7 @@ export default function ProductCard({
       className="border border-[rgb(244_242_245)] rounded-2xl p-4 hover:border-[rgb(207_195_223)] hover:shadow-md transition-all group"
       dir={dir}
     >
-      {/* Product image + name */}
+      {/* Product header */}
       <div className="flex items-start gap-3 mb-3">
         <div className="w-12 h-12 rounded-xl bg-[rgb(244_242_245)] flex items-center justify-center flex-shrink-0 overflow-hidden">
           {mainImage ? (
@@ -62,8 +65,6 @@ export default function ProductCard({
               onError={(e) => {
                 const el = e.currentTarget;
                 el.style.display = "none";
-                el.parentElement!.innerHTML =
-                  '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-[rgb(60_28_84)]/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>';
               }}
             />
           ) : (
@@ -75,6 +76,7 @@ export default function ProductCard({
           <p className="font-bold text-[rgb(60_28_84)] text-sm leading-tight line-clamp-2">
             {product.title}
           </p>
+
           {product.description && (
             <p className="text-xs text-[rgb(60_28_84)]/50 mt-0.5 line-clamp-1">
               {product.description}
@@ -93,7 +95,7 @@ export default function ProductCard({
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="text-center p-2 bg-[rgb(244_242_245)] rounded-xl">
           <p className="text-[10px] text-[rgb(60_28_84)]/40">{t.price}</p>
-          <p className="text-xs font-bold text-[rgb(60_28_84)] leading-tight mt-0.5">
+          <p className="text-xs font-bold text-[rgb(60_28_84)] mt-0.5">
             {formattedPrice}
           </p>
         </div>
