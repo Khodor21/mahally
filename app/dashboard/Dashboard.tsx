@@ -25,20 +25,13 @@ export default function Dashboard({ store }: DashboardProps) {
 
   const isRTL = lang === "ar";
 
-  // FIX: normalize backend store shape → frontend type shape
-  const normalizedStore: StoreData = {
-    ...store,
-    name: (store as any).name ?? (store as any).store_name,
-  };
-
+  // FIX: no type mutation, keep original store shape
   const renderPanel = () => {
     switch (activeNav) {
       case "home":
-        return (
-          <HomePanel setActiveNav={setActiveNav} store={normalizedStore} />
-        );
+        return <HomePanel setActiveNav={setActiveNav} store={store} />;
       case "orders":
-        return <OrdersPanel store={normalizedStore} />;
+        return <OrdersPanel store={store} />;
       case "products":
         return <ProductsPanel />;
       case "customers":
@@ -56,15 +49,13 @@ export default function Dashboard({ store }: DashboardProps) {
       case "partnerships":
         return <PartnershipsPanel />;
       default:
-        return (
-          <HomePanel setActiveNav={setActiveNav} store={normalizedStore} />
-        );
+        return <HomePanel setActiveNav={setActiveNav} store={store} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-white" dir={isRTL ? "rtl" : "ltr"}>
-      <Sidebar store={normalizedStore} />
+      <Sidebar store={store} />
 
       <div
         className={`
