@@ -21,6 +21,7 @@ import type { NavItem, StoreData } from "./types";
 import { useState } from "react";
 import { signOut } from "next-auth/react";
 import LogoutModal from "./components/LogoutModal";
+
 interface NavGroup {
   items: {
     id: NavItem;
@@ -65,6 +66,7 @@ interface SidebarProps {
 export default function Sidebar({ store }: SidebarProps) {
   const { activeNav, setActiveNav, tr, lang, isSidebarOpen, setIsSidebarOpen } =
     useDashboard();
+
   const dir = lang === "ar" ? "rtl" : "ltr";
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -81,17 +83,17 @@ export default function Sidebar({ store }: SidebarProps) {
       setIsLoggingOut(false);
     }
   };
+
   const ChevronIcon = dir === "rtl" ? ChevronLeft : ChevronRight;
 
   const handleNav = (id: NavItem, soon?: boolean) => {
     if (soon) return;
-    setActiveNav(id); // This now automatically saves to localStorage via the Context
+    setActiveNav(id);
     setIsSidebarOpen(false);
   };
 
   return (
     <>
-      {/* Mobile overlay */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/30 z-40 md:hidden backdrop-blur-sm"
@@ -99,7 +101,6 @@ export default function Sidebar({ store }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`
           fixed top-0 h-full w-64 bg-white border-e border-[rgb(244_242_245)] z-50
@@ -163,9 +164,7 @@ export default function Sidebar({ store }: SidebarProps) {
                         }
                       `}
                     >
-                      <item.icon
-                        className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-white" : ""}`}
-                      />
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
                       <span className="flex-1 text-start">
                         {tr[item.labelKey] as string}
                       </span>
@@ -185,7 +184,7 @@ export default function Sidebar({ store }: SidebarProps) {
           ))}
         </nav>
 
-        {/* User info + Sign out */}
+        {/* User */}
         <div className="px-3 pb-4 pt-3 border-t border-[rgb(244_242_245)]">
           <div className="flex items-center gap-3 px-3 py-3 mb-1 rounded-xl hover:bg-[rgb(244_242_245)] transition-colors cursor-pointer">
             <div className="w-9 h-9 rounded-xl bg-[rgb(60_28_84)] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
@@ -200,25 +199,24 @@ export default function Sidebar({ store }: SidebarProps) {
               </p>
             </div>
           </div>
+
           <button
             onClick={() => setShowLogoutModal(true)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-500 hover:bg-red-50 transition-all font-medium mt-1"
           >
-            <LogOut className="w-4 h-4 flex-shrink-0" />
+            <LogOut className="w-4 h-4" />
             <span>{tr.signOut}</span>
           </button>
         </div>
       </aside>
+
       <LogoutModal
         open={showLogoutModal}
         loading={isLoggingOut}
         onClose={() => {
-          if (!isLoggingOut) {
-            setShowLogoutModal(false);
-          }
+          if (!isLoggingOut) setShowLogoutModal(false);
         }}
         onConfirm={handleLogout}
-        tr={tr}
       />
     </>
   );
