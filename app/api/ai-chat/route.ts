@@ -5,14 +5,12 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 
 export async function POST(req: NextRequest) {
   try {
-    // 💡 FIX: Cast as 'any' to bypass Vercel's strict type checking for the new AI columns
     const store: any = await getCurrentStore();
 
     if (!store) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ── Reset monthly limit if new month ───────────────────────────────
     const now = new Date();
     const currentMonth = now.getMonth();
     const lastReset = store.ai_last_reset_month
