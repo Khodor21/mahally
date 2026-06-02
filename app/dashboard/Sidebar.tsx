@@ -1,4 +1,5 @@
 "use client";
+
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -16,20 +17,25 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useDashboard } from "./DashboardContext";
-import type { NavItem, StoreData } from "./types";
 import { useState } from "react";
 import { signOut } from "next-auth/react";
+
+import { useDashboard } from "./DashboardContext";
+import type { NavItem, StoreData } from "./types";
+import type { Translations } from "./i18n";
+
 import LogoutModal from "./components/LogoutModal";
+
+type TranslationKey = keyof Translations;
 
 interface NavGroup {
   items: {
     id: NavItem;
     icon: React.ComponentType<{ className?: string }>;
-    labelKey: keyof typeof import("./i18n").t.ar;
+    labelKey: TranslationKey;
     soon?: boolean;
   }[];
-  titleKey?: keyof typeof import("./i18n").t.ar;
+  titleKey?: TranslationKey;
 }
 
 const navGroups: NavGroup[] = [
@@ -54,7 +60,12 @@ const navGroups: NavGroup[] = [
         labelKey: "partnerships",
         soon: true,
       },
-      { id: "occasions", icon: Gift, labelKey: "occasions", soon: true },
+      {
+        id: "occasions",
+        icon: Gift,
+        labelKey: "occasions",
+        soon: true,
+      },
     ],
   },
 ];
@@ -68,6 +79,7 @@ export default function Sidebar({ store }: SidebarProps) {
     useDashboard();
 
   const dir = lang === "ar" ? "rtl" : "ltr";
+
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -88,6 +100,7 @@ export default function Sidebar({ store }: SidebarProps) {
 
   const handleNav = (id: NavItem, soon?: boolean) => {
     if (soon) return;
+
     setActiveNav(id);
     setIsSidebarOpen(false);
   };
@@ -108,8 +121,12 @@ export default function Sidebar({ store }: SidebarProps) {
           md:translate-x-0 md:shadow-none
           ${
             dir === "rtl"
-              ? `right-0 ${isSidebarOpen ? "translate-x-0" : "translate-x-full"}`
-              : `left-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`
+              ? `right-0 ${
+                  isSidebarOpen ? "translate-x-0" : "translate-x-full"
+                }`
+              : `left-0 ${
+                  isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+                }`
           }
         `}
         dir={dir}
@@ -120,15 +137,18 @@ export default function Sidebar({ store }: SidebarProps) {
             <div className="w-9 h-9 rounded-xl bg-[rgb(60_28_84)] flex items-center justify-center shadow-md">
               <Store className="w-5 h-5 text-white" />
             </div>
+
             <div>
               <p className="font-bold text-[rgb(60_28_84)] text-sm leading-none">
                 {store.store_name}
               </p>
+
               <p className="text-[10px] text-[rgb(60_28_84)]/50 mt-0.5">
                 {store.slug}
               </p>
             </div>
           </div>
+
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="md:hidden p-1 rounded-lg hover:bg-[rgb(244_242_245)] text-[rgb(60_28_84)]/60 transition-colors"
@@ -143,12 +163,14 @@ export default function Sidebar({ store }: SidebarProps) {
             <div key={gi}>
               {group.titleKey && (
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[rgb(60_28_84)]/40 px-3 mb-2">
-                  {tr[group.titleKey] as string}
+                  {String(tr[group.titleKey])}
                 </p>
               )}
+
               <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const isActive = activeNav === item.id;
+
                   return (
                     <button
                       key={item.id}
@@ -165,14 +187,17 @@ export default function Sidebar({ store }: SidebarProps) {
                       `}
                     >
                       <item.icon className="w-4 h-4 flex-shrink-0" />
+
                       <span className="flex-1 text-start">
-                        {tr[item.labelKey] as string}
+                        {String(tr[item.labelKey])}
                       </span>
+
                       {item.soon && (
                         <span className="text-[9px] font-bold bg-[rgb(207_195_223)] text-[rgb(60_28_84)] px-1.5 py-0.5 rounded-full">
                           {tr.comingSoon}
                         </span>
                       )}
+
                       {isActive && (
                         <ChevronIcon className="w-3.5 h-3.5 text-white/60 flex-shrink-0" />
                       )}
@@ -190,10 +215,12 @@ export default function Sidebar({ store }: SidebarProps) {
             <div className="w-9 h-9 rounded-xl bg-[rgb(60_28_84)] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
               {store.admin_name[0]}
             </div>
+
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-[rgb(60_28_84)] truncate">
                 {store.admin_name}
               </p>
+
               <p className="text-[11px] text-[rgb(60_28_84)]/50 truncate">
                 {store.admin_email}
               </p>
@@ -214,7 +241,9 @@ export default function Sidebar({ store }: SidebarProps) {
         open={showLogoutModal}
         loading={isLoggingOut}
         onClose={() => {
-          if (!isLoggingOut) setShowLogoutModal(false);
+          if (!isLoggingOut) {
+            setShowLogoutModal(false);
+          }
         }}
         onConfirm={handleLogout}
       />
