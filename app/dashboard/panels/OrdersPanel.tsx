@@ -44,7 +44,7 @@ interface Order {
 
 interface StoreData {
   id: string;
-  name: string;
+  store_name: string;
 }
 
 const statusStyles: Record<
