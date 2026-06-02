@@ -15,20 +15,30 @@ import CouponsPanel from "./panels/CouponsPanel";
 import OccasionsPanel from "./panels/OccasionsPanel";
 import PartnershipsPanel from "./panels/PartnershipsPanel";
 import type { StoreData } from "./types";
+
 interface DashboardProps {
   store: StoreData;
 }
+
 export default function Dashboard({ store }: DashboardProps) {
   const { activeNav, setActiveNav, lang } = useDashboard();
 
   const isRTL = lang === "ar";
 
+  // FIX: normalize backend store shape → frontend type shape
+  const normalizedStore: StoreData = {
+    ...store,
+    name: (store as any).name ?? (store as any).store_name,
+  };
+
   const renderPanel = () => {
     switch (activeNav) {
       case "home":
-        return <HomePanel setActiveNav={setActiveNav} store={store} />;
+        return (
+          <HomePanel setActiveNav={setActiveNav} store={normalizedStore} />
+        );
       case "orders":
-        return <OrdersPanel store={store} />;
+        return <OrdersPanel store={normalizedStore} />;
       case "products":
         return <ProductsPanel />;
       case "customers":
@@ -46,13 +56,15 @@ export default function Dashboard({ store }: DashboardProps) {
       case "partnerships":
         return <PartnershipsPanel />;
       default:
-        return <HomePanel setActiveNav={setActiveNav} store={store} />;
+        return (
+          <HomePanel setActiveNav={setActiveNav} store={normalizedStore} />
+        );
     }
   };
 
   return (
     <div className="min-h-screen bg-white" dir={isRTL ? "rtl" : "ltr"}>
-      <Sidebar store={store} />
+      <Sidebar store={normalizedStore} />
 
       <div
         className={`
@@ -70,7 +82,6 @@ export default function Dashboard({ store }: DashboardProps) {
     ${activeNav === "ai" ? "p-0" : "p-5 md:p-8"}
   `}
         >
-          {" "}
           <div key={activeNav} className="animate-fade-in">
             {renderPanel()}
           </div>
