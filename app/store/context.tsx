@@ -1,13 +1,21 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+} from "react";
 
 // ── Types ──────────────────────────────────────────
 export interface Product {
   id: string;
-  name: string;
-  price: number;
+  title: string;
   image?: string;
+  price?: number;
+  rating?: number;
+  badge?: string;
   [key: string]: any;
 }
 
@@ -46,7 +54,7 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     try {
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
       const savedFavs = localStorage.getItem(FAV_STORAGE_KEY);
-      
+
       if (savedCart) setCartItems(JSON.parse(savedCart));
       if (savedFavs) setFavorites(JSON.parse(savedFavs));
     } catch (error) {
@@ -84,7 +92,7 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {
         return prev.map((i) =>
-          i.product.id === product.id ? { ...i, qty: i.qty + qty } : i
+          i.product.id === product.id ? { ...i, qty: i.qty + qty } : i,
         );
       }
       return [...prev, { product, qty }];
@@ -95,22 +103,28 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     setCartItems((prev) => prev.filter((i) => i.product.id !== productId));
   }, []);
 
-  const updateCartQty = useCallback((productId: string, qty: number) => {
-    if (qty <= 0) {
-      removeFromCart(productId);
-      return;
-    }
-    setCartItems((prev) =>
-      prev.map((i) => (i.product.id === productId ? { ...i, qty } : i))
-    );
-  }, [removeFromCart]);
+  const updateCartQty = useCallback(
+    (productId: string, qty: number) => {
+      if (qty <= 0) {
+        removeFromCart(productId);
+        return;
+      }
+      setCartItems((prev) =>
+        prev.map((i) => (i.product.id === productId ? { ...i, qty } : i)),
+      );
+    },
+    [removeFromCart],
+  );
 
   const clearCart = useCallback(() => {
     setCartItems([]);
   }, []);
 
   const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
-  const cartTotal = cartItems.reduce((sum, i) => sum + i.product.price * i.qty, 0);
+  const cartTotal = cartItems.reduce(
+    (sum, i) => sum + i.product.price * i.qty,
+    0,
+  );
 
   // ── Favorites Actions ─────────────────────────────────────
   const toggleFavorite = useCallback((product: Product) => {
@@ -124,7 +138,7 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
 
   const isFavorite = useCallback(
     (productId: string) => favorites.some((p) => p.id === productId),
-    [favorites]
+    [favorites],
   );
 
   const clearFavorites = useCallback(() => {

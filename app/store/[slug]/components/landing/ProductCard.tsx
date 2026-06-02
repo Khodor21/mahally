@@ -42,10 +42,14 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   const { addToCart, toggleFavorite, isFavorite, cartItems } = useShop();
 
-  const favorited = isFavorite(product.id);
+  // ✅ FIX: normalize ID to string (IMPORTANT)
+  const productId = String(product.id);
+
+  const favorited = isFavorite(productId);
 
   const inCart = cartItems.some(
-    (i: { product: Product }) => i.product.id === product.id,
+    (i: { product: { id: string | number } }) =>
+      String(i.product.id) === productId,
   );
 
   const [added, setAdded] = useAddedFlash();
@@ -71,65 +75,24 @@ export default function ProductCard({ product }: ProductCardProps) {
     <article
       aria-label={product.title}
       onClick={() => router.push(`/product`)}
-      className="
-        group
-        flex
-        flex-col
-        bg-white
-        rounded-2xl
-        border
-        border-[rgb(244_242_245)]
-        overflow-hidden
-        h-full
-        cursor-pointer
-        transition-all
-        hover:shadow-md
-        hover:border-[rgb(207_195_223)]
-      "
+      className="group flex flex-col bg-white rounded-2xl border border-[rgb(244_242_245)] overflow-hidden h-full cursor-pointer transition-all hover:shadow-md hover:border-[rgb(207_195_223)]"
     >
-      {/* Image */}
+      {/* IMAGE */}
       <div className="relative w-full h-52 overflow-hidden bg-[rgb(244_242_245)]/[0.35]">
         {product.badge && (
           <span
-            className={`
-              absolute top-3 left-3 z-10
-              text-[10px]
-              font-bold
-              tracking-wide
-              px-2.5 py-1
-              rounded-full
-              ${badgeStyle}
-            `}
+            className={`absolute top-3 left-3 z-10 text-[10px] font-bold px-2.5 py-1 rounded-full ${badgeStyle}`}
           >
             {product.badge}
           </span>
         )}
 
-        {/* Favorite */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             handleToggleFavorite();
           }}
-          aria-label={`${favorited ? "Remove from" : "Add to"} favorites`}
-          className="
-            absolute
-            top-3
-            right-3
-            z-10
-            w-9
-            h-9
-            rounded-xl
-            bg-white/90
-            backdrop-blur
-            border
-            border-[rgb(244_242_245)]
-            flex
-            items-center
-            justify-center
-            transition-all
-            hover:bg-[rgb(244_242_245)]
-          "
+          className="absolute top-3 right-3 z-10 w-9 h-9 rounded-xl bg-white/90 flex items-center justify-center border border-[rgb(244_242_245)]"
         >
           {favorited ? (
             <AiFillHeart size={18} className="text-rose-500" />
@@ -142,69 +105,31 @@ export default function ProductCard({ product }: ProductCardProps) {
           src={product.image}
           alt={product.title}
           fill
-          className="
-            object-contain
-            p-5
-            transition-transform
-            duration-300
-            group-hover:scale-105
-          "
-          sizes="
-            (max-width: 640px) 78vw,
-            (max-width: 768px) 45vw,
-            (max-width: 1024px) 31vw,
-            (max-width: 1280px) 25vw,
-            20vw
-          "
+          className="object-contain p-5 group-hover:scale-105 transition-transform"
         />
       </div>
 
-      {/* Body */}
+      {/* BODY */}
       <div className="flex flex-col flex-1 p-4 gap-3">
-        {/* Add To Cart */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             handleAddToCart();
           }}
-          aria-label={`Add ${product.title} to cart`}
-          className={`
-            w-full
-            flex
-            items-center
-            justify-center
-            gap-2
-            py-2.5
-            rounded-xl
-            text-sm
-            font-semibold
-            transition-all
-            ${
-              added || inCart
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-[rgb(60_28_84)] text-white hover:opacity-90"
-            }
-          `}
+          className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold ${
+            added || inCart
+              ? "bg-emerald-100 text-emerald-700"
+              : "bg-[rgb(60_28_84)] text-white"
+          }`}
         >
           <HiOutlineShoppingBag size={16} />
           {added || inCart ? "Added" : "Add to Cart"}
         </button>
 
-        {/* Title */}
-        <h3
-          className="
-            text-sm
-            font-bold
-            leading-6
-            text-[rgb(60_28_84)]
-            line-clamp-2
-          "
-          style={{ minHeight: "3rem" }}
-        >
+        <h3 className="text-sm font-bold text-[rgb(60_28_84)] line-clamp-2 min-h-[3rem]">
           {product.title}
         </h3>
 
-        {/* Bottom */}
         <div className="flex items-center justify-between mt-auto">
           <p className="text-lg font-bold text-[rgb(60_28_84)]">
             {formattedPrice}
@@ -212,11 +137,9 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           <div className="flex items-center gap-1">
             <FaStar size={11} className="text-amber-400" />
-
             <span className="text-sm font-semibold text-[rgb(60_28_84)]">
               {(product.rating ?? 0).toFixed(1)}
             </span>
-
             <span className="text-xs text-[rgb(60_28_84)]/40">/5.0</span>
           </div>
         </div>
@@ -225,18 +148,15 @@ export default function ProductCard({ product }: ProductCardProps) {
   );
 }
 
+// unchanged hook (safe)
 function useAddedFlash(duration = 1400): [boolean, (val: boolean) => void] {
   const [added, setAddedRaw] = useState(false);
-
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setAdded = (val: boolean) => {
     if (val) {
       setAddedRaw(true);
-
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
+      if (timerRef.current) clearTimeout(timerRef.current);
 
       timerRef.current = setTimeout(() => {
         setAddedRaw(false);
@@ -248,9 +168,7 @@ function useAddedFlash(duration = 1400): [boolean, (val: boolean) => void] {
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
 
