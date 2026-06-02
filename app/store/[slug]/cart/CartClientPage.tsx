@@ -60,7 +60,7 @@ export default function CartClientPage({ store }: Props) {
   // ── UI State ────────────────────────────────────────
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [customerLoading, setCustomerLoading] = useState(true); // new
+  const [customerLoading, setCustomerLoading] = useState(true);
 
   // ── Auto-fill from session ──────────────────────────
   useEffect(() => {
@@ -79,9 +79,7 @@ export default function CartClientPage({ store }: Props) {
 
           // Only pre-fill if the session belongs to this store
           if (c.store_id === store.id) {
-            setCustomerName(
-              `${c.first_name} ${c.last_name}`.trim(),
-            );
+            setCustomerName(`${c.first_name} ${c.last_name}`.trim());
             setCustomerPhone(c.phone || "");
             setCity(c.governorate || "");
           }
@@ -302,8 +300,9 @@ export default function CartClientPage({ store }: Props) {
                           {item.product.name}
                         </h3>
 
+                        {/* FIX APPLIED HERE */}
                         <p className="text-sm text-[rgb(60_28_84)]/50 mt-1">
-                          {item.product.price.toLocaleString()} SAR
+                          {(item.product.price || 0).toLocaleString()} SAR
                         </p>
                       </div>
 
@@ -333,8 +332,11 @@ export default function CartClientPage({ store }: Props) {
                         </div>
 
                         <div className="flex items-center gap-4">
+                          {/* FIX APPLIED HERE */}
                           <p className="font-bold text-[rgb(60_28_84)]">
-                            {(item.product.price * item.qty).toLocaleString()}{" "}
+                            {(
+                              (item.product.price || 0) * item.qty
+                            ).toLocaleString()}{" "}
                             SAR
                           </p>
 
