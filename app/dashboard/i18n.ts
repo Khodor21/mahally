@@ -73,6 +73,12 @@ export const t = {
     filterOrders: "تصفية الطلبات",
     allOrders: "جميع الطلبات",
     searchOrders: "بحث في الطلبات...",
+    total: "الإجمالي",
+    shipping: "الشحن",
+    subtotal: "المجموع الفرعي",
+    qauntity: "الكمية",
+    address: "العنوان",
+    currentStatus: "الحالة الحالية",
 
     // Products
     price: "السعر",
@@ -173,6 +179,9 @@ export const t = {
 
     // Arabic
     maxImagesError: "الحد الأقصى 5 صور لكل رفع",
+    uploading: "جاري رفع الصور...",
+    imageUploadHint:
+      "Maximum 5 images per upload. Supported: JPEG, PNG, WebP, GIF (max 5MB each)",
   },
   en: {
     // Nav
@@ -228,7 +237,12 @@ export const t = {
     filterOrders: "Filter Orders",
     allOrders: "All Orders",
     searchOrders: "Search orders...",
-
+    total: "Total",
+    subtotal: "Subtotal",
+    shipping: "Delivery",
+    quantity: "Quantity",
+    address: "Address",
+    currentStatus: "Current Status",
     // Products
     price: "Price",
     stock: "Stock",
@@ -346,6 +360,9 @@ export const t = {
 
     // English
     maxImagesError: "Maximum 5 images per upload",
+    uploading: "Uploading images...",
+    imageUploadHint:
+      "Maximum 5 images per upload. Supported: JPEG, PNG, WebP, GIF (max 5MB each)",
   },
 } as const;
 
