@@ -22,12 +22,19 @@ const popularSearches = [
   "Accessories",
 ];
 
+type SearchModalProps = {
+  searchOpen: boolean;
+  setSearchOpen: (v: boolean) => void;
+  searchQuery: string;
+  setSearchQuery: (v: string) => void;
+};
+
 const SearchModal = ({
   searchOpen,
   setSearchOpen,
   searchQuery,
   setSearchQuery,
-}) => (
+}: SearchModalProps) => (
   <div
     className={`fixed inset-0 z-[100] transition-all duration-300 ${
       searchOpen
@@ -190,10 +197,7 @@ export default function Navbar({
                 onClick={() => setMobileMenuOpen(true)}
                 className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl hover:bg-brand-grey transition-colors"
               >
-                <HiOutlineMenuAlt3
-                  size={22}
-                  className="text-brand-dark"
-                />
+                <HiOutlineMenuAlt3 size={22} className="text-brand-dark" />
               </button>
 
               {/* STORE NAME */}
@@ -222,9 +226,7 @@ export default function Navbar({
               <BsSearch className="text-brand-dark/40" />
 
               <span className="text-sm text-brand-dark/40">
-                {lang === "ar"
-                  ? "ابحث عن منتجات..."
-                  : "Search products..."}
+                {lang === "ar" ? "ابحث عن منتجات..." : "Search products..."}
               </span>
             </button>
 
@@ -301,8 +303,8 @@ export default function Navbar({
             mobileMenuOpen
               ? "translate-x-0"
               : dir === "rtl"
-              ? "translate-x-full"
-              : "-translate-x-full"
+                ? "translate-x-full"
+                : "-translate-x-full"
           }`}
         >
           {/* HEADER */}
@@ -313,9 +315,7 @@ export default function Navbar({
               </div>
 
               <div>
-                <p className="text-sm font-bold text-brand-dark">
-                  {storeName}
-                </p>
+                <p className="text-sm font-bold text-brand-dark">{storeName}</p>
 
                 <p className="text-xs text-brand-dark/50">
                   {lang === "ar" ? "متجر إلكتروني" : "Online Store"}
@@ -346,9 +346,7 @@ export default function Navbar({
               onClick={() => setMobileMenuOpen(false)}
               className="h-11 px-4 rounded-xl hover:bg-brand-grey flex items-center justify-between text-sm font-medium text-brand-dark transition-colors"
             >
-              <span>
-                {lang === "ar" ? "المفضلة" : "Favorites"}
-              </span>
+              <span>{lang === "ar" ? "المفضلة" : "Favorites"}</span>
 
               {favCount > 0 && (
                 <span className="min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
@@ -378,9 +376,7 @@ export default function Navbar({
               }}
               className="mt-2 h-11 px-4 rounded-xl bg-brand-grey flex items-center justify-between text-sm font-medium text-brand-dark transition-colors"
             >
-              <span>
-                {lang === "ar" ? "تغيير اللغة" : "Change Language"}
-              </span>
+              <span>{lang === "ar" ? "تغيير اللغة" : "Change Language"}</span>
 
               <div className="flex items-center gap-2">
                 <Globe size={15} />
