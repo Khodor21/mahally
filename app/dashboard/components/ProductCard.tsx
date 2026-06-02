@@ -28,7 +28,7 @@ export default function ProductCard({
   onDelete,
 }: Props) {
   const dir = lang === "ar" ? "rtl" : "ltr";
-  const t = tr[lang];
+  const t = tr;
 
   const getStockStatus = (stock: number) => {
     if (stock === 0)

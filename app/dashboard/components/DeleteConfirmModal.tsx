@@ -20,7 +20,7 @@ export default function DeleteConfirmModal({
   onConfirm,
   onCancel,
 }: Props) {
-  const t = tr[lang];
+  const t = tr;
 
   return (
     <div
