@@ -1,7 +1,7 @@
 import { Edit2, Trash2, Package } from "lucide-react";
 import type { Translations } from "../i18n";
 
- interface Product {
+interface Product {
   id: string;
   store_id: string;
   title: string;
@@ -12,7 +12,6 @@ import type { Translations } from "../i18n";
   created_at: string;
 }
 
- 
 interface Props {
   product: Product;
   tr: Translations;
@@ -21,13 +20,22 @@ interface Props {
   onDelete: (p: Product) => void;
 }
 
-export default function ProductCard({ product, tr, lang, onEdit, onDelete }: Props) {
+export default function ProductCard({
+  product,
+  tr,
+  lang,
+  onEdit,
+  onDelete,
+}: Props) {
   const dir = lang === "ar" ? "rtl" : "ltr";
+  const t = tr[lang];
 
   const getStockStatus = (stock: number) => {
-    if (stock === 0) return { label: tr.outOfStock, cls: "bg-red-100 text-red-700" };
-    if (stock <= 10) return { label: tr.lowStock, cls: "bg-amber-100 text-amber-700" };
-    return { label: tr.inStock, cls: "bg-emerald-100 text-emerald-700" };
+    if (stock === 0)
+      return { label: t.outOfStock, cls: "bg-red-100 text-red-700" };
+    if (stock <= 10)
+      return { label: t.lowStock, cls: "bg-amber-100 text-amber-700" };
+    return { label: t.inStock, cls: "bg-emerald-100 text-emerald-700" };
   };
 
   const stockStatus = getStockStatus(product.stock);
@@ -84,17 +92,21 @@ export default function ProductCard({ product, tr, lang, onEdit, onDelete }: Pro
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="text-center p-2 bg-[rgb(244_242_245)] rounded-xl">
-          <p className="text-[10px] text-[rgb(60_28_84)]/40">{tr.price}</p>
+          <p className="text-[10px] text-[rgb(60_28_84)]/40">{t.price}</p>
           <p className="text-xs font-bold text-[rgb(60_28_84)] leading-tight mt-0.5">
             {formattedPrice}
           </p>
         </div>
+
         <div className="text-center p-2 bg-[rgb(244_242_245)] rounded-xl">
-          <p className="text-[10px] text-[rgb(60_28_84)]/40">{tr.stock}</p>
-          <p className="text-sm font-bold text-[rgb(60_28_84)]">{product.stock}</p>
+          <p className="text-[10px] text-[rgb(60_28_84)]/40">{t.stock}</p>
+          <p className="text-sm font-bold text-[rgb(60_28_84)]">
+            {product.stock}
+          </p>
         </div>
+
         <div className="text-center p-2 bg-[rgb(244_242_245)] rounded-xl">
-          <p className="text-[10px] text-[rgb(60_28_84)]/40">{tr.sales}</p>
+          <p className="text-[10px] text-[rgb(60_28_84)]/40">{t.sales}</p>
           <p className="text-sm font-bold text-[rgb(60_28_84)]">—</p>
         </div>
       </div>
@@ -106,14 +118,15 @@ export default function ProductCard({ product, tr, lang, onEdit, onDelete }: Pro
           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[rgb(244_242_245)] text-[rgb(60_28_84)] text-xs font-semibold hover:bg-[rgb(207_195_223)] transition-colors"
         >
           <Edit2 className="w-3.5 h-3.5" />
-          {tr.edit}
+          {t.edit}
         </button>
+
         <button
           onClick={() => onDelete(product)}
           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors"
         >
           <Trash2 className="w-3.5 h-3.5" />
-          {tr.delete}
+          {t.delete}
         </button>
       </div>
     </div>
