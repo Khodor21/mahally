@@ -15,9 +15,7 @@ const CreateCouponSchema = z.object({
       /^[A-Z0-9\-]+$/,
       "Code can only contain uppercase letters, numbers, and hyphens",
     ),
-  type: z.enum(["percentage", "fixed"], {
-    errorMap: () => ({ message: "Type must be 'percentage' or 'fixed'" }),
-  }),
+  type: z.enum(["percentage", "fixed"]),
   discount: z
     .number()
     .positive("Discount must be greater than 0")
@@ -94,7 +92,6 @@ async function getAllCoupons(storeId: string) {
 }
 
 async function createNewCoupon(couponData: NewCouponData) {
-  // Check for duplicate code
   const exists = await checkCouponExists(couponData.storeId, couponData.code);
   if (exists) {
     throw new Error("Coupon code already exists");
@@ -130,7 +127,6 @@ async function updateCoupon(
   storeId: string,
   updates: z.infer<typeof UpdateCouponSchema>,
 ) {
-  // If code is being updated, check for duplicates
   if (updates.code) {
     const exists = await checkCouponExists(storeId, updates.code);
     if (exists) {
@@ -199,16 +195,11 @@ async function validateAndApplyCoupon(
     throw new Error("Coupon not found");
   }
 
-  // Validation checks
-  if (!coupon.is_active) {
-    throw new Error("Coupon is not active");
-  }
+  if (!coupon.is_active) throw new Error("Coupon is not active");
 
   const now = new Date();
   const expiryDate = new Date(coupon.expiry_date);
-  if (now > expiryDate) {
-    throw new Error("Coupon has expired");
-  }
+  if (now > expiryDate) throw new Error("Coupon has expired");
 
   if (coupon.used_count >= coupon.max_uses) {
     throw new Error("Coupon usage limit reached");
@@ -218,7 +209,6 @@ async function validateAndApplyCoupon(
     throw new Error(`Minimum purchase of $${coupon.min_purchase} required`);
   }
 
-  // Check per-customer limit
   if (customerId && coupon.max_uses_per_customer > 0) {
     const { data: usage, error: usageError } = await supabaseAdmin
       .from("coupon_usage")
@@ -226,16 +216,13 @@ async function validateAndApplyCoupon(
       .eq("coupon_id", coupon.id)
       .eq("customer_id", customerId);
 
-    if (usageError) {
-      throw new Error("Failed to check coupon usage");
-    }
+    if (usageError) throw new Error("Failed to check coupon usage");
 
     if ((usage || []).length >= coupon.max_uses_per_customer) {
       throw new Error("You have already used this coupon maximum times");
     }
   }
 
-  // Calculate discount
   const discount =
     coupon.type === "percentage"
       ? (cartTotal * coupon.discount) / 100
@@ -259,7 +246,6 @@ async function recordCouponUsage(
   customerId: string | undefined,
   orderId: string,
 ) {
-  // Increment usage counter
   const { error: updateError } = await supabaseAdmin
     .from("coupons")
     .update({
@@ -272,7 +258,6 @@ async function recordCouponUsage(
     console.error("Failed to update coupon usage count:", updateError);
   }
 
-  // Record usage if customer provided
   if (customerId) {
     const { error: insertError } = await supabaseAdmin
       .from("coupon_usage")
@@ -295,7 +280,6 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const action = searchParams.get("action");
 
-    // PUBLIC STOREFRONT ACTION: Validate a coupon at checkout
     if (action === "validate") {
       const storeId = searchParams.get("storeId");
       const code = searchParams.get("code");
@@ -322,14 +306,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: result });
     }
 
-    // DASHBOARD ACTION: Get all coupons for the logged-in store owner
     const user = await requireStoreSession();
     const coupons = await getAllCoupons(user.id);
 
-    return NextResponse.json({
-      success: true,
-      data: coupons,
-    });
+    return NextResponse.json({ success: true, data: coupons });
   } catch (err: any) {
     const isAuth = err.message === "Unauthorized";
     return NextResponse.json(
@@ -341,7 +321,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireStoreSession(); // Securely get store owner
+    const user = await requireStoreSession();
     const body = await req.json();
 
     const parsed = CreateCouponSchema.safeParse(body);
@@ -352,7 +332,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Inject the secure user.id when passing to the DB function
     const coupon = await createNewCoupon({ storeId: user.id, ...parsed.data });
 
     return NextResponse.json(
@@ -370,7 +349,7 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const user = await requireStoreSession(); // Securely get store owner
+    const user = await requireStoreSession();
     const body = await req.json();
     const { couponId, ...updates } = body;
 
@@ -389,7 +368,6 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // Use user.id as the storeId to ensure they only update their own coupons
     const coupon = await updateCoupon(couponId, user.id, parsed.data);
 
     return NextResponse.json({
@@ -408,7 +386,7 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const user = await requireStoreSession(); // Securely get store owner
+    const user = await requireStoreSession();
     const { searchParams } = new URL(req.url);
     const couponId = searchParams.get("couponId");
 
@@ -419,7 +397,6 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // Use user.id as the storeId to ensure they only delete their own coupons
     await deleteCoupon(couponId, user.id);
 
     return NextResponse.json({
