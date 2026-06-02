@@ -1,19 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
-import Image from "next/image";
+import { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
-import {
-  Eye,
-  EyeOff,
-  Loader2,
-  AlertCircle,
-  CheckCircle,
-  ArrowLeft,
-  ArrowRight,
-  Copy,
-} from "lucide-react";
 
 // ===============================
 // CONSTANTS
@@ -41,6 +29,19 @@ const STEPS = [
   { id: 4, label: "رابطك" },
   { id: 5, label: "كلمة المرور" },
 ];
+
+// ===============================
+// TYPES (FIX)
+// ===============================
+
+type Errors = {
+  email?: string;
+  firstName?: string;
+  storeName?: string;
+  slug?: string;
+  password?: string;
+  global?: string;
+};
 
 // ===============================
 // HELPERS
@@ -74,13 +75,13 @@ const DEFAULT_FORM = {
 // ===============================
 
 export default function OnboardingClient() {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<number>(1);
   const [form, setForm] = useState(DEFAULT_FORM);
 
   const [loading, setLoading] = useState(false);
   const [slugChecking, setSlugChecking] = useState(false);
-  const [slugAvailable, setSlugAvailable] = useState(null);
-  const [errors, setErrors] = useState({});
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+  const [errors, setErrors] = useState<Errors>({});
 
   const slugManuallyEdited = useRef(false);
 
@@ -140,11 +141,11 @@ export default function OnboardingClient() {
   }, [form.slug]);
 
   // ===============================
-  // VALIDATION
+  // VALIDATION (FIXED TYPE)
   // ===============================
 
-  function validate(step) {
-    const e = {};
+  function validate(step: number): boolean {
+    const e: Errors = {};
 
     if (step === 1 && !form.email.includes("@")) e.email = "Invalid email";
     if (step === 2 && !form.firstName) e.firstName = "Required";
@@ -157,7 +158,7 @@ export default function OnboardingClient() {
   }
 
   // ===============================
-  // SUBMIT (CREATE + AUTO LOGIN)
+  // SUBMIT
   // ===============================
 
   const handleSubmit = async () => {
@@ -179,7 +180,6 @@ export default function OnboardingClient() {
         return;
       }
 
-      // AUTO LOGIN
       const login = await signIn("credentials", {
         email: form.email,
         password: form.password,
@@ -193,7 +193,7 @@ export default function OnboardingClient() {
 
       localStorage.removeItem(STORAGE_KEY);
       window.location.href = "/dashboard";
-    } catch (err) {
+    } catch {
       setErrors({ global: "Server error" });
     } finally {
       setLoading(false);
@@ -201,7 +201,7 @@ export default function OnboardingClient() {
   };
 
   // ===============================
-  // UI (minimal placeholder structure)
+  // UI
   // ===============================
 
   return (
@@ -209,7 +209,7 @@ export default function OnboardingClient() {
       <div className="w-full max-w-md">
         <h1>Onboarding Step {step}</h1>
 
-        {errors.global && <p>{errors.global}</p>}
+        {errors?.global && <p>{errors.global}</p>}
 
         {step === 5 && (
           <button onClick={handleSubmit} disabled={loading}>
