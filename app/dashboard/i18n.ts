@@ -76,7 +76,7 @@ export const t = {
     total: "الإجمالي",
     shipping: "الشحن",
     subtotal: "المجموع الفرعي",
-    qauntity: "الكمية",
+    quantity: "الكمية",
     address: "العنوان",
     currentStatus: "الحالة الحالية",
 
