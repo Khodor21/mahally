@@ -1,40 +1,60 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { requireStoreSession } from "@/lib/store";
+import { headers } from "next/headers";
 
 export async function GET() {
   try {
-    const user = await requireStoreSession();
+    const host = (await headers()).get("host") || "";
+
+    // extract subdomain
+    const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mahally.app";
+
+    let slug = null;
+
+    if (host.endsWith(appDomain)) {
+      slug = host.replace(`.${appDomain}`, "");
+    }
+
+    // fallback for custom domain
+    const { data: store } = await supabaseAdmin
+      .from("stores")
+      .select("id, slug, custom_domain")
+      .or(`slug.eq.${slug},custom_domain.eq.${host}`)
+      .single();
+
+    if (!store) {
+      return NextResponse.json(
+        { success: false, message: "Store not found" },
+        { status: 404 },
+      );
+    }
 
     const { data, error } = await supabaseAdmin
       .from("products")
       .select("*")
-      .eq("store_id", user.id)
+      .eq("store_id", store.id)
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("GET products error:", error);
       return NextResponse.json(
         { success: false, message: error.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
-    return NextResponse.json({ success: true, data: data || [] });
+    return NextResponse.json({ success: true, data });
   } catch (err: any) {
-    console.error("GET products catch error:", err);
-    const isAuth = err.message === "Unauthorized";
     return NextResponse.json(
-      { success: false, message: err.message || "Internal server error" },
-      { status: isAuth ? 401 : 500 }
+      { success: false, message: err.message },
+      { status: 500 },
     );
   }
 }
-
 export async function POST(req: Request) {
   try {
     const user = await requireStoreSession();
-    
+
     // Parse body with error handling
     let body;
     try {
@@ -43,7 +63,7 @@ export async function POST(req: Request) {
       console.error("Failed to parse request body:", parseError);
       return NextResponse.json(
         { success: false, message: "Invalid JSON in request body" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -53,31 +73,32 @@ export async function POST(req: Request) {
     if (!title || title.trim() === "") {
       return NextResponse.json(
         { success: false, message: "Title is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (price === undefined || price === null || isNaN(Number(price))) {
       return NextResponse.json(
         { success: false, message: "Valid price is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const parsedPrice = parseFloat(price);
-    const parsedStock = stock !== undefined && stock !== null ? parseInt(stock) : 0;
+    const parsedStock =
+      stock !== undefined && stock !== null ? parseInt(stock) : 0;
 
     if (parsedPrice < 0) {
       return NextResponse.json(
         { success: false, message: "Price cannot be negative" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (parsedStock < 0) {
       return NextResponse.json(
         { success: false, message: "Stock cannot be negative" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -101,7 +122,7 @@ export async function POST(req: Request) {
       console.error("INSERT product error:", error);
       return NextResponse.json(
         { success: false, message: error.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -111,7 +132,7 @@ export async function POST(req: Request) {
     const isAuth = err.message === "Unauthorized";
     return NextResponse.json(
       { success: false, message: err.message || "Internal server error" },
-      { status: isAuth ? 401 : 500 }
+      { status: isAuth ? 401 : 500 },
     );
   }
 }
@@ -119,7 +140,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const user = await requireStoreSession();
-    
+
     // Parse body with error handling
     let body;
     try {
@@ -128,7 +149,7 @@ export async function PATCH(req: Request) {
       console.error("Failed to parse request body:", parseError);
       return NextResponse.json(
         { success: false, message: "Invalid JSON in request body" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -137,7 +158,7 @@ export async function PATCH(req: Request) {
     if (!id) {
       return NextResponse.json(
         { success: false, message: "Product ID required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -148,7 +169,7 @@ export async function PATCH(req: Request) {
       if (title.trim() === "") {
         return NextResponse.json(
           { success: false, message: "Title cannot be empty" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       updates.title = title.trim();
@@ -163,7 +184,7 @@ export async function PATCH(req: Request) {
       if (isNaN(parsedPrice) || parsedPrice < 0) {
         return NextResponse.json(
           { success: false, message: "Invalid price" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       updates.price = parsedPrice;
@@ -174,7 +195,7 @@ export async function PATCH(req: Request) {
       if (isNaN(parsedStock) || parsedStock < 0) {
         return NextResponse.json(
           { success: false, message: "Invalid stock" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       updates.stock = parsedStock;
@@ -188,7 +209,7 @@ export async function PATCH(req: Request) {
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(
         { success: false, message: "No updates provided" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -202,18 +223,18 @@ export async function PATCH(req: Request) {
 
     if (error) {
       console.error("UPDATE product error:", error);
-      
+
       // Handle case where product doesn't exist or doesn't belong to store
       if (error.code === "PGRST116") {
         return NextResponse.json(
           { success: false, message: "Product not found or access denied" },
-          { status: 404 }
+          { status: 404 },
         );
       }
-      
+
       return NextResponse.json(
         { success: false, message: error.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -223,7 +244,7 @@ export async function PATCH(req: Request) {
     const isAuth = err.message === "Unauthorized";
     return NextResponse.json(
       { success: false, message: err.message || "Internal server error" },
-      { status: isAuth ? 401 : 500 }
+      { status: isAuth ? 401 : 500 },
     );
   }
 }
@@ -237,7 +258,7 @@ export async function DELETE(req: Request) {
     if (!id) {
       return NextResponse.json(
         { success: false, message: "Product ID required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -251,17 +272,20 @@ export async function DELETE(req: Request) {
       console.error("DELETE product error:", error);
       return NextResponse.json(
         { success: false, message: error.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
-    return NextResponse.json({ success: true, message: "Product deleted successfully" });
+    return NextResponse.json({
+      success: true,
+      message: "Product deleted successfully",
+    });
   } catch (err: any) {
     console.error("DELETE product catch error:", err);
     const isAuth = err.message === "Unauthorized";
     return NextResponse.json(
       { success: false, message: err.message || "Internal server error" },
-      { status: isAuth ? 401 : 500 }
+      { status: isAuth ? 401 : 500 },
     );
   }
 }

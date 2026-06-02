@@ -1,31 +1,26 @@
 "use client";
 
-export default function AIThinking() {
-  return (
-    <div className="border-b border-gray-100 bg-gray-50 px-4 py-6 sm:px-6">
-      <div className="mx-auto w-full max-w-3xl">
-        <div className="flex items-center gap-4">
-          {/* Animated dots */}
-          <div className="flex gap-1">
-            <span
-              className="h-2 w-2 rounded-full bg-gray-400 animate-bounce"
-              style={{ animationDelay: "0ms" }}
-            />
-            <span
-              className="h-2 w-2 rounded-full bg-gray-400 animate-bounce"
-              style={{ animationDelay: "150ms" }}
-            />
-            <span
-              className="h-2 w-2 rounded-full bg-gray-400 animate-bounce"
-              style={{ animationDelay: "300ms" }}
-            />
-          </div>
+import { useDashboard } from "../DashboardContext";
 
-          {/* Thinking text */}
-          <span className="text-sm text-gray-600 font-medium">
-            AI Store Consultant is thinking...
-          </span>
-        </div>
+export default function AIThinking() {
+  const { lang } = useDashboard();
+
+  const dir = lang === "ar" ? "rtl" : "ltr";
+
+  const t = {
+    thinking: lang === "ar" ? "ChatGPT يفكر..." : "ChatGPT is thinking...",
+  };
+
+  return (
+    <div className="px-4 py-3" dir={dir}>
+      <div className="flex items-center gap-2 text-gray-500 text-sm">
+        <span className="flex gap-1">
+          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150" />
+          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300" />
+        </span>
+
+        <span>{t.thinking}</span>
       </div>
     </div>
   );

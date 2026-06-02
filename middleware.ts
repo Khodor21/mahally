@@ -5,31 +5,36 @@ export async function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
   const hostname = req.headers.get("host") || "";
 
-  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "yoursaas.com";
+  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mahally.app";
+
+  // Remove port for local dev
+  const cleanHost = hostname.replace(":3000", "");
 
   // ─────────────────────────────────────────────
-  // 1. SUBDOMAIN DETECTION (KEEPING YOUR LOGIC)
+  // 1. DOMAIN CLASSIFICATION
   // ─────────────────────────────────────────────
-  const subdomain = hostname
-    .replace(`.${appDomain}`, "")
-    .replace(":3000", "")
-    .replace("localhost", "");
+
+  const isLocalhost = cleanHost.includes("localhost");
 
   const isMainDomain =
-    hostname === appDomain ||
-    hostname === `www.${appDomain}` ||
-    hostname.startsWith("localhost") ||
-    hostname.includes("vercel.app");
+    cleanHost === appDomain || cleanHost === `www.${appDomain}`;
 
-  // Rewrite subdomain → /store/[slug]
-  if (!isMainDomain && subdomain && subdomain !== hostname) {
-    url.pathname = `/store/${subdomain}${url.pathname}`;
-    return NextResponse.rewrite(url);
+  const isVercelPreview = cleanHost.includes("vercel.app");
+
+  // Detect subdomain (ONLY for mahally.app)
+  let subdomain: string | null = null;
+
+  if (!isLocalhost && cleanHost.endsWith(appDomain)) {
+    const parts = cleanHost.replace(appDomain, "").split(".");
+    subdomain = parts[parts.length - 2] || null;
   }
 
+  const isStoreSubdomain = !!subdomain && !isMainDomain;
+
   // ─────────────────────────────────────────────
-  // 2. AUTH CHECK (NEXTAUTH JWT)
+  // 2. AUTH (NEXTAUTH)
   // ─────────────────────────────────────────────
+
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
@@ -38,8 +43,22 @@ export async function middleware(req: NextRequest) {
   const isLoggedIn = !!token;
 
   // ─────────────────────────────────────────────
-  // 3. PROTECTED ROUTES (KEEP OLD + EXTEND SAFE)
+  // 3. STORE ROUTING (CRITICAL PART)
   // ─────────────────────────────────────────────
+
+  // If it's a store subdomain → rewrite to store route
+  if (isStoreSubdomain) {
+    url.pathname = `/store/${subdomain}${url.pathname}`;
+    return NextResponse.rewrite(url);
+  }
+
+  // If it's custom domain OR main domain → no rewrite
+  // (store resolution will happen in server via host header)
+
+  // ─────────────────────────────────────────────
+  // 4. PROTECTED DASHBOARD
+  // ─────────────────────────────────────────────
+
   const isDashboardRoute = url.pathname.startsWith("/dashboard");
 
   if (isDashboardRoute && !isLoggedIn) {
@@ -48,9 +67,9 @@ export async function middleware(req: NextRequest) {
   }
 
   // ─────────────────────────────────────────────
-  // 4. AUTH PAGES BLOCK (NEW LOGIC YOU REQUESTED)
-  // If user is logged in → block login & onboarding
+  // 5. AUTH GUARD (LOGIN / ONBOARDING)
   // ─────────────────────────────────────────────
+
   const isAuthPage =
     url.pathname.startsWith("/login") || url.pathname.startsWith("/onboarding");
 
@@ -60,14 +79,12 @@ export async function middleware(req: NextRequest) {
   }
 
   // ─────────────────────────────────────────────
-  // 5. DEFAULT
+  // 6. DEFAULT
   // ─────────────────────────────────────────────
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    // Match all paths except static files and auth assets
-    "/((?!_next/static|_next/image|favicon.ico|api/auth).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/auth).*)"],
 };

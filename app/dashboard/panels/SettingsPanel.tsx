@@ -129,17 +129,6 @@ export default function SettingsPanel() {
       )
     : "";
 
-  if (loading) {
-    return (
-      <div
-        className="bg-white rounded-2xl border border-[rgb(244_242_245)] p-10 text-center text-sm text-[rgb(60_28_84)]/50"
-        dir={dir}
-      >
-        Loading...
-      </div>
-    );
-  }
-
   if (!store) {
     return (
       <div
@@ -150,7 +139,54 @@ export default function SettingsPanel() {
       </div>
     );
   }
+  const SkeletonBox = ({ className }: { className: string }) => (
+    <div
+      className={`animate-pulse bg-[rgb(244_242_245)] rounded-xl ${className}`}
+    />
+  );
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-3xl" dir={dir}>
+        {/* Tabs Skeleton */}
+        <div className="flex gap-1 bg-[rgb(244_242_245)] rounded-xl p-1">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonBox key={i} className="h-10 flex-1" />
+          ))}
+        </div>
 
+        {/* Store Card Skeleton */}
+        <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm p-6 space-y-6">
+          {/* Title */}
+          <SkeletonBox className="h-5 w-48" />
+
+          {/* Inputs */}
+          <div className="grid md:grid-cols-2 gap-5">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <SkeletonBox className="h-3 w-20" />
+                <SkeletonBox className="h-10 w-full" />
+              </div>
+            ))}
+          </div>
+
+          {/* Select */}
+          <div className="space-y-2">
+            <SkeletonBox className="h-3 w-24" />
+            <SkeletonBox className="h-10 w-full" />
+          </div>
+
+          {/* Info Boxes */}
+          <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-[rgb(244_242_245)]">
+            <SkeletonBox className="h-16 w-full" />
+            <SkeletonBox className="h-16 w-full" />
+          </div>
+
+          {/* Button */}
+          <SkeletonBox className="h-10 w-40" />
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6 max-w-3xl" dir={dir}>
       {/* Tabs */}

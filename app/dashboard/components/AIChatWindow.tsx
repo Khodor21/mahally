@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send } from "lucide-react";
 import AIMessage from "./AIMessage";
 import AIThinking from "./AIThinking";
 import AIEmptyState from "./AIEmptyState";
+import { ArrowUp } from "lucide-react";
+import { useDashboard } from "../DashboardContext";
 
 type Message = {
   id: string;
@@ -13,10 +14,25 @@ type Message = {
 };
 
 interface AIChatWindowProps {
-  storeId?: string; // Optional: pass store ID for personalized responses
+  storeId?: string;
 }
 
 export default function AIChatWindow({ storeId }: AIChatWindowProps) {
+  const { lang } = useDashboard();
+
+  const dir = lang === "ar" ? "rtl" : "ltr";
+
+  const t = {
+    placeholder:
+      lang === "ar"
+        ? "اسأل ChatGPT عن متجرك..."
+        : "Ask ChatGPT about your store...",
+
+    error: lang === "ar" ? "حدث خطأ، حاول مرة أخرى" : "Something went wrong",
+
+    emptyError: lang === "ar" ? "خطأ في التحميل" : "Error loading data",
+  };
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -25,32 +41,24 @@ export default function AIChatWindow({ storeId }: AIChatWindowProps) {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Prevent hydration errors
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  useEffect(() => setIsMounted(true), []);
 
-  // Auto scroll to bottom
   useEffect(() => {
     if (isMounted) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isLoading, isMounted]);
 
-  // Auto resize textarea (ChatGPT style)
   const handleInput = (value: string) => {
     setInput(value);
 
     if (!textareaRef.current) return;
-
     textareaRef.current.style.height = "auto";
-    const scrollHeight = textareaRef.current.scrollHeight;
-    textareaRef.current.style.height = Math.min(scrollHeight, 200) + "px";
+    textareaRef.current.style.height =
+      Math.min(textareaRef.current.scrollHeight, 180) + "px";
   };
 
-  // Send message to AI
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -66,53 +74,36 @@ export default function AIChatWindow({ storeId }: AIChatWindowProps) {
     setInput("");
     setIsLoading(true);
 
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
 
     try {
-      // Call your backend API endpoint
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: userMessage.content,
-          storeId: storeId, // Pass store ID for context
-          conversationHistory: messages.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
+          storeId,
+          conversationHistory: messages.map((m) => ({
+            role: m.role,
+            content: m.content,
           })),
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || `HTTP error! status: ${response.status}`,
-        );
-      }
-
       const data = await response.json();
 
-      if (!data.message) {
-        throw new Error("No response from API");
-      }
+      if (!response.ok) throw new Error(data.error || "Request failed");
 
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.message,
-      };
-
-      setMessages((prev) => [...prev, aiMessage]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString() + "-ai",
+          role: "assistant",
+          content: data.message,
+        },
+      ]);
     } catch (err) {
-      console.error("Chat Error:", err);
-
-      const errorMessage =
-        err instanceof Error ? err.message : "Something went wrong";
+      const errorMessage = err instanceof Error ? err.message : t.error;
 
       setError(errorMessage);
 
@@ -121,7 +112,7 @@ export default function AIChatWindow({ storeId }: AIChatWindowProps) {
         {
           id: Date.now().toString(),
           role: "assistant",
-          content: `Sorry, I encountered an error: ${errorMessage}. Please try again or check your API configuration.`,
+          content: `Error: ${errorMessage}`,
         },
       ]);
     } finally {
@@ -136,88 +127,94 @@ export default function AIChatWindow({ storeId }: AIChatWindowProps) {
     }
   };
 
-  if (!isMounted) {
-    return null; // Prevent hydration mismatch
-  }
+  if (!isMounted) return null;
 
   return (
-    <div
-      ref={containerRef}
-      className="flex h-full flex-col overflow-hidden bg-white"
-    >
-      {/* MESSAGES CONTAINER */}
-      <div className="flex-1 overflow-y-auto">
-        {messages.length === 0 ? (
-          <AIEmptyState />
-        ) : (
-          <>
-            {messages.map((msg) => (
-              <AIMessage key={msg.id} role={msg.role} content={msg.content} />
-            ))}
+    <div className="flex h-full flex-col bg-[#f7f7f8]" dir={dir}>
+      {/* MAIN AREA */}
+      {messages.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center">
+          <div className="w-full max-w-3xl px-4">
+            <AIEmptyState />
 
-            {isLoading && <AIThinking />}
-          </>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* INPUT AREA */}
-      <div className="border-t border-gray-200 bg-white px-4 py-4 sm:px-6">
-        <div className="mx-auto w-full max-w-3xl">
-          <div className="flex flex-col gap-3">
-            {/* Error Message */}
             {error && (
-              <div className="flex items-start gap-3 rounded-lg bg-red-50 p-3 border border-red-200">
-                <svg
-                  className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-red-900">Error</p>
-                  <p className="text-xs text-red-800 mt-0.5">{error}</p>
-                </div>
+              <div className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+                {error}
               </div>
             )}
 
-            {/* Input Box */}
-            <div className="flex items-end gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 shadow-sm transition-all duration-200 hover:border-gray-400 focus-within:border-blue-500 focus-within:shadow-md focus-within:ring-1 focus-within:ring-blue-200">
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => handleInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={1}
-                placeholder="Message AI Store Consultant..."
-                className="max-h-48 min-h-10 w-full resize-none border-none bg-transparent text-sm outline-none placeholder:text-gray-400"
-                disabled={isLoading}
-              />
+            <div className="mt-6">
+              <div className="mx-auto max-w-3xl">
+                <div className="flex items-end gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#10a37f]">
+                  <textarea
+                    ref={textareaRef}
+                    value={input}
+                    onChange={(e) => handleInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={t.placeholder}
+                    className="flex-1 resize-none bg-transparent text-sm outline-none max-h-40"
+                    dir={dir}
+                    rows={1}
+                  />
 
-              <button
-                onClick={sendMessage}
-                disabled={!input.trim() || isLoading}
-                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-blue-600 text-white transition-all duration-200 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                aria-label="Send message"
-              >
-                <Send className="h-4 w-4" strokeWidth={2.5} />
-              </button>
+                  <button
+                    onClick={sendMessage}
+                    disabled={!input.trim() || isLoading}
+                    className="rounded-full bg-[#0f0f0f] p-2 text-white text-sm disabled:opacity-40 hover:bg-[#0e8f6f] transition"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             </div>
-
-            {/* Footer Note */}
-            <p className="text-center text-xs text-gray-500">
-              AI can make mistakes. Verify important information before acting
-              on it.
-            </p>
           </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="flex-1 overflow-y-auto">
+            <div className="py-6">
+              {messages.map((msg) => (
+                <AIMessage key={msg.id} role={msg.role} content={msg.content} />
+              ))}
+
+              {isLoading && <AIThinking />}
+            </div>
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="bg-gradient-to-t from-[#f7f7f8] via-[#f7f7f8] p-4">
+            <div className="mx-auto max-w-3xl">
+              {error && (
+                <div className="mb-3 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex items-end gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm focus-within:border-[#10a37f]">
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(e) => handleInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={t.placeholder}
+                  className="flex-1 resize-none bg-transparent text-sm outline-none max-h-40"
+                  dir={dir}
+                  rows={1}
+                />
+
+                <button
+                  onClick={sendMessage}
+                  disabled={!input.trim() || isLoading}
+                  className="rounded-full bg-[#0f0f0f] p-2 text-white text-sm disabled:opacity-40 hover:bg-[#0e8f6f] transition"
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -7,14 +7,11 @@ import {
   Eye,
   RefreshCw,
   X,
-  ChevronRight,
   Package,
   MapPin,
-  Calendar,
   Phone,
   Mail,
   Loader2,
-  ChevronUp,
 } from "lucide-react";
 
 import { useDashboard } from "../DashboardContext";
@@ -40,7 +37,7 @@ interface Order {
   total: number;
   subtotal?: number;
   shipping?: number;
-  status: "pending" | "processing" | "completed" | "cancelled";
+  status: "pending" | "completed" | "cancelled";
   created_at: string;
   order_items: OrderItem[];
 }
@@ -59,12 +56,6 @@ const statusStyles: Record<
     text: "text-amber-700 dark:text-amber-400",
     icon: "⏳",
     label: "قيد الانتظار",
-  },
-  processing: {
-    bg: "bg-blue-50 dark:bg-blue-950/20",
-    text: "text-blue-700 dark:text-blue-400",
-    icon: "⚙️",
-    label: "قيد المعالجة",
   },
   completed: {
     bg: "bg-emerald-50 dark:bg-emerald-950/20",
@@ -91,7 +82,6 @@ interface OrdersPanelProps {
 
 const statusOptions = [
   { value: "pending", label: "قيد الانتظار", labelEn: "Pending" },
-  { value: "processing", label: "قيد المعالجة", labelEn: "Processing" },
   { value: "completed", label: "مكتمل", labelEn: "Completed" },
   { value: "cancelled", label: "ملغى", labelEn: "Cancelled" },
 ];
@@ -111,7 +101,6 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
 
   const statusLabel: Record<string, string> = {
     completed: tr.completed || "مكتمل",
-    processing: tr.processing || "قيد المعالجة",
     pending: tr.pending || "قيد الانتظار",
     cancelled: tr.cancelled || "ملغى",
   };
@@ -119,7 +108,6 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
   const filters = [
     { key: "all", label: tr.allOrders || "جميع الطلبات" },
     { key: "pending", label: tr.pending || "قيد الانتظار" },
-    { key: "processing", label: tr.processing || "قيد المعالجة" },
     { key: "completed", label: tr.completed || "مكتمل" },
     { key: "cancelled", label: tr.cancelled || "ملغى" },
   ];
@@ -225,10 +213,10 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
 
   return (
     <div className="space-y-6" dir={dir}>
-      {/* Summary Cards - 2 COLUMNS ON MOBILE */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 animate-fade-up">
+      {/* Summary Cards - Grid updated to 3 columns */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 animate-fade-up">
         {loading
-          ? Array.from({ length: 4 }).map((_, i) => (
+          ? Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
                 className="rounded-lg md:rounded-xl p-3 md:p-6 bg-gray-100 animate-pulse"
@@ -242,19 +230,13 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                 label: tr.allOrders || "جميع الطلبات",
                 value: orders.length,
                 color:
-                  "bg-gradient-to-br from-[rgb(60_28_84)] to-[rgb(80_40_110)] text-white shadow-lg",
+                  "bg-gradient-to-br from-[rgb(60_28_84)] to-[rgb(80_40_110)] text-white ",
               },
               {
                 label: tr.pending || "قيد الانتظار",
                 value: orders.filter((o) => o.status === "pending").length,
                 color:
                   "bg-gradient-to-br from-amber-50 to-orange-50 text-amber-700",
-              },
-              {
-                label: tr.processing || "قيد المعالجة",
-                value: orders.filter((o) => o.status === "processing").length,
-                color:
-                  "bg-gradient-to-br from-blue-50 to-cyan-50 text-blue-700",
               },
               {
                 label: tr.completed || "مكتمل",
@@ -315,9 +297,9 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
             </button>
           </div>
 
-          {/* Filter Buttons - Scrollable on mobile */}
+          {/* Filter Buttons */}
           <div className="flex items-center gap-2 flex-wrap w-full md:w-auto overflow-x-auto md:overflow-x-visible">
-            <Filter className="w-4 h-4 text-gray-400 shrink-0" />
+            {/* <Filter className="w-4 h-4 text-gray-400 shrink-0" /> */}
             {filters.map((f) => (
               <button
                 key={f.key}
@@ -354,7 +336,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
           </div>
         )}
 
-        {/* Table - SIMPLIFIED ON MOBILE */}
+        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="hidden md:table-header-group">
@@ -370,7 +352,8 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                 ].map((h, i) => (
                   <th
                     key={i}
-                    className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap"
+                    // text-center added here for header alignment
+                    className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap"
                   >
                     {h}
                   </th>
@@ -380,32 +363,31 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
 
             <tbody>
               {loading ? (
-                // Skeleton
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr
                     key={i}
                     className="border-b border-gray-100 md:border-b md:border-gray-100"
                   >
                     <td className="px-4 md:px-6 py-3 md:py-4">
-                      <div className="h-4 w-20 rounded bg-gray-200 animate-pulse"></div>
+                      <div className="h-4 w-20 mx-auto rounded bg-gray-200 animate-pulse"></div>
                     </td>
                     <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
-                      <div className="h-4 w-24 rounded bg-gray-200 animate-pulse"></div>
+                      <div className="h-4 w-24 mx-auto rounded bg-gray-200 animate-pulse"></div>
                     </td>
                     <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
-                      <div className="h-4 w-16 rounded bg-gray-200 animate-pulse"></div>
+                      <div className="h-4 w-16 mx-auto rounded bg-gray-200 animate-pulse"></div>
                     </td>
                     <td className="px-4 md:px-6 py-3 md:py-4">
-                      <div className="h-4 w-16 rounded bg-gray-200 animate-pulse"></div>
+                      <div className="h-4 w-16 mx-auto rounded bg-gray-200 animate-pulse"></div>
                     </td>
                     <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
-                      <div className="h-4 w-20 rounded bg-gray-200 animate-pulse"></div>
+                      <div className="h-4 w-20 mx-auto rounded bg-gray-200 animate-pulse"></div>
                     </td>
                     <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
-                      <div className="h-4 w-24 rounded bg-gray-200 animate-pulse"></div>
+                      <div className="h-4 w-24 mx-auto rounded bg-gray-200 animate-pulse"></div>
                     </td>
                     <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
-                      <div className="h-8 w-8 rounded-lg bg-gray-200 animate-pulse"></div>
+                      <div className="h-8 w-8 mx-auto rounded-lg bg-gray-200 animate-pulse"></div>
                     </td>
                   </tr>
                 ))
@@ -428,13 +410,13 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                   <tr
                     key={order.id}
                     onClick={() => openOrderModal(order)}
-                    className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors cursor-pointer ${
+                    className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors cursor-pointer text-center ${
                       idx % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                     }`}
                   >
-                    {/* Order ID - Hidden on mobile */}
+                    {/* Order ID */}
                     <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-[rgb(60_28_84)]" />
                         <span className="font-mono text-xs font-bold text-gray-900">
                           {order.id.slice(0, 8).toUpperCase()}
@@ -442,9 +424,9 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                       </div>
                     </td>
 
-                    {/* Customer Name - Always visible */}
+                    {/* Customer Name */}
                     <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-gray-900 whitespace-nowrap">
-                      <div className="flex flex-col">
+                      <div className="flex flex-col items-center">
                         <span className="text-sm font-semibold">
                           {order.customer_name}
                         </span>
@@ -454,16 +436,16 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                       </div>
                     </td>
 
-                    {/* Items Count - Hidden on mobile */}
-                    <td className="px-4 md:px-6 py-3 md:py-4 text-gray-600 text-center font-medium hidden md:table-cell">
+                    {/* Items Count */}
+                    <td className="px-4 md:px-6 py-3 md:py-4 text-gray-600 font-medium hidden md:table-cell">
                       <span className="inline-flex items-center justify-center w-7 h-7 bg-gray-100 rounded-full text-xs font-bold text-gray-700">
                         {order.order_items?.length || 0}
                       </span>
                     </td>
 
-                    {/* Amount - Always visible */}
-                    <td className="px-4 md:px-6 py-3 md:py-4 font-bold text-gray-900 whitespace-nowrap text-right md:text-left">
-                      <div className="flex flex-col md:flex-row md:items-center">
+                    {/* Amount */}
+                    <td className="px-4 md:px-6 py-3 md:py-4 font-bold text-gray-900 whitespace-nowrap">
+                      <div className="flex flex-col md:flex-row md:items-center justify-center">
                         <span className="text-xs text-gray-500 md:hidden">
                           {tr.amount || "المبلغ"}
                         </span>
@@ -476,17 +458,16 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                       </div>
                     </td>
 
-                    {/* Status - Hidden on mobile */}
+                    {/* Status */}
                     <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
                       <span
                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${statusStyles[order.status].bg} ${statusStyles[order.status].text}`}
                       >
-                        <span>{statusStyles[order.status].icon}</span>
                         {statusLabel[order.status]}
                       </span>
                     </td>
 
-                    {/* Date - Hidden on mobile */}
+                    {/* Date */}
                     <td className="px-4 md:px-6 py-3 md:py-4 text-gray-500 text-xs whitespace-nowrap hidden md:table-cell">
                       {new Date(order.created_at).toLocaleDateString(
                         dir === "rtl" ? "ar-SA" : "en-US",
@@ -498,17 +479,19 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                       )}
                     </td>
 
-                    {/* Action - Hidden on mobile (click anywhere opens modal) */}
+                    {/* Action */}
                     <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openOrderModal(order);
-                        }}
-                        className="p-2 rounded-lg hover:bg-[rgb(60_28_84)]/10 text-gray-400 hover:text-[rgb(60_28_84)] transition-all duration-200 group"
-                      >
-                        <Eye className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                      </button>
+                      <div className="flex justify-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openOrderModal(order);
+                          }}
+                          className="p-2 rounded-lg hover:bg-[rgb(60_28_84)]/10 text-gray-400 hover:text-[rgb(60_28_84)] transition-all duration-200 group"
+                        >
+                          <Eye className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -518,10 +501,9 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
         </div>
       </div>
 
-      {/* BOTTOM SHEET MODAL - Fixed from bottom, opens with animation */}
+      {/* BOTTOM SHEET MODAL */}
       {modalOpen && selectedOrder && (
         <>
-          {/* Backdrop */}
           <div
             className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${
               modalOpen ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -529,7 +511,6 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
             onClick={closeOrderModal}
           />
 
-          {/* Modal - Bottom Sheet */}
           <div
             className={`fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl transition-all duration-300 transform max-h-[95vh] overflow-hidden ${
               modalOpen
@@ -539,7 +520,6 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
             onClick={(e) => e.stopPropagation()}
             dir={dir}
           >
-            {/* Drag Handle & Close */}
             <div className="sticky top-0 bg-white border-b border-gray-200 px-4 md:px-8 py-3 flex items-center justify-between rounded-t-3xl z-10">
               <button
                 onClick={closeOrderModal}
@@ -560,7 +540,6 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
               <div className="w-10" />
             </div>
 
-            {/* Content - Scrollable */}
             <div className="overflow-y-auto max-h-[calc(95vh-60px)] px-4 md:px-8 py-6 space-y-6">
               {/* Status Section */}
               <div className="space-y-4">
@@ -573,7 +552,6 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                   )}
                 </div>
 
-                {/* Current Status Display */}
                 <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200">
                   <p className="text-xs text-gray-600 uppercase font-bold tracking-wide mb-2">
                     {tr.currentStatus || "الحالة الحالية"}
@@ -586,8 +564,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                   </span>
                 </div>
 
-                {/* Status Buttons */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {statusOptions.map((option) => (
                     <button
                       key={option.value}
@@ -752,14 +729,12 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                 </div>
               </div>
 
-              {/* Spacer */}
               <div className="h-4" />
             </div>
           </div>
         </>
       )}
 
-      {/* Toast Notification */}
       {toast && (
         <Toast
           message={toast.message}

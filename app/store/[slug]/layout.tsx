@@ -1,29 +1,34 @@
-import { cookies } from "next/headers";
-import { ShopProvider } from "../context";
-import Navbar from "./components/landing/Navbar";
-import BottomNavbar from "./components/landing/BottomNavbar";
+import { supabaseAdmin } from "@/lib/supabase/server";
+import ProductGrid from "./components/landing/ProductGrid";
+import { notFound } from "next/navigation";
+import { ShopProvider } from "@/app/store/context"; // <-- Make sure this path matches your folder structure
 
-export default function StoreLayout({
-  children,
+export default async function StorePage({
   params,
 }: {
-  children: React.ReactNode;
   params: { slug: string };
 }) {
-  const cookieStore = cookies();
+  // 1. Load store using supabaseAdmin directly
+  const { data: store } = await supabaseAdmin
+    .from("stores")
+    .select("*")
+    .eq("slug", params.slug)
+    .single();
 
-  const langCookie = cookieStore.get("lang")?.value;
-  const lang = langCookie === "ar" ? "ar" : "en";
+  if (!store) return notFound();
+
+  // 2. Load products for this store
+  const { data: products } = await supabaseAdmin
+    .from("products")
+    .select("*")
+    .eq("store_id", store.id);
 
   return (
-    <ShopProvider>
-      <Navbar lang={lang} storeSlug={params.slug} />
-
-      <div dir={lang === "ar" ? "rtl" : "ltr"} lang={lang}>
-        {children}
-      </div>
-
-      <BottomNavbar lang={lang} storeSlug={params.slug} />
-    </ShopProvider>
+    <main className="min-h-screen bg-brand-light">
+      {/* Wrap the components that need access to useShop() inside the ShopProvider */}
+      <ShopProvider>
+        <ProductGrid products={products || []} store={store} />
+      </ShopProvider>
+    </main>
   );
 }

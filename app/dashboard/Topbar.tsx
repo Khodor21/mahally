@@ -9,6 +9,7 @@ const pageTitles: Record<NavItem, { ar: string; en: string }> = {
   customers: { ar: "العملاء", en: "Customers" },
   analytics: { ar: "الإحصاءات", en: "Analytics" },
   settings: { ar: "الإعدادات", en: "Settings" },
+  ai: { ar: "الذكاء الاصطناعي", en: "AI Assistant" },
   coupons: { ar: "كوبونات الخصم", en: "Discount Coupons" },
   partnerships: { ar: "الشراكات", en: "Partnerships" },
   occasions: { ar: "المناسبات", en: "Occasions" },
