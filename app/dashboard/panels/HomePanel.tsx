@@ -522,8 +522,8 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
                     boxShadow: "0 4px 24px rgba(60,28,84,0.08)",
                   }}
                   labelStyle={{ fontWeight: 700, color: "rgb(60,28,84)" }}
-                  formatter={(value: number) =>
-                    `$${value.toLocaleString("en-US", {
+                  formatter={(value: any) =>
+                    `$${Number(value ?? 0).toLocaleString("en-US", {
                       maximumFractionDigits: 2,
                     })}`
                   }
