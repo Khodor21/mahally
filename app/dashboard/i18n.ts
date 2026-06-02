@@ -170,6 +170,9 @@ export const t = {
     updatedSuccess: "تم تحديث المنتج بنجاح!",
     deletedSuccess: "تم حذف المنتج بنجاح!",
     errorOccurred: "حدث خطأ ما. يرجى المحاولة مجددًا.",
+
+    // Arabic
+    maxImagesError: "الحد الأقصى 5 صور لكل رفع",
   },
   en: {
     // Nav
@@ -340,6 +343,9 @@ export const t = {
     updatedSuccess: "Product updated successfully!",
     deletedSuccess: "Product deleted successfully!",
     errorOccurred: "Something went wrong. Please try again.",
+
+    // English
+    maxImagesError: "Maximum 5 images per upload",
   },
 } as const;
 
