@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { Playfair_Display, DM_Sans, DM_Mono } from "next/font/google";
-import "./globals.css";
 import { Providers } from "./providers";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "StoreForge — Build Your Store in Minutes",

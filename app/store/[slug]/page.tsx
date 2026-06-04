@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import ProductGrid from "./components/landing/ProductGrid";
 import HeroSection from "./components/landing/Hero";
+import Testimonial from "./components/landing/Testimonial";
 import Footer from "./components/landing/Footer";
 import { notFound } from "next/navigation";
 
@@ -40,6 +41,7 @@ export default async function StorePage({
         </div>
 
         <ProductGrid title={store.name} products={products || []} />
+        <Testimonial lang="en" />
         <Footer />
       </div>
     </main>

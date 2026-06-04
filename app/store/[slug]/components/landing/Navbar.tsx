@@ -135,6 +135,81 @@ const SearchModal = ({
   </div>
 );
 
+// ✅ NEW: Language Confirmation Modal Component
+type LangModalProps = {
+  isOpen: boolean;
+  setIsOpen: (v: boolean) => void;
+  currentLang: "en" | "ar";
+  onConfirm: () => void;
+};
+
+const LangModal = ({
+  isOpen,
+  setIsOpen,
+  currentLang,
+  onConfirm,
+}: LangModalProps) => {
+  const dir = currentLang === "ar" ? "rtl" : "ltr";
+
+  return (
+    <div
+      className={`fixed inset-0 z-[110] transition-all duration-300 ${
+        isOpen
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none"
+      }`}
+    >
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={() => setIsOpen(false)}
+      />
+
+      <div className="flex items-center justify-center min-h-screen px-4">
+        <div
+          dir={dir}
+          className={`relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm transition-all duration-300 ${
+            isOpen ? "opacity-100 scale-100" : "opacity-0 scale-95"
+          }`}
+        >
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-brand-grey text-brand-dark mb-4 mx-auto">
+            <Globe size={24} />
+          </div>
+
+          <h3 className="text-lg font-bold text-brand-dark mb-2 text-center">
+            {currentLang === "ar"
+              ? "تغيير لغة العرض؟"
+              : "Change Display Language?"}
+          </h3>
+
+          <p className="text-sm text-brand-dark/60 mb-6 text-center">
+            {currentLang === "ar"
+              ? "هل أنت متأكد أنك تريد تغيير لغة الموقع إلى الإنجليزية؟"
+              : "Are you sure you want to change the website language to Arabic?"}
+          </p>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsOpen(false)}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-brand-dark bg-brand-grey hover:bg-brand-light transition-colors"
+            >
+              {currentLang === "ar" ? "إلغاء" : "Cancel"}
+            </button>
+            <button
+              onClick={() => {
+                onConfirm();
+                setIsOpen(false);
+              }}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-brand-dark hover:bg-brand-dark/90 transition-colors"
+            >
+              {currentLang === "ar" ? "تأكيد" : "Confirm"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Navbar({
   lang = "en",
   storeName = "Store",
@@ -146,6 +221,7 @@ export default function Navbar({
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [langModalOpen, setLangModalOpen] = useState(false); // ✅ NEW STATE
   const [searchQuery, setSearchQuery] = useState("");
 
   const { cartCount, favCount } = useShop();
@@ -158,7 +234,8 @@ export default function Navbar({
 
   const router = useRouter();
 
-  const toggleLang = () => {
+  // ✅ UPDATED: Triggered only after user confirms via Modal
+  const confirmToggleLang = () => {
     const newLang = lang === "ar" ? "en" : "ar";
     setLanguage(newLang);
     router.refresh();
@@ -169,8 +246,9 @@ export default function Navbar({
     return `/store/${storeSlug}${path}?lang=${lang}`;
   };
 
+  // ✅ UPDATED: Added langModalOpen to lock body scroll
   useEffect(() => {
-    if (searchOpen || mobileMenuOpen) {
+    if (searchOpen || mobileMenuOpen || langModalOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -179,7 +257,7 @@ export default function Navbar({
     return () => {
       document.body.style.overflow = "";
     };
-  }, [searchOpen, mobileMenuOpen]);
+  }, [searchOpen, mobileMenuOpen, langModalOpen]);
 
   return (
     <>
@@ -232,9 +310,9 @@ export default function Navbar({
 
             {/* ACTIONS */}
             <div className="flex items-center gap-3">
-              {/* LANGUAGE */}
+              {/* LANGUAGE - Trigger Modal Instead of Direct Change */}
               <button
-                onClick={toggleLang}
+                onClick={() => setLangModalOpen(true)}
                 className="hidden sm:flex items-center gap-1 px-3 h-9 rounded-xl bg-brand-grey text-sm text-brand-dark"
               >
                 <Globe size={14} />
@@ -369,10 +447,11 @@ export default function Navbar({
               )}
             </Link>
 
+            {/* TRIGGER MODAL INSTEAD OF DIRECT CHANGE */}
             <button
               onClick={() => {
-                toggleLang();
-                setMobileMenuOpen(false);
+                setLangModalOpen(true);
+                setMobileMenuOpen(false); // Close menu when modal opens
               }}
               className="mt-2 h-11 px-4 rounded-xl bg-brand-grey flex items-center justify-between text-sm font-medium text-brand-dark transition-colors"
             >
@@ -392,6 +471,14 @@ export default function Navbar({
         setSearchOpen={setSearchOpen}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+      />
+
+      {/* ✅ RENDER NEW MODAL */}
+      <LangModal
+        isOpen={langModalOpen}
+        setIsOpen={setLangModalOpen}
+        currentLang={lang}
+        onConfirm={confirmToggleLang}
       />
     </>
   );
