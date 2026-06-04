@@ -7,7 +7,6 @@ type StoreSessionUser = Session["user"] & {
   id: string;
 };
 
-// ← export added, throws instead of returning null
 export async function requireStoreSession() {
   const session = await getServerSession(authOptions);
 
@@ -21,7 +20,7 @@ export async function requireStoreSession() {
     throw new Error("Unauthorized");
   }
 
-  return user; // ← return the full user, not just id
+  return user; 
 }
 
 export async function getCurrentStore() {
