@@ -121,8 +121,9 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
+
   const cartTotal = cartItems.reduce(
-    (sum, i) => sum + i.product.price * i.qty,
+    (sum, i) => sum + (i.product.price ?? 0) * i.qty,
     0,
   );
 
