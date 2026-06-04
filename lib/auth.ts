@@ -1,4 +1,4 @@
-import { NextAuthOptions } from "next-auth";
+import { NextAuthOptions, getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase/server";
@@ -123,3 +123,16 @@ export const authOptions: NextAuthOptions = {
 
   debug: process.env.NODE_ENV === "development",
 };
+
+// ==========================================
+// NEW: Added requireStoreSession Helper
+// ==========================================
+export async function requireStoreSession() {
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user) {
+    throw new Error("Unauthorized");
+  }
+
+  return session.user as any; // Returns { id, email, name, storeSlug, storeName }
+}

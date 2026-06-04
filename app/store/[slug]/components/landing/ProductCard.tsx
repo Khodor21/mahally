@@ -54,13 +54,18 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   const [added, setAdded] = useAddedFlash();
 
+  const normalizedProduct = {
+    ...product,
+    id: String(product.id),
+  };
+
   const handleAddToCart = () => {
-    addToCart(product);
+    addToCart(normalizedProduct);
     setAdded(true);
   };
 
   const handleToggleFavorite = () => {
-    toggleFavorite(product);
+    toggleFavorite(normalizedProduct);
   };
 
   const badgeStyle =

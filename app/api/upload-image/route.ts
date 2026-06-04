@@ -1,10 +1,12 @@
+// app/api/upload-image/route.ts (or equivalent path)
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { requireStoreSession } from "@/lib/store";
 import crypto from "crypto";
 
 // ─── Security Constants ───────────────────────────────────────────────────────
-const MAX_FILE_SIZE = 0.4 * 1024 * 1024; // 1MB
+// Fixed to actually be 5MB (5 * 1024 * 1024 bytes) to match the error message and practical use cases
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_FILES_PER_REQUEST = 7;
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
@@ -16,10 +18,7 @@ const ALLOWED_MIME_TYPES = [
 const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif"] as const;
 
 // Rate limiting map (in-memory - use Redis in production)
-const uploadRateLimit = new Map<
-  string,
-  { count: number; resetTime: number }
->();
+const uploadRateLimit = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const MAX_UPLOADS_PER_MINUTE = 10;
 
@@ -75,19 +74,23 @@ export async function POST(req: NextRequest) {
           success: false,
           message: "Too many upload requests. Please wait a moment.",
         },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
     // 3. Parse form data
     const formData = await req.formData();
-    const files = formData.getAll("files") as File[];
+
+    // Support both "file" (singular, sent by current frontend) and "files" (plural)
+    const singularFiles = formData.getAll("file") as File[];
+    const pluralFiles = formData.getAll("files") as File[];
+    const files = [...singularFiles, ...pluralFiles];
 
     // 4. Validate request
     if (!files || files.length === 0) {
       return NextResponse.json(
         { success: false, message: "No files provided" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -97,7 +100,7 @@ export async function POST(req: NextRequest) {
           success: false,
           message: `Maximum ${MAX_FILES_PER_REQUEST} files allowed per request`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -113,7 +116,7 @@ export async function POST(req: NextRequest) {
             success: false,
             message: `Invalid file type: ${file.name}. Only JPEG, PNG, WebP, and GIF are allowed.`,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -124,7 +127,7 @@ export async function POST(req: NextRequest) {
             success: false,
             message: `Invalid file extension: ${file.name}`,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -135,7 +138,7 @@ export async function POST(req: NextRequest) {
             success: false,
             message: `File too large: ${file.name}. Maximum size is 5MB.`,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -145,7 +148,7 @@ export async function POST(req: NextRequest) {
             success: false,
             message: `Empty file: ${file.name}`,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -153,7 +156,9 @@ export async function POST(req: NextRequest) {
       const fileExt = file.name.split(".").pop()?.toLowerCase();
       const randomBytes = crypto.randomBytes(16).toString("hex");
       const timestamp = Date.now();
-      const secureFileName = `${timestamp}-${randomBytes}.${fileExt}`;
+      const secureFileName = sanitizeFilename(
+        `${timestamp}-${randomBytes}.${fileExt}`,
+      );
 
       // Create path: {storeId}/{secureFileName}
       const filePath = `${user.id}/${secureFileName}`;
@@ -173,7 +178,7 @@ export async function POST(req: NextRequest) {
 
       if (error) {
         console.error("Supabase upload error:", error);
-        
+
         // Clean up any previously uploaded files in this batch
         if (uploadedPaths.length > 0) {
           await supabaseAdmin.storage
@@ -186,7 +191,7 @@ export async function POST(req: NextRequest) {
             success: false,
             message: `Failed to upload ${file.name}: ${error.message}`,
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -202,6 +207,7 @@ export async function POST(req: NextRequest) {
     // 6. Return success response
     return NextResponse.json({
       success: true,
+      url: uploadedUrls[0], // Added for frontend compatibility (SettingsPanel.tsx expects data.url)
       urls: uploadedUrls,
       paths: uploadedPaths,
       count: uploadedUrls.length,
@@ -215,7 +221,7 @@ export async function POST(req: NextRequest) {
         success: false,
         message: isAuth ? "Unauthorized" : "Internal server error",
       },
-      { status: isAuth ? 401 : 500 }
+      { status: isAuth ? 401 : 500 },
     );
   }
 }
@@ -233,7 +239,7 @@ export async function DELETE(req: NextRequest) {
     if (!path) {
       return NextResponse.json(
         { success: false, message: "No path provided" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -244,7 +250,7 @@ export async function DELETE(req: NextRequest) {
           success: false,
           message: "Unauthorized: You can only delete your own images",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -257,7 +263,7 @@ export async function DELETE(req: NextRequest) {
       console.error("Delete error:", error);
       return NextResponse.json(
         { success: false, message: "Failed to delete image" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -269,7 +275,7 @@ export async function DELETE(req: NextRequest) {
     const isAuth = err.message === "Unauthorized";
     return NextResponse.json(
       { success: false, message: err.message },
-      { status: isAuth ? 401 : 500 }
+      { status: isAuth ? 401 : 500 },
     );
   }
 }

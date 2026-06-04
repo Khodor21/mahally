@@ -1,126 +1,165 @@
 import { NextRequest, NextResponse } from "next/server";
-
-// Mock data - Replace with Supabase queries
-const MOCK_HEROES = {
-  store1: [
-    {
-      id: "1",
-      title_en: "Summer Sale",
-      title_ar: "تخفيضات الصيف",
-      subtitle_en: "Up to 50% off on selected items",
-      subtitle_ar: "خصم يصل إلى 50٪ على المنتجات المختارة",
-      image: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&h=500&fit=crop",
-      cta_text_en: "Shop Now",
-      cta_text_ar: "تسوق الآن",
-      cta_link: "/products",
-      bg_color: "#F3E5F5",
-      text_color: "#4A148C",
-      active: true,
-      order: 1,
-    },
-    {
-      id: "2",
-      title_en: "New Arrivals",
-      title_ar: "وصل حديثاً",
-      subtitle_en: "Check out our latest collection",
-      subtitle_ar: "اكتشف أحدث مجموعاتنا",
-      image: "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1200&h=500&fit=crop",
-      cta_text_en: "Explore",
-      cta_text_ar: "استكشف",
-      cta_link: "/new-arrivals",
-      bg_color: "#E8F5E9",
-      text_color: "#1B5E20",
-      active: true,
-      order: 2,
-    },
-    {
-      id: "3",
-      title_en: "Free Shipping",
-      title_ar: "شحن مجاني",
-      subtitle_en: "On orders over $50",
-      subtitle_ar: "للطلبات فوق 50 دولار",
-      image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200&h=500&fit=crop",
-      cta_text_en: "Start Shopping",
-      cta_text_ar: "ابدأ التسوق",
-      cta_link: "/products",
-      bg_color: "#FFF3E0",
-      text_color: "#E65100",
-      active: true,
-      order: 3,
-    },
-  ],
-};
+import { supabaseAdmin } from "@/lib/supabase/server";
+import { requireStoreSession } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const storeId = searchParams.get("storeId");
+    // New param: check if the request is from the admin panel
+    const isAdmin = searchParams.get("admin") === "true";
 
     if (!storeId) {
       return NextResponse.json(
         { success: false, message: "Store ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // TODO: Replace with actual Supabase query
-    // const { data, error } = await supabase
-    //   .from("hero_banners")
-    //   .select("*")
-    //   .eq("store_id", storeId)
-    //   .eq("active", true)
-    //   .order("order", { ascending: true });
+    let query = supabaseAdmin
+      .from("hero_banners")
+      .select("*")
+      .eq("store_id", storeId)
+      .order("order", { ascending: true });
 
-    const heroes = MOCK_HEROES.store1.filter((h) => h.active);
+    // If it's the public storefront, ONLY fetch active banners
+    if (!isAdmin) {
+      query = query.eq("active", true);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
 
     return NextResponse.json({
       success: true,
-      data: heroes,
+      data: data || [],
     });
   } catch (error) {
     console.error("Hero banners error:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
-// POST endpoint for creating hero banners (admin use)
-export async function POST(request: NextRequest) {
+// POST endpoint for creating hero banners
+export async function POST(req: Request) {
+  try {
+    // 1. Secure session check
+    const user = await requireStoreSession();
+
+    // 2. Safely parse JSON
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      console.error("Failed to parse request body:", parseError);
+      return NextResponse.json(
+        { success: false, message: "Invalid JSON in request body" },
+        { status: 400 },
+      );
+    }
+
+    const { image, active, order } = body;
+
+    // 3. Validation
+    if (!image || image.trim() === "") {
+      return NextResponse.json(
+        { success: false, message: "Image URL is required" },
+        { status: 400 },
+      );
+    }
+
+    const parsedOrder =
+      order !== undefined && order !== null ? parseInt(order) : 1;
+
+    // 4. Insert into database using the authenticated user's ID
+    const { data, error } = await supabaseAdmin
+      .from("hero_banners")
+      .insert({
+        store_id: user.id, // Securely assigning the store_id from the session
+        image: image.trim(),
+        active: active !== undefined ? active : true,
+        order: parsedOrder,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("INSERT banner error:", error);
+      return NextResponse.json(
+        { success: false, message: error.message },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ success: true, data }, { status: 201 });
+  } catch (err: any) {
+    console.error("POST banner catch error:", err);
+    const isAuth = err.message === "Unauthorized";
+    return NextResponse.json(
+      { success: false, message: err.message || "Internal server error" },
+      { status: isAuth ? 401 : 500 },
+    );
+  }
+}
+
+// PUT endpoint for updating banners (e.g. toggling active status)
+export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
-      storeId,
-      title_en,
-      title_ar,
-      subtitle_en,
-      subtitle_ar,
-      image,
-      cta_text_en,
-      cta_text_ar,
-      cta_link,
-      bg_color,
-      text_color,
-      order,
-    } = body;
+    const { id, ...updates } = body;
 
-    // TODO: Add to Supabase
-    // const { data, error } = await supabase
-    //   .from("hero_banners")
-    //   .insert([{ store_id: storeId, ...rest }])
-    //   .select();
+    const { data, error } = await supabaseAdmin
+      .from("hero_banners")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
 
     return NextResponse.json({
       success: true,
-      message: "Hero banner created successfully",
-      data: { id: Date.now().toString(), ...body },
+      data: data,
     });
   } catch (error) {
-    console.error("Create hero error:", error);
+    console.error("Update hero error:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to create hero banner" },
-      { status: 500 }
+      { success: false, message: "Failed to update hero banner" },
+      { status: 500 },
+    );
+  }
+}
+
+// DELETE endpoint to remove a banner
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: "Banner ID is required" },
+        { status: 400 },
+      );
+    }
+
+    const { error } = await supabaseAdmin
+      .from("hero_banners")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Delete hero error:", error);
+    return NextResponse.json(
+      { success: false, message: "Failed to delete hero banner" },
+      { status: 500 },
     );
   }
 }

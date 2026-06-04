@@ -55,7 +55,6 @@ export async function POST(req: Request) {
   try {
     const user = await requireStoreSession();
 
-    // Parse body with error handling
     let body;
     try {
       body = await req.json();
