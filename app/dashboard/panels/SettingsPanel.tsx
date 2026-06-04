@@ -176,6 +176,10 @@ export default function SettingsPanel() {
           : "Settings saved successfully!",
         "success",
       );
+
+      // ✅ REFETCH data after successful save to display updated values
+      await fetchStore();
+
       setTimeout(() => setSaved(false), 2500);
     } catch (error: any) {
       console.error(error);
@@ -412,7 +416,7 @@ export default function SettingsPanel() {
     <div className="space-y-6 w-full relative" dir={dir}>
       {toast && (
         <div
-          className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-sm font-bold text-white shadow-xl z-50 animate-fade-up flex items-center gap-2 ${
+          className={`fixed top-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-sm font-bold text-white z-50 animate-fade-up flex items-center gap-2 ${
             toast.type === "success" ? "bg-emerald-500" : "bg-red-500"
           }`}
         >

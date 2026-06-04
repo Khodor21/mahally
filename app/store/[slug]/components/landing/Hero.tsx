@@ -90,7 +90,7 @@ export default function HeroSection({
     return (
       <section
         dir={dir}
-        className="relative w-full h-[400px] md:h-[500px] rounded-3xl overflow-hidden shadow-lg bg-[rgb(244_242_245)]"
+        className="relative w-full h-[400px] md:h-[500px] rounded-3xl overflow-hidden  bg-[rgb(244_242_245)]"
       >
         <div className="absolute inset-0">
           <Image
@@ -109,7 +109,7 @@ export default function HeroSection({
   return (
     <section
       dir={dir}
-      className="relative w-full h-[400px] md:h-[500px] rounded-3xl overflow-hidden shadow-lg group bg-[rgb(244_242_245)]"
+      className="relative w-full h-[400px] md:h-[500px] rounded-3xl overflow-hidden group bg-[rgb(244_242_245)]"
     >
       {/* Slides */}
       <div className="relative h-full">
@@ -162,7 +162,7 @@ export default function HeroSection({
           <button
             key={index}
             onClick={() => goToSlide(index)}
-            className={`h-2 rounded-full transition-all shadow-sm ${
+            className={`h-2 rounded-full transition-all ${
               index === currentIndex
                 ? "w-8 bg-white"
                 : "w-2 bg-white/50 hover:bg-white/70"

@@ -1,12 +1,14 @@
+import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import bcrypt from "bcryptjs";
-import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import bcrypt from "bcrypt";
 
+/* ─────────────────────────────────────────────
+   GET STORE + SETTINGS (MERGED FOR FRONTEND)
+───────────────────────────────────────────── */
 export async function GET() {
-  // ── Auth guard ──────────────────────────────────────────────────────────
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
@@ -15,25 +17,42 @@ export async function GET() {
 
   const userId = (session.user as any).id;
 
-  // ── Fetch store ─────────────────────────────────────────────────────────
-  const { data: store, error } = await supabaseAdmin
+  // 1. Get store
+  const { data: store, error: storeError } = await supabaseAdmin
     .from("stores")
-    .select(
-      "id, admin_name, admin_email, store_name, slug, location, phone, store_type, created_at, is_active",
-    )
+    .select("*")
     .eq("id", userId)
+    .single();
+
+  if (storeError) {
+    return NextResponse.json({ error: storeError.message }, { status: 500 });
+  }
+
+  // 2. Get settings
+  const { data: settings, error: settingsError } = await supabaseAdmin
+    .from("store_settings")
+    .select("*")
+    .eq("store_id", userId)
     .maybeSingle();
 
-  if (error) {
-    console.error("GET /api/stores error:", error);
-    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  if (settingsError) {
+    return NextResponse.json({ error: settingsError.message }, { status: 500 });
   }
 
-  if (!store) {
-    return NextResponse.json({ store: null }, { status: 404 });
-  }
+  // 3. MERGE settings into store object for frontend consistency
+  const mergedStore = {
+    ...store,
+    primary_color: settings?.primary_color || null,
+    privacy_policy: settings?.privacy_policy || null,
+    shipping_policy: settings?.shipping_policy || null,
+    return_policy: settings?.return_policy || null,
+    logo_url: settings?.logo_url || null,
+  };
 
-  return NextResponse.json({ store });
+  return NextResponse.json({
+    store: mergedStore,
+    settings: settings, // Keep for reference if needed
+  });
 }
 
 const CreateStoreSchema = z.object({
@@ -363,7 +382,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userId = (session.user as any).id;
+  const storeId = (session.user as any).id;
 
   try {
     const body = await request.json();
@@ -375,6 +394,8 @@ export async function PUT(request: NextRequest) {
       store_type,
       admin_name,
       admin_email,
+
+      // settings only
       primary_color,
       privacy_policy,
       shipping_policy,
@@ -382,40 +403,75 @@ export async function PUT(request: NextRequest) {
       logo_url,
     } = body;
 
-    const { data: updatedStore, error } = await supabaseAdmin
-      .from("stores")
-      .update({
-        store_name,
-        location,
-        phone,
-        store_type,
-        admin_name,
-        admin_email,
-        primary_color,
-        privacy_policy,
-        shipping_policy,
-        return_policy,
-        logo_url,
+    /* ─────────────────────────────
+       1. UPDATE stores TABLE
+    ───────────────────────────── */
+    const storeUpdate: Record<string, any> = {};
+    if (store_name !== undefined) storeUpdate.store_name = store_name;
+    if (location !== undefined) storeUpdate.location = location;
+    if (phone !== undefined) storeUpdate.phone = phone;
+    if (store_type !== undefined) storeUpdate.store_type = store_type;
+    if (admin_name !== undefined) storeUpdate.admin_name = admin_name;
+    if (admin_email !== undefined) storeUpdate.admin_email = admin_email;
+
+    if (Object.keys(storeUpdate).length > 0) {
+      const { error: storeError } = await supabaseAdmin
+        .from("stores")
+        .update(storeUpdate)
+        .eq("id", storeId);
+
+      if (storeError) {
+        return NextResponse.json(
+          { error: storeError.message },
+          { status: 500 },
+        );
+      }
+    }
+
+    /* ─────────────────────────────
+       2. UPSERT store_settings
+       - Guarantees ONE row per store
+       - Updates if exists, creates if not
+    ───────────────────────────── */
+    const settingsUpdate: Record<string, any> = {
+      store_id: storeId,
+    };
+
+    // Only add fields that are explicitly provided
+    if (primary_color !== undefined)
+      settingsUpdate.primary_color = primary_color;
+    if (privacy_policy !== undefined)
+      settingsUpdate.privacy_policy = privacy_policy;
+    if (shipping_policy !== undefined)
+      settingsUpdate.shipping_policy = shipping_policy;
+    if (return_policy !== undefined)
+      settingsUpdate.return_policy = return_policy;
+    if (logo_url !== undefined) settingsUpdate.logo_url = logo_url;
+
+    settingsUpdate.updated_at = new Date().toISOString();
+
+    const { data: settingsData, error: settingsError } = await supabaseAdmin
+      .from("store_settings")
+      .upsert(settingsUpdate, {
+        onConflict: "store_id", // Ensures only ONE row per store
       })
-      .eq("id", userId)
       .select()
       .single();
 
-    if (error) {
-      console.error("PUT /api/stores Update Error:", error);
-      // 🔥 CHANGE THIS LINE to return the real Supabase error message
+    if (settingsError) {
       return NextResponse.json(
-        { error: error.message || "Failed to update store settings" },
+        { error: settingsError.message },
         { status: 500 },
       );
     }
 
-    return NextResponse.json(
-      { success: true, store: updatedStore },
-      { status: 200 },
-    );
-  } catch (error: any) {
-    console.error("PUT /api/stores Parse Error:", error);
+    return NextResponse.json({
+      success: true,
+      store: storeId,
+      settings: settingsData,
+    });
+  } catch (err) {
+    console.error("PUT /stores error:", err);
     return NextResponse.json(
       { error: "Invalid request body" },
       { status: 400 },

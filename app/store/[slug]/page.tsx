@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import ProductGrid from "./components/landing/ProductGrid";
-import HeroSection from "./components/landing/Hero"; // <-- Your custom Hero
+import HeroSection from "./components/landing/Hero";
+import Footer from "./components/landing/Footer";
 import { notFound } from "next/navigation";
 
 export default async function StorePage({
@@ -25,7 +26,7 @@ export default async function StorePage({
     .order("created_at", { ascending: false });
 
   return (
-    <main className="min-h-screen bg-brand-light flex flex-col gap-10 pb-16">
+    <main className="min-h-screen bg-brand-[#fefefe] flex flex-col gap-10 pb-16">
       <div className="px-4 md:px-10 pt-6 max-w-7xl mx-auto w-full">
         {/* Pass the actual store ID to your Client Component */}
         <HeroSection storeId={store.id} lang="en" />
@@ -39,6 +40,7 @@ export default async function StorePage({
         </div>
 
         <ProductGrid title={store.name} products={products || []} />
+        <Footer />
       </div>
     </main>
   );
