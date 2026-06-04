@@ -5,35 +5,14 @@ import { headers } from "next/headers";
 
 export async function GET() {
   try {
-    const host = (await headers()).get("host") || "";
+    // 1. Get the authenticated store admin session securely
+    const user = await requireStoreSession();
 
-    // extract subdomain
-    const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mahally.app";
-
-    let slug = null;
-
-    if (host.endsWith(appDomain)) {
-      slug = host.replace(`.${appDomain}`, "");
-    }
-
-    // fallback for custom domain
-    const { data: store } = await supabaseAdmin
-      .from("stores")
-      .select("id, slug, custom_domain")
-      .or(`slug.eq.${slug},custom_domain.eq.${host}`)
-      .single();
-
-    if (!store) {
-      return NextResponse.json(
-        { success: false, message: "Store not found" },
-        { status: 404 },
-      );
-    }
-
+    // 2. Fetch products only for this specific store
     const { data, error } = await supabaseAdmin
       .from("products")
       .select("*")
-      .eq("store_id", store.id)
+      .eq("store_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -45,9 +24,10 @@ export async function GET() {
 
     return NextResponse.json({ success: true, data });
   } catch (err: any) {
+    const isAuth = err.message === "Unauthorized";
     return NextResponse.json(
       { success: false, message: err.message },
-      { status: 500 },
+      { status: isAuth ? 401 : 500 },
     );
   }
 }

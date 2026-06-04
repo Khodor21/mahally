@@ -7,14 +7,14 @@ import {
   User,
   Bell,
   Globe,
-  AlertTriangle,
   Check,
   ShieldCheck,
   Image as ImageIcon,
   Plus,
   Trash2,
   Power,
-  UploadCloud,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 
 import { useDashboard } from "../DashboardContext";
@@ -54,8 +54,15 @@ export default function SettingsPanel() {
 
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [isSavingBanner, setIsSavingBanner] = useState(false);
 
   const [store, setStore] = useState<StoreData | null>(null);
+
+  // Toast State
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
   // Hero Banners State
   const [banners, setBanners] = useState<HeroBanner[]>([]);
@@ -64,6 +71,19 @@ export default function SettingsPanel() {
     image: "",
     active: true,
     order: 1,
+  });
+
+  // Modal State for Confirming Banner Actions (Delete/Toggle)
+  const [bannerConfirm, setBannerConfirm] = useState<{
+    isOpen: boolean;
+    action: "delete" | "toggle";
+    banner: HeroBanner | null;
+    loading: boolean;
+  }>({
+    isOpen: false,
+    action: "delete",
+    banner: null,
+    loading: false,
   });
 
   const [activeTab, setActiveTab] = useState<
@@ -83,6 +103,12 @@ export default function SettingsPanel() {
     return_policy: "",
     logo_url: "",
   });
+
+  // Helper function to show toasts
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000); // Auto dismiss after 3s
+  };
 
   async function fetchStore() {
     try {
@@ -157,10 +183,11 @@ export default function SettingsPanel() {
       return data.url;
     } catch (error) {
       console.error("Upload error:", error);
-      alert(
+      showToast(
         lang === "ar"
           ? "فشل رفع الصورة (تأكد من وجود رابط الرفع في الخادم)"
           : "Failed to upload image (Ensure /api/upload-image route exists)",
+        "error",
       );
       return null;
     }
@@ -168,6 +195,7 @@ export default function SettingsPanel() {
 
   const handleSaveBanner = async () => {
     if (!store) return;
+    setIsSavingBanner(true); // Start loading state
     try {
       const res = await fetch("/api/hero", {
         method: "POST",
@@ -179,45 +207,69 @@ export default function SettingsPanel() {
         setBanners([...banners, result.data]);
         setIsAddingBanner(false);
         setNewBanner({ image: "", active: true, order: 1 }); // Reset state
+        showToast(
+          lang === "ar"
+            ? "تم نشر اللافتة بنجاح!"
+            : "Banner published successfully!",
+          "success",
+        );
+      } else {
+        throw new Error(result.message || "Failed to save banner");
       }
     } catch (e) {
       console.error(e);
-    }
-  };
-
-  const handleToggleBannerActive = async (banner: HeroBanner) => {
-    try {
-      const res = await fetch("/api/hero", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: banner.id, active: !banner.active }),
-      });
-      const result = await res.json();
-      if (result.success) {
-        setBanners(banners.map((b) => (b.id === banner.id ? result.data : b)));
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleDeleteBanner = async (id: string) => {
-    if (
-      !confirm(
+      showToast(
         lang === "ar"
-          ? "هل أنت متأكد من حذف هذا البانر؟"
-          : "Are you sure you want to delete this banner?",
-      )
-    )
-      return;
+          ? "حدث خطأ أثناء نشر اللافتة."
+          : "Error publishing banner.",
+        "error",
+      );
+    } finally {
+      setIsSavingBanner(false); // End loading state
+    }
+  };
+
+  // Unified function to execute confirmed banner action (delete or toggle)
+  const executeBannerAction = async () => {
+    const { action, banner } = bannerConfirm;
+    if (!banner) return;
+
+    setBannerConfirm((prev) => ({ ...prev, loading: true }));
+
     try {
-      const res = await fetch(`/api/hero?id=${id}`, { method: "DELETE" });
-      const result = await res.json();
-      if (result.success) {
-        setBanners(banners.filter((b) => b.id !== id));
+      if (action === "delete") {
+        const res = await fetch(`/api/hero?id=${banner.id}`, { method: "DELETE" });
+        const result = await res.json();
+        if (result.success) {
+          setBanners(banners.filter((b) => b.id !== banner.id));
+          showToast(
+            lang === "ar" ? "تم حذف اللافتة بنجاح!" : "Banner deleted successfully!",
+            "success"
+          );
+        }
+      } else if (action === "toggle") {
+        const res = await fetch("/api/hero", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: banner.id, active: !banner.active }),
+        });
+        const result = await res.json();
+        if (result.success) {
+          setBanners(banners.map((b) => (b.id === banner.id ? result.data : b)));
+          showToast(
+            lang === "ar" ? "تم تحديث حالة اللافتة!" : "Banner status updated!",
+            "success"
+          );
+        }
       }
     } catch (e) {
       console.error(e);
+      showToast(
+        lang === "ar" ? "حدث خطأ، يرجى المحاولة مرة أخرى." : "An error occurred.",
+        "error"
+      );
+    } finally {
+      setBannerConfirm({ isOpen: false, action: "delete", banner: null, loading: false });
     }
   };
 
@@ -248,24 +300,16 @@ export default function SettingsPanel() {
       )
     : "";
 
-  if (!store) {
-    return (
-      <div
-        className="bg-white rounded-2xl border border-[rgb(244_242_245)] p-10 text-center text-sm text-red-500"
-        dir={dir}
-      >
-        Failed to load store data
-      </div>
-    );
-  }
   const SkeletonBox = ({ className }: { className: string }) => (
     <div
       className={`animate-pulse bg-[rgb(244_242_245)] rounded-xl ${className}`}
     />
   );
+
+  // 1. Loading state
   if (loading) {
     return (
-      <div className="space-y-6 max-w-3xl" dir={dir}>
+      <div className="space-y-6 w-full" dir={dir}>
         <div className="flex gap-1 bg-[rgb(244_242_245)] rounded-xl p-1">
           {Array.from({ length: 5 }).map((_, i) => (
             <SkeletonBox key={i} className="h-10 flex-1" />
@@ -295,8 +339,117 @@ export default function SettingsPanel() {
     );
   }
 
+  // 2. Error state
+  if (!store) {
+    return (
+      <div
+        className="bg-white rounded-2xl border border-[rgb(244_242_245)] p-10 text-center text-sm text-red-500"
+        dir={dir}
+      >
+        Failed to load store data
+      </div>
+    );
+  }
+
+  // 3. Main Return
   return (
-    <div className="space-y-6 max-w-3xl" dir={dir}>
+    <div className="space-y-6 w-full relative" dir={dir}>
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-sm font-bold text-white shadow-xl z-50 animate-fade-up flex items-center gap-2 ${
+            toast.type === "success" ? "bg-emerald-500" : "bg-red-500"
+          }`}
+        >
+          {toast.type === "success" ? (
+            <Check className="w-5 h-5" />
+          ) : (
+            <AlertTriangle className="w-5 h-5" />
+          )}
+          {toast.message}
+        </div>
+      )}
+
+      {/* Confirmation Modal (Delete / Toggle) */}
+      {bannerConfirm.isOpen && bannerConfirm.banner && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl animate-scale-up space-y-6">
+            <div className="flex flex-col items-center text-center space-y-3">
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                  bannerConfirm.action === "delete"
+                    ? "bg-red-50 text-red-500"
+                    : "bg-amber-50 text-amber-500"
+                }`}
+              >
+                {bannerConfirm.action === "delete" ? (
+                  <Trash2 className="w-6 h-6" />
+                ) : (
+                  <Power className="w-6 h-6" />
+                )}
+              </div>
+              <h3 className="font-bold text-[rgb(60_28_84)] text-lg">
+                {bannerConfirm.action === "delete"
+                  ? lang === "ar"
+                    ? "حذف اللافتة؟"
+                    : "Delete Banner?"
+                  : bannerConfirm.banner.active
+                    ? lang === "ar"
+                      ? "تعطيل اللافتة؟"
+                      : "Disable Banner?"
+                    : lang === "ar"
+                      ? "تفعيل اللافتة؟"
+                      : "Enable Banner?"}
+              </h3>
+              <p className="text-sm text-[rgb(60_28_84)]/60">
+                {bannerConfirm.action === "delete"
+                  ? lang === "ar"
+                    ? "هل أنت متأكد من حذف هذه اللافتة نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
+                    : "Are you sure you want to permanently delete this banner? This action cannot be undone."
+                  : bannerConfirm.banner.active
+                    ? lang === "ar"
+                      ? "هل أنت متأكد من تعطيل هذه اللافتة؟ سيتم إخفاؤها من واجهة المتجر."
+                      : "Are you sure you want to disable this banner? It will be hidden from the storefront."
+                    : lang === "ar"
+                      ? "هل أنت متأكد من تفعيل هذه اللافتة؟ ستظهر للعملاء في المتجر."
+                      : "Are you sure you want to enable this banner? It will be visible to customers."}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 w-full">
+              <button
+                onClick={() =>
+                  setBannerConfirm({ ...bannerConfirm, isOpen: false })
+                }
+                disabled={bannerConfirm.loading}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-[rgb(60_28_84)] bg-[rgb(244_242_245)] hover:bg-[rgb(207_195_223)] transition-colors disabled:opacity-50"
+              >
+                {lang === "ar" ? "إلغاء" : "Cancel"}
+              </button>
+              <button
+                onClick={executeBannerAction}
+                disabled={bannerConfirm.loading}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 ${
+                  bannerConfirm.action === "delete"
+                    ? "bg-red-500 hover:bg-red-600"
+                    : "bg-[rgb(60_28_84)] hover:bg-[rgb(60_28_84)]/90"
+                }`}
+              >
+                {bannerConfirm.loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : bannerConfirm.action === "delete" ? (
+                  lang === "ar" ? "حذف" : "Delete"
+                ) : bannerConfirm.banner.active ? (
+                  lang === "ar" ? "تعطيل" : "Disable"
+                ) : (
+                  lang === "ar" ? "تفعيل" : "Enable"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex gap-1 bg-[rgb(244_242_245)] rounded-xl p-1 animate-fade-up overflow-x-auto no-scrollbar">
         {tabs.map((tab) => (
@@ -372,7 +525,8 @@ export default function SettingsPanel() {
                     className="w-full bg-[rgb(244_242_245)] rounded-xl px-4 py-2 text-sm text-[rgb(60_28_84)] file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[rgb(60_28_84)] file:text-white hover:file:bg-[rgb(60_28_84)]/90 outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all cursor-pointer"
                   />
                   {isUploadingLogo && (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-emerald-600 animate-pulse">
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />
                       Uploading...
                     </div>
                   )}
@@ -515,6 +669,35 @@ export default function SettingsPanel() {
         </div>
       )}
 
+      {/* Notifications Settings (EMPTY STATE) */}
+      {activeTab === "notifications" && (
+        <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
+          <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
+            <h3 className="font-bold text-[rgb(60_28_84)] flex items-center gap-2">
+              <Bell className="w-5 h-5" />
+              {tr.notificationSettings}
+            </h3>
+          </div>
+          <div className="p-12 flex flex-col items-center justify-center text-center space-y-4">
+            <div className="w-20 h-20 bg-[rgb(244_242_245)] rounded-full flex items-center justify-center">
+              <Bell className="w-10 h-10 text-[rgb(60_28_84)]/30" />
+            </div>
+            <div>
+              <h4 className="font-bold text-[rgb(60_28_84)] text-lg">
+                {lang === "ar"
+                  ? "لا توجد إعدادات للإشعارات حالياً"
+                  : "No Notification Settings Yet"}
+              </h4>
+              <p className="text-sm text-[rgb(60_28_84)]/50 mt-2 max-w-sm mx-auto leading-relaxed">
+                {lang === "ar"
+                  ? "ستتمكن قريباً من إدارة تفضيلات التنبيهات والبريد الإلكتروني الخاصة بمتجرك من هذا القسم."
+                  : "You will soon be able to manage your store's alert and email preferences from this section."}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Appearance Settings */}
       {activeTab === "appearance" && (
         <div className="space-y-6">
@@ -609,11 +792,20 @@ export default function SettingsPanel() {
                   </h4>
 
                   <div className="w-full relative">
-                    <label className="block text-xs font-semibold text-[rgb(60_28_84)]/60 mb-2">
-                      {lang === "ar"
-                        ? "صورة اللافتة (Banner Image)"
-                        : "Banner Image"}
-                    </label>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-xs font-semibold text-[rgb(60_28_84)]/60">
+                        {lang === "ar"
+                          ? "صورة اللافتة (Banner Image)"
+                          : "Banner Image"}
+                      </label>
+                      {isUploadingBanner && (
+                        <div className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          {lang === "ar" ? "جاري الرفع..." : "Uploading..."}
+                        </div>
+                      )}
+                    </div>
+
                     <input
                       type="file"
                       accept="image/*"
@@ -628,13 +820,9 @@ export default function SettingsPanel() {
                       }}
                       className="w-full bg-white rounded-lg px-4 py-2 text-sm text-[rgb(60_28_84)] file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[rgb(60_28_84)] file:text-white hover:file:bg-[rgb(60_28_84)]/90 cursor-pointer"
                     />
-                    {isUploadingBanner && (
-                      <div className="absolute right-4 top-9 text-xs font-semibold text-emerald-600 animate-pulse">
-                        Uploading...
-                      </div>
-                    )}
+
                     {newBanner.image && (
-                      <div className="mt-2 w-full h-32 rounded-lg overflow-hidden border border-gray-200">
+                      <div className="mt-3 w-full h-32 rounded-lg overflow-hidden border border-gray-200">
                         <img
                           src={newBanner.image}
                           alt="Banner preview"
@@ -647,16 +835,29 @@ export default function SettingsPanel() {
                   <div className="flex justify-end gap-2 pt-2">
                     <button
                       onClick={() => setIsAddingBanner(false)}
-                      className="px-4 py-2 text-sm font-semibold text-[rgb(60_28_84)]/60"
+                      className="px-4 py-2 text-sm font-semibold text-[rgb(60_28_84)]/60 hover:bg-[rgb(207_195_223)] rounded-lg transition-colors"
+                      disabled={isSavingBanner}
                     >
                       {lang === "ar" ? "إلغاء" : "Cancel"}
                     </button>
+
                     <button
                       onClick={handleSaveBanner}
-                      disabled={isUploadingBanner || !newBanner.image}
-                      className="px-4 py-2 text-sm font-semibold bg-[rgb(60_28_84)] text-white rounded-lg disabled:opacity-50"
+                      disabled={
+                        isUploadingBanner || isSavingBanner || !newBanner.image
+                      }
+                      className="flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-[rgb(60_28_84)] text-white rounded-lg disabled:opacity-50 transition-all hover:bg-[rgb(60_28_84)]/90"
                     >
-                      {lang === "ar" ? "حفظ اللافتة" : "Save Banner"}
+                      {isSavingBanner ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          {lang === "ar" ? "جاري النشر..." : "Publishing..."}
+                        </>
+                      ) : lang === "ar" ? (
+                        "نشر اللافتة"
+                      ) : (
+                        "Save Banner"
+                      )}
                     </button>
                   </div>
                 </div>
@@ -702,15 +903,35 @@ export default function SettingsPanel() {
                       </div>
 
                       <div className="flex items-center gap-2">
+                        {/* UPDATE: Trigger modal on toggle click */}
                         <button
-                          onClick={() => handleToggleBannerActive(banner)}
-                          className={`p-2 rounded-lg transition-colors ${banner.active ? "bg-emerald-100 text-emerald-600" : "bg-gray-200 text-gray-500 hover:bg-gray-300"}`}
+                          onClick={() =>
+                            setBannerConfirm({
+                              isOpen: true,
+                              action: "toggle",
+                              banner,
+                              loading: false,
+                            })
+                          }
+                          className={`p-2 rounded-lg transition-colors ${
+                            banner.active
+                              ? "bg-emerald-100 text-emerald-600"
+                              : "bg-gray-200 text-gray-500 hover:bg-gray-300"
+                          }`}
                           title={banner.active ? "Deactivate" : "Activate"}
                         >
                           <Power className="w-4 h-4" />
                         </button>
+                        {/* UPDATE: Trigger modal on delete click */}
                         <button
-                          onClick={() => handleDeleteBanner(banner.id)}
+                          onClick={() =>
+                            setBannerConfirm({
+                              isOpen: true,
+                              action: "delete",
+                              banner,
+                              loading: false,
+                            })
+                          }
                           className="p-2 bg-red-100 text-red-500 hover:bg-red-200 rounded-lg transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
