@@ -51,6 +51,7 @@ export default function SettingsPanel() {
 
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false); // <-- Added state for main form saving
 
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
@@ -152,19 +153,35 @@ export default function SettingsPanel() {
   }, []);
 
   const handleSave = async () => {
-    try {
-      setSaved(false);
+    if (!store) return;
+    setIsSaving(true);
+    setSaved(false);
 
-      // await fetch("/api/stores", {
-      //   method: "PUT",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify(formData),
-      // });
+    try {
+      const res = await fetch("/api/stores", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formData, id: store.id }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to update store");
+      }
 
       setSaved(true);
+      showToast(
+        lang === "ar"
+          ? "تم حفظ التغييرات بنجاح!"
+          : "Settings saved successfully!",
+        "success",
+      );
       setTimeout(() => setSaved(false), 2500);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      showToast(error.message, "error");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -195,7 +212,7 @@ export default function SettingsPanel() {
 
   const handleSaveBanner = async () => {
     if (!store) return;
-    setIsSavingBanner(true); // Start loading state
+    setIsSavingBanner(true);
     try {
       const res = await fetch("/api/hero", {
         method: "POST",
@@ -206,7 +223,7 @@ export default function SettingsPanel() {
       if (result.success) {
         setBanners([...banners, result.data]);
         setIsAddingBanner(false);
-        setNewBanner({ image: "", active: true, order: 1 }); // Reset state
+        setNewBanner({ image: "", active: true, order: 1 });
         showToast(
           lang === "ar"
             ? "تم نشر اللافتة بنجاح!"
@@ -225,11 +242,10 @@ export default function SettingsPanel() {
         "error",
       );
     } finally {
-      setIsSavingBanner(false); // End loading state
+      setIsSavingBanner(false);
     }
   };
 
-  // Unified function to execute confirmed banner action (delete or toggle)
   const executeBannerAction = async () => {
     const { action, banner } = bannerConfirm;
     if (!banner) return;
@@ -238,13 +254,17 @@ export default function SettingsPanel() {
 
     try {
       if (action === "delete") {
-        const res = await fetch(`/api/hero?id=${banner.id}`, { method: "DELETE" });
+        const res = await fetch(`/api/hero?id=${banner.id}`, {
+          method: "DELETE",
+        });
         const result = await res.json();
         if (result.success) {
           setBanners(banners.filter((b) => b.id !== banner.id));
           showToast(
-            lang === "ar" ? "تم حذف اللافتة بنجاح!" : "Banner deleted successfully!",
-            "success"
+            lang === "ar"
+              ? "تم حذف اللافتة بنجاح!"
+              : "Banner deleted successfully!",
+            "success",
           );
         }
       } else if (action === "toggle") {
@@ -255,21 +275,30 @@ export default function SettingsPanel() {
         });
         const result = await res.json();
         if (result.success) {
-          setBanners(banners.map((b) => (b.id === banner.id ? result.data : b)));
+          setBanners(
+            banners.map((b) => (b.id === banner.id ? result.data : b)),
+          );
           showToast(
             lang === "ar" ? "تم تحديث حالة اللافتة!" : "Banner status updated!",
-            "success"
+            "success",
           );
         }
       }
     } catch (e) {
       console.error(e);
       showToast(
-        lang === "ar" ? "حدث خطأ، يرجى المحاولة مرة أخرى." : "An error occurred.",
-        "error"
+        lang === "ar"
+          ? "حدث خطأ، يرجى المحاولة مرة أخرى."
+          : "An error occurred.",
+        "error",
       );
     } finally {
-      setBannerConfirm({ isOpen: false, action: "delete", banner: null, loading: false });
+      setBannerConfirm({
+        isOpen: false,
+        action: "delete",
+        banner: null,
+        loading: false,
+      });
     }
   };
 
@@ -306,7 +335,6 @@ export default function SettingsPanel() {
     />
   );
 
-  // 1. Loading state
   if (loading) {
     return (
       <div className="space-y-6 w-full" dir={dir}>
@@ -339,7 +367,6 @@ export default function SettingsPanel() {
     );
   }
 
-  // 2. Error state
   if (!store) {
     return (
       <div
@@ -351,10 +378,38 @@ export default function SettingsPanel() {
     );
   }
 
-  // 3. Main Return
+  // Reusable Save Button Component for all tabs
+  const SaveButton = () => (
+    <button
+      onClick={handleSave}
+      disabled={isSaving}
+      className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md disabled:opacity-50 ${
+        saved
+          ? "bg-emerald-500 text-white shadow-emerald-200"
+          : "bg-[rgb(60_28_84)] text-white hover:bg-[rgb(60_28_84)]/90 shadow-[rgb(60_28_84)]/20"
+      }`}
+    >
+      {isSaving ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : saved ? (
+        <Check className="w-4 h-4" />
+      ) : (
+        <Save className="w-4 h-4" />
+      )}
+      {isSaving
+        ? lang === "ar"
+          ? "جاري الحفظ..."
+          : "Saving..."
+        : saved
+          ? lang === "ar"
+            ? "تم الحفظ!"
+            : "Saved!"
+          : tr.saveChanges}
+    </button>
+  );
+
   return (
     <div className="space-y-6 w-full relative" dir={dir}>
-      {/* Toast Notification */}
       {toast && (
         <div
           className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-sm font-bold text-white shadow-xl z-50 animate-fade-up flex items-center gap-2 ${
@@ -370,7 +425,6 @@ export default function SettingsPanel() {
         </div>
       )}
 
-      {/* Confirmation Modal (Delete / Toggle) */}
       {bannerConfirm.isOpen && bannerConfirm.banner && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl animate-scale-up space-y-6">
@@ -438,11 +492,21 @@ export default function SettingsPanel() {
                 {bannerConfirm.loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : bannerConfirm.action === "delete" ? (
-                  lang === "ar" ? "حذف" : "Delete"
+                  lang === "ar" ? (
+                    "حذف"
+                  ) : (
+                    "Delete"
+                  )
                 ) : bannerConfirm.banner.active ? (
-                  lang === "ar" ? "تعطيل" : "Disable"
+                  lang === "ar" ? (
+                    "تعطيل"
+                  ) : (
+                    "Disable"
+                  )
+                ) : lang === "ar" ? (
+                  "تفعيل"
                 ) : (
-                  lang === "ar" ? "تفعيل" : "Enable"
+                  "Enable"
                 )}
               </button>
             </div>
@@ -450,7 +514,6 @@ export default function SettingsPanel() {
         </div>
       )}
 
-      {/* Tabs */}
       <div className="flex gap-1 bg-[rgb(244_242_245)] rounded-xl p-1 animate-fade-up overflow-x-auto no-scrollbar">
         {tabs.map((tab) => (
           <button
@@ -468,7 +531,6 @@ export default function SettingsPanel() {
         ))}
       </div>
 
-      {/* Store Settings */}
       {activeTab === "store" && (
         <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
           <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
@@ -586,30 +648,11 @@ export default function SettingsPanel() {
               </div>
             </div>
 
-            <button
-              onClick={handleSave}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md ${
-                saved
-                  ? "bg-emerald-500 text-white shadow-emerald-200"
-                  : "bg-[rgb(60_28_84)] text-white hover:bg-[rgb(60_28_84)]/90 shadow-[rgb(60_28_84)]/20"
-              }`}
-            >
-              {saved ? (
-                <Check className="w-4 h-4" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              {saved
-                ? lang === "ar"
-                  ? "تم الحفظ!"
-                  : "Saved!"
-                : tr.saveChanges}
-            </button>
+            <SaveButton />
           </div>
         </div>
       )}
 
-      {/* Account Settings */}
       {activeTab === "account" && (
         <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
           <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
@@ -658,18 +701,11 @@ export default function SettingsPanel() {
               ))}
             </div>
 
-            <button
-              onClick={handleSave}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[rgb(60_28_84)] text-white rounded-xl text-sm font-semibold hover:bg-[rgb(60_28_84)]/90 transition-all shadow-md shadow-[rgb(60_28_84)]/20"
-            >
-              <Save className="w-4 h-4" />
-              {tr.saveChanges}
-            </button>
+            <SaveButton />
           </div>
         </div>
       )}
 
-      {/* Notifications Settings (EMPTY STATE) */}
       {activeTab === "notifications" && (
         <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
           <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
@@ -698,7 +734,6 @@ export default function SettingsPanel() {
         </div>
       )}
 
-      {/* Appearance Settings */}
       {activeTab === "appearance" && (
         <div className="space-y-6">
           <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
@@ -743,29 +778,10 @@ export default function SettingsPanel() {
                 </div>
               </div>
 
-              <button
-                onClick={handleSave}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md ${
-                  saved
-                    ? "bg-emerald-500 text-white shadow-emerald-200"
-                    : "bg-[rgb(60_28_84)] text-white hover:bg-[rgb(60_28_84)]/90 shadow-[rgb(60_28_84)]/20"
-                }`}
-              >
-                {saved ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                {saved
-                  ? lang === "ar"
-                    ? "تم الحفظ!"
-                    : "Saved!"
-                  : tr.saveChanges}
-              </button>
+              <SaveButton />
             </div>
           </div>
 
-          {/* Hero Banners Management */}
           <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
             <div className="px-6 py-5 border-b border-[rgb(244_242_245)] flex justify-between items-center">
               <h3 className="font-bold text-[rgb(60_28_84)] flex items-center gap-2">
@@ -784,7 +800,6 @@ export default function SettingsPanel() {
             </div>
 
             <div className="p-6">
-              {/* Add New Banner Form */}
               {isAddingBanner && (
                 <div className="bg-[rgb(244_242_245)] rounded-xl p-5 mb-6 space-y-4">
                   <h4 className="font-bold text-sm text-[rgb(60_28_84)] border-b border-[rgb(207_195_223)] pb-2">
@@ -863,7 +878,6 @@ export default function SettingsPanel() {
                 </div>
               )}
 
-              {/* Banners List */}
               <div className="space-y-3">
                 {banners.length === 0 && !isAddingBanner ? (
                   <p className="text-sm text-[rgb(60_28_84)]/50 text-center py-4">
@@ -903,7 +917,6 @@ export default function SettingsPanel() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {/* UPDATE: Trigger modal on toggle click */}
                         <button
                           onClick={() =>
                             setBannerConfirm({
@@ -922,7 +935,6 @@ export default function SettingsPanel() {
                         >
                           <Power className="w-4 h-4" />
                         </button>
-                        {/* UPDATE: Trigger modal on delete click */}
                         <button
                           onClick={() =>
                             setBannerConfirm({
@@ -946,7 +958,6 @@ export default function SettingsPanel() {
         </div>
       )}
 
-      {/* Policies Settings */}
       {activeTab === "policies" && (
         <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
           <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
@@ -1003,25 +1014,7 @@ export default function SettingsPanel() {
               </div>
             ))}
 
-            <button
-              onClick={handleSave}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md ${
-                saved
-                  ? "bg-emerald-500 text-white shadow-emerald-200"
-                  : "bg-[rgb(60_28_84)] text-white hover:bg-[rgb(60_28_84)]/90 shadow-[rgb(60_28_84)]/20"
-              }`}
-            >
-              {saved ? (
-                <Check className="w-4 h-4" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              {saved
-                ? lang === "ar"
-                  ? "تم الحفظ!"
-                  : "Saved!"
-                : tr.saveChanges}
-            </button>
+            <SaveButton />
           </div>
         </div>
       )}

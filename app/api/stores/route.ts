@@ -35,7 +35,6 @@ export async function GET() {
 
   return NextResponse.json({ store });
 }
-// ─── Validation Schema ────────────────────────────────────────────────────────
 
 const CreateStoreSchema = z.object({
   adminName: z
@@ -107,8 +106,6 @@ const CreateStoreSchema = z.object({
     .regex(/[0-9]/, "يجب أن تحتوي على رقم"),
 });
 
-// ─── Reserved Slugs ───────────────────────────────────────────────────────────
-
 const RESERVED_SLUGS = new Set([
   "www",
   "app",
@@ -137,9 +134,6 @@ const RESERVED_SLUGS = new Set([
   "terms",
   "privacy",
 ]);
-
-// ─── Rate Limiting (in-memory, good for single instance) ─────────────────────
-// For multi-instance, replace with Redis (Upstash)
 
 interface RateLimitEntry {
   count: number;
@@ -200,8 +194,6 @@ function checkRateLimit(key: string): {
 
   return { allowed: true };
 }
-
-// ─── Handler ──────────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   // ── Rate limit ────────────────────────────────────────────────────────────
@@ -360,4 +352,73 @@ export async function POST(request: NextRequest) {
     },
     { status: 201 },
   );
+}
+
+// ─── Update Store Settings (PUT) ──────────────────────────────────────────────
+
+export async function PUT(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const userId = (session.user as any).id;
+
+  try {
+    const body = await request.json();
+
+    const {
+      store_name,
+      location,
+      phone,
+      store_type,
+      admin_name,
+      admin_email,
+      primary_color,
+      privacy_policy,
+      shipping_policy,
+      return_policy,
+      logo_url,
+    } = body;
+
+    const { data: updatedStore, error } = await supabaseAdmin
+      .from("stores")
+      .update({
+        store_name,
+        location,
+        phone,
+        store_type,
+        admin_name,
+        admin_email,
+        primary_color,
+        privacy_policy,
+        shipping_policy,
+        return_policy,
+        logo_url,
+      })
+      .eq("id", userId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("PUT /api/stores Update Error:", error);
+      // 🔥 CHANGE THIS LINE to return the real Supabase error message
+      return NextResponse.json(
+        { error: error.message || "Failed to update store settings" },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json(
+      { success: true, store: updatedStore },
+      { status: 200 },
+    );
+  } catch (error: any) {
+    console.error("PUT /api/stores Parse Error:", error);
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
+  }
 }
