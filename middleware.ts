@@ -6,7 +6,6 @@ export async function middleware(req: NextRequest) {
   const hostname = req.headers.get("host") || "";
   const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mahally.app";
 
-  // Remove port for local dev
   const cleanHost = hostname.replace(":3000", "");
 
   // ─────────────────────────────────────────────
