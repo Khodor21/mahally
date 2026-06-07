@@ -5,12 +5,12 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
-export async function getStoreBySubdomain(subdomain: string) {
+export async function getStoreBySlug(slug: string) {
   try {
     const { data, error } = await supabase
       .from("stores") // Your stores table name
       .select("*")
-      .eq("subdomain", subdomain)
+      .eq("slug", slug) // ← Using slug instead of subdomain
       .single();
 
     if (error) {
@@ -23,9 +23,4 @@ export async function getStoreBySubdomain(subdomain: string) {
     console.error("Error fetching store:", error);
     return null;
   }
-}
-
-// Helper to extract subdomain from request headers
-export function getSubdomainFromRequest(headers: Headers): string | null {
-  return headers.get("x-subdomain");
 }
