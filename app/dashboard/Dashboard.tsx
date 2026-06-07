@@ -43,7 +43,7 @@ export default function Dashboard({ store }: DashboardProps) {
       case "settings":
         return <SettingsPanel />;
       case "categories":
-        return <CategoriesPanel />;
+        return <CategoriesPanel storeId={store.id} />;
       case "ai":
         return <AIChatPanel />;
       case "storefront":
