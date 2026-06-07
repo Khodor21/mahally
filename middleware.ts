@@ -4,7 +4,6 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
   const hostname = req.headers.get("host") || "";
-
   const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mahally.app";
 
   // Remove port for local dev
@@ -15,16 +14,21 @@ export async function middleware(req: NextRequest) {
   // ─────────────────────────────────────────────
 
   const isLocalhost = cleanHost.includes("localhost");
-
   const isMainDomain =
     cleanHost === appDomain || cleanHost === `www.${appDomain}`;
-
   const isVercelPreview = cleanHost.includes("vercel.app");
 
-  // Detect subdomain (ONLY for mahally.app)
+  // Detect subdomain (for BOTH localhost AND mahally.app) ← FIXED
   let subdomain: string | null = null;
 
-  if (!isLocalhost && cleanHost.endsWith(appDomain)) {
+  if (isLocalhost) {
+    // localhost: perfumes.localhost → perfumes
+    const parts = cleanHost.split(".");
+    if (parts[0] !== "localhost" && parts.length > 1) {
+      subdomain = parts[0];
+    }
+  } else if (cleanHost.endsWith(appDomain)) {
+    // mahally.app: perfumes.mahally.app → perfumes
     const parts = cleanHost.replace(appDomain, "").split(".");
     subdomain = parts[parts.length - 2] || null;
   }
@@ -52,15 +56,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.rewrite(url);
   }
 
-  // If it's custom domain OR main domain → no rewrite
-  // (store resolution will happen in server via host header)
-
   // ─────────────────────────────────────────────
   // 4. PROTECTED DASHBOARD
   // ─────────────────────────────────────────────
 
   const isDashboardRoute = url.pathname.startsWith("/dashboard");
-
   if (isDashboardRoute && !isLoggedIn) {
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -72,7 +72,6 @@ export async function middleware(req: NextRequest) {
 
   const isAuthPage =
     url.pathname.startsWith("/login") || url.pathname.startsWith("/onboarding");
-
   if (isLoggedIn && isAuthPage) {
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

@@ -31,26 +31,25 @@
   font-display: swap;
 }
 
-/* --- Thmanyah Sans (Arabic) --- */
 @font-face {
-  font-family: "Thmanyah Sans";
-  src: url("/fonts/thmanyahsans-Regular.otf") format("opentype");
+  font-family: "IbmPlex";
+  src: url("/fonts/IBMPlexSansArabic-Regular.ttf") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Thmanyah Sans";
-  src: url("/fonts/thmanyahsans-Medium.otf") format("opentype");
+  font-family: "IbmPlex";
+  src: url("/fonts/IBMPlexSansArabic-Medium.ttf") format("opentype");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Thmanyah Sans";
-  src: url("/fonts/thmanyahsans-Bold.otf") format("opentype");
+  font-family: "IbmPlex";
+  src: url("/fonts/IBMPlexSansArabic-Bold.ttf") format("opentype");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -78,6 +77,7 @@
   --color-light: 207 195 223;
   --color-white: 255 255 255;
   --color-grey: 244 242 245;
+  --color-black: 0 0 0;
 }
 
 /* =========================================================
@@ -86,7 +86,7 @@
 html[lang="ar"],
 html[dir="rtl"] {
   --font-display: "Lalezar", cursive;
-  --font-body: "Thmanyah Sans", sans-serif;
+  --font-body: "IbmPlex", sans-serif;
 }
 
 /* =========================================================

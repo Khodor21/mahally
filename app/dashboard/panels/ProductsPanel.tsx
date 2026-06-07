@@ -174,8 +174,11 @@ export default function ProductsPanel() {
           </button>
         </div>
 
-        <button onClick={openCreate} className="bg-purple-800 text-white px-4 py-2 rounded-xl">
-          <Plus className="w-4 h-4" />
+        <button
+          onClick={openCreate}
+          className="bg-brand-dark text-white px-4 py-2 rounded-xl text-xs flex gap-2 items-center justify-center"
+        >
+          <Plus className="w-3 h-3" />
           {safeTr.addNewProduct}
         </button>
       </div>
@@ -186,7 +189,7 @@ export default function ProductsPanel() {
           <ProductCard
             key={product.id}
             product={product}
-            tr={safeTr as any}   // ✅ FINAL FIX HERE
+            tr={safeTr as any} // ✅ FINAL FIX HERE
             lang={lang}
             onEdit={openEdit}
             onDelete={openDelete}
@@ -214,7 +217,9 @@ export default function ProductsPanel() {
           dir={dir}
           loading={deleteLoading}
           onConfirm={handleDelete}
-          onCancel={() => !deleteLoading && setDeleteTarget(null)} lang={"ar"}        />
+          onCancel={() => !deleteLoading && setDeleteTarget(null)}
+          lang={"ar"}
+        />
       )}
 
       {/* Toast */}

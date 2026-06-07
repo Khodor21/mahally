@@ -16,6 +16,8 @@ import {
   Store,
   ChevronLeft,
   ChevronRight,
+  Tags,
+  LayoutTemplate,
 } from "lucide-react";
 import { useState } from "react";
 import { signOut } from "next-auth/react";
@@ -44,8 +46,10 @@ const navGroups: NavGroup[] = [
       { id: "home", icon: LayoutDashboard, labelKey: "home" },
       { id: "orders", icon: ShoppingCart, labelKey: "orders" },
       { id: "products", icon: Package, labelKey: "products" },
+      { id: "categories", icon: Tags, labelKey: "categories" },
       { id: "customers", icon: Users, labelKey: "customers" },
       { id: "analytics", icon: BarChart2, labelKey: "analytics" },
+      { id: "storefront", icon: LayoutTemplate, labelKey: "storefront" },
       { id: "settings", icon: Settings, labelKey: "settings" },
       { id: "ai", icon: Bot, labelKey: "ai" },
     ],

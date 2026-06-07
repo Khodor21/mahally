@@ -18,14 +18,11 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // ── Validate shape ───────────────────────────────────────────────
         const parsed = LoginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
         const { email, password } = parsed.data;
 
-        // ── Fetch store ──────────────────────────────────────────────────
-        // Use maybeSingle() — never throws on 0 rows
         const { data: store, error } = await supabaseAdmin
           .from("stores")
           .select(
@@ -39,9 +36,6 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        // ── Timing-safe: always run bcrypt to prevent timing attacks ─────
-        // If no store found, compare against a dummy hash so response
-        // time is the same whether the email exists or not.
         const DUMMY_HASH =
           "$2b$12$LKkY4JBLRSjfsMKjl5qNSebGk2cz5pnBjNDKNKMr4rKPOeX0VGqeK";
 
@@ -50,9 +44,7 @@ export const authOptions: NextAuthOptions = {
 
         if (!store || !passwordValid) return null;
 
-        // ── Check account is active ──────────────────────────────────────
         if (!store.is_active) {
-          // You can throw to show a specific message on the login page
           throw new Error("ACCOUNT_DISABLED");
         }
 
@@ -88,16 +80,15 @@ export const authOptions: NextAuthOptions = {
 
   pages: {
     signIn: "/login",
-    error: "/login", // redirect auth errors back to login with ?error=
+    error: "/login",
   },
 
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-    updateAge: 24 * 60 * 60, // refresh token every 24h
+    maxAge: 30 * 24 * 60 * 60,
+    updateAge: 24 * 60 * 60,
   },
 
-  // Prevent JWT secret falling back to a weak default
   secret: (() => {
     if (!process.env.NEXTAUTH_SECRET) {
       throw new Error("NEXTAUTH_SECRET environment variable is not set");
@@ -105,7 +96,6 @@ export const authOptions: NextAuthOptions = {
     return process.env.NEXTAUTH_SECRET;
   })(),
 
-  // Lock down cookies in production
   cookies:
     process.env.NODE_ENV === "production"
       ? {
@@ -124,15 +114,31 @@ export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === "development",
 };
 
-// ==========================================
-// NEW: Added requireStoreSession Helper
-// ==========================================
+/**
+ * Gets the current authenticated session
+ */
 export async function requireStoreSession() {
   const session = await getServerSession(authOptions);
-
   if (!session || !session.user) {
     throw new Error("Unauthorized");
   }
+  return session.user as {
+    id: string;
+    email: string;
+    name: string;
+    storeSlug: string;
+    storeName: string;
+  };
+}
 
-  return session.user as any; // Returns { id, email, name, storeSlug, storeName }
+/**
+ * SECURITY HELPER: Verifies if the authenticated admin has access to the requested store_id.
+ * Use this in every API route that touches categories or storefront sections.
+ */
+export async function verifyStoreAccess(store_id: string): Promise<boolean> {
+  const user = await requireStoreSession();
+
+  // The user.id from the session (the store ID) must match the requested store_id
+  // This prevents an admin of Store A from modifying data for Store B
+  return user.id === store_id;
 }

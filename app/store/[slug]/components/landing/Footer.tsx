@@ -101,14 +101,14 @@ export default function Footer({
           {/* BRAND SECTION (Right in RTL) */}
           <div className="flex flex-col gap-5">
             <Link href={buildUrl("")} className="flex items-center gap-3 w-fit">
-              <div className="w-12 h-12 rounded-xl bg-brand-dark text-white flex items-center justify-center font-black text-xl">
+              <div className="w-12 h-12 rounded-xl bg-brand-black text-white flex items-center justify-center font-black text-xl">
                 {storeName?.[0]?.toUpperCase() || "M"}
               </div>
-              <span className="text-xl font-bold text-brand-dark tracking-tight">
+              <span className="text-xl font-bold text-brand-black tracking-tight">
                 {storeName}
               </span>
             </Link>
-            <p className="text-sm text-brand-dark/60 leading-relaxed font-medium max-w-sm">
+            <p className="text-sm text-brand-black/60 leading-relaxed font-medium max-w-sm">
               {t.description}
             </p>
           </div>
@@ -116,7 +116,7 @@ export default function Footer({
           {/* IMPORTANT LINKS (Middle) */}
           <div className="flex flex-col gap-5 md:items-center">
             <div className="flex flex-col gap-4">
-              <p className="font-bold text-brand-dark text-base">
+              <p className="font-bold text-brand-black text-lg">
                 {t.importantLinks}
               </p>
               <div className="flex flex-col gap-3">
@@ -124,7 +124,7 @@ export default function Footer({
                   <Link
                     key={label}
                     href={buildUrl(href)}
-                    className="text-sm text-brand-dark/60 hover:text-brand-dark transition-colors font-medium w-fit"
+                    className="text-sm text-brand-black/80 hover:text-brand-black/50 transition-colors font-medium w-fit"
                   >
                     {label}
                   </Link>
@@ -136,21 +136,21 @@ export default function Footer({
           {/* CONTACT SECTION (Left in RTL) */}
           <div className="flex flex-col gap-5 md:items-end">
             <div className="flex flex-col gap-4">
-              <p className="font-bold text-brand-dark text-base md:text-end">
+              <p className="font-bold text-brand-black text-base md:text-end">
                 {t.contactUs}
               </p>
 
               <div className="flex flex-col gap-3">
                 <a
                   href="tel:966508116023"
-                  className="flex items-center gap-3 text-sm text-brand-dark/60 hover:text-brand-dark font-medium transition-colors"
+                  className="flex items-center gap-3 text-sm text-brand-black/60 hover:text-brand-black font-medium transition-colors"
                 >
                   <span dir="ltr">+966 50 811 6023</span>
                   <FiPhone size={16} />
                 </a>
                 <a
                   href={`mailto:info@${storeName.toLowerCase()}.com`}
-                  className="flex items-center gap-3 text-sm text-brand-dark/60 hover:text-brand-dark font-medium transition-colors"
+                  className="flex items-center gap-3 text-sm text-brand-black/60 hover:text-brand-black font-medium transition-colors"
                 >
                   <span>info@{storeName.toLowerCase()}.com</span>
                   <FiMail size={16} />
@@ -164,7 +164,7 @@ export default function Footer({
                     key={label}
                     href={href}
                     aria-label={label}
-                    className="w-9 h-9 rounded-xl bg-brand-grey border border-transparent flex items-center justify-center text-brand-dark/60 hover:text-brand-dark hover:border-brand-light hover:bg-white transition-all duration-200"
+                    className="w-9 h-9 rounded-xl bg-brand-grey border border-transparent flex items-center justify-center text-brand-black/60 hover:text-brand-black hover:border-brand-light hover:bg-white transition-all duration-200"
                   >
                     <Icon className="text-[15px]" />
                   </a>
@@ -178,9 +178,9 @@ export default function Footer({
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-6 border-t border-brand-light">
           {/* Commercial ID */}
           {storeId && (
-            <div className="flex items-center gap-2 text-sm font-semibold text-brand-dark">
+            <div className="flex items-center gap-2 text-sm font-semibold text-brand-black">
               <span>{t.commercialId}</span>
-              <span className="text-brand-dark/60 bg-brand-grey px-2 py-1 rounded-md text-xs">
+              <span className="text-brand-black/60 bg-brand-grey px-2 py-1 rounded-md text-xs">
                 {storeId}
               </span>
             </div>
@@ -190,7 +190,7 @@ export default function Footer({
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-brand-grey px-3 py-1.5 rounded-lg border border-brand-light/50">
               <FaMoneyBillWave className="text-emerald-600" size={16} />
-              <span className="text-xs font-bold text-brand-dark">
+              <span className="text-xs font-bold text-brand-black">
                 {t.cashOnDelivery}
               </span>
             </div>
@@ -204,14 +204,14 @@ export default function Footer({
         </div>
 
         {/* COPYRIGHT & LANGUAGE ROW */}
-        <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 pt-6 border-t border-brand-light text-sm font-medium text-brand-dark/50">
+        <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 pt-6 border-t border-brand-light text-sm font-medium text-brand-black/50">
           <p>
             {storeName} © {new Date().getFullYear()} {t.rights}.
           </p>
 
           <button
             onClick={toggleLang}
-            className="flex items-center gap-2 hover:text-brand-dark transition-colors bg-brand-grey px-3 py-1.5 rounded-xl"
+            className="flex items-center gap-2 hover:text-brand-black transition-colors bg-brand-grey px-3 py-1.5 rounded-xl"
           >
             <Globe size={16} />
             <span className="font-semibold">العربية | English</span>

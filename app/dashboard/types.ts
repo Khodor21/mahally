@@ -8,6 +8,8 @@ export type NavItem =
   | "analytics"
   | "settings"
   | "ai"
+  | "categories"
+  | "storefront"
   | "coupons"
   | "partnerships"
   | "occasions";

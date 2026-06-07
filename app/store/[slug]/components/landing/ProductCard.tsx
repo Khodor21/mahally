@@ -3,10 +3,16 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AiFillHeart, AiOutlineHeart } from "react-icons/ai";
-import { FaStar } from "react-icons/fa";
+import {
+  AiFillHeart,
+  AiOutlineHeart,
+  AiOutlineEye,
+  AiOutlineClose,
+} from "react-icons/ai";
 import { HiOutlineShoppingBag } from "react-icons/hi2";
+import { BsCheckCircleFill, BsCreditCard } from "react-icons/bs";
 import { useShop } from "@/app/store/context";
+import { RiShoppingBag2Line } from "react-icons/ri";
 
 type Product = {
   id: string | number;
@@ -21,6 +27,7 @@ type ProductCardProps = {
   product: Product;
 };
 
+// Kept object for type safety, but no longer rendered
 const BADGE_STYLES = {
   New: "bg-[rgb(60_28_84)] text-white",
   "Best Seller": "bg-[rgb(207_195_223)] text-[rgb(60_28_84)]",
@@ -29,12 +36,13 @@ const BADGE_STYLES = {
 };
 
 function formatPrice(value: number) {
-  const formatted = new Intl.NumberFormat("en-US", {
+  // Enforce exactly 2 decimal places and automatic comma separators
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
-
-  return formatted.replace(/\.00$/, "");
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
@@ -42,17 +50,17 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   const { addToCart, toggleFavorite, isFavorite, cartItems } = useShop();
 
-  // ✅ FIX: normalize ID to string (IMPORTANT)
   const productId = String(product.id);
 
   const favorited = isFavorite(productId);
 
+  // Still keeping the variable for completeness if you ever need it, but removing it from the button UI
   const inCart = cartItems.some(
     (i: { product: { id: string | number } }) =>
       String(i.product.id) === productId,
   );
 
-  const [added, setAdded] = useAddedFlash();
+  const [added, setAdded] = useAddedFlash(5000);
 
   const normalizedProduct = {
     ...product,
@@ -68,93 +76,164 @@ export default function ProductCard({ product }: ProductCardProps) {
     toggleFavorite(normalizedProduct);
   };
 
-  const badgeStyle =
-    BADGE_STYLES[product.badge ?? "New"] ||
-    "bg-[rgb(244_242_245)] text-[rgb(60_28_84)]";
-
   const formattedPrice = formatPrice(product.price ?? 0);
 
   if (!product) return null;
 
   return (
-    <article
-      aria-label={product.title}
-      onClick={() => router.push(`/product`)}
-      className="group flex flex-col bg-white rounded-2xl border border-[rgb(244_242_245)] overflow-hidden h-full cursor-pointer transition-all hover:shadow-md hover:border-[rgb(207_195_223)]"
-    >
-      {/* IMAGE */}
-      <div className="relative w-full h-52 overflow-hidden bg-[rgb(244_242_245)]/[0.35]">
-        {product.badge && (
-          <span
-            className={`absolute top-3 left-3 z-10 text-[10px] font-bold px-2.5 py-1 rounded-full ${badgeStyle}`}
+    <>
+      <article
+        aria-label={product.title}
+        onClick={() => router.push(`/product`)}
+        // Ensures the card fills the available stretched height from the grid
+        className="group flex flex-col w-full h-full cursor-pointer"
+      >
+        {/* IMAGE CONTAINER */}
+        <div className="relative w-full aspect-[4/5] sm:h-64 overflow-hidden rounded-xl bg-[rgb(244_242_245)]/[0.7] transition-all duration-300">
+          {/* ICONS LAYER - Icons reduced in size (w-8 h-8 / size={16}) */}
+          <div
+            className="absolute z-10 flex pointer-events-none
+                          top-4 start-4 end-4 justify-between items-start 
+                          md:top-auto md:bottom-4 md:start-0 md:end-0 md:justify-center md:gap-3 md:px-0"
           >
-            {product.badge}
-          </span>
-        )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // Add quick view logic here if needed
+              }}
+              className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-600 shadow-sm hover:scale-110 hover:text-[rgb(60_28_84)] transition-all pointer-events-auto"
+            >
+              <AiOutlineEye size={16} />
+            </button>
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleToggleFavorite();
-          }}
-          className="absolute top-3 right-3 z-10 w-9 h-9 rounded-xl bg-white/90 flex items-center justify-center border border-[rgb(244_242_245)]"
-        >
-          {favorited ? (
-            <AiFillHeart size={18} className="text-rose-500" />
-          ) : (
-            <AiOutlineHeart size={18} className="text-[rgb(60_28_84)]/40" />
-          )}
-        </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleFavorite();
+              }}
+              className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm hover:scale-110 transition-all pointer-events-auto"
+            >
+              {favorited ? (
+                <AiFillHeart size={16} className="text-rose-500" />
+              ) : (
+                <AiOutlineHeart
+                  size={16}
+                  className="text-gray-600 hover:text-[rgb(60_28_84)]"
+                />
+              )}
+            </button>
+          </div>
 
-        <Image
-          src={product.image}
-          alt={product.title}
-          fill
-          className="object-contain p-5 group-hover:scale-105 transition-transform"
-        />
-      </div>
+          <Image
+            src={product.image}
+            alt={product.title}
+            fill
+            className="object-contain p-2 mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+          />
+        </div>
 
-      {/* BODY */}
-      <div className="flex flex-col flex-1 p-4 gap-3">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleAddToCart();
-          }}
-          className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold ${
-            added || inCart
-              ? "bg-emerald-100 text-emerald-700"
-              : "bg-[rgb(60_28_84)] text-white"
-          }`}
-        >
-          <HiOutlineShoppingBag size={16} />
-          {added || inCart ? "Added" : "Add to Cart"}
-        </button>
+        {/* BODY */}
+        <div className="flex flex-col flex-1 pt-4 pb-1 px-1">
+          {/* Title with min-height to guarantee identical card heights */}
+          <h3 className="text-sm md:text-base font-medium text-gray-800 line-clamp-2 text-center min-h-[2.5rem] md:min-h-[3rem]">
+            {product.title}
+          </h3>
 
-        <h3 className="text-sm font-bold text-[rgb(60_28_84)] line-clamp-2 min-h-[3rem]">
-          {product.title}
-        </h3>
+          {/* Wrapper with mt-auto to push price & button cleanly to the bottom */}
+          <div className="mt-auto flex flex-col items-center w-full">
+            <p className="text-base md:text-lg font-bold text-[rgb(60_28_84)] text-center mt-1.5">
+              {formattedPrice}
+            </p>
 
-        <div className="flex items-center justify-between mt-auto">
-          <p className="text-lg font-bold text-[rgb(60_28_84)]">
-            {formattedPrice}
-          </p>
-
-          <div className="flex items-center gap-1">
-            <FaStar size={11} className="text-amber-400" />
-            <span className="text-sm font-semibold text-[rgb(60_28_84)]">
-              {(product.rating ?? 0).toFixed(1)}
-            </span>
-            <span className="text-xs text-[rgb(60_28_84)]/40">/5.0</span>
+            {/* Clean Add to Cart button (No green state logic, relies purely on Toast) */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddToCart();
+              }}
+              className="w-full mt-4 flex items-center justify-center gap-1 py-2 rounded-sm text-sm font-semibold border transition-all duration-300 border-[rgb(60_28_84)] text-[rgb(60_28_84)] bg-white hover:bg-[rgb(60_28_84)] hover:text-white"
+            >
+              <RiShoppingBag2Line size={16} />
+              إضافـة إلـى السلّـة
+            </button>
           </div>
         </div>
-      </div>
-    </article>
+      </article>
+
+      {/* PREMIUM ADD TO CART TOAST */}
+      {added && (
+        <div className="fixed top-4 start-1/2 -translate-x-1/2 md:start-auto md:-translate-x-0 md:end-4 z-[100] w-[calc(100vw-2rem)] md:w-[400px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300">
+          {/* Top Green Bar */}
+          <div className="h-1.5 w-full bg-emerald-500" />
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
+            <button
+              onClick={() => setAdded(false)}
+              className="text-gray-500 hover:text-gray-800 transition-colors"
+              aria-label="Close"
+            >
+              <AiOutlineClose size={20} />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-gray-900">
+                تمت الإضافة إلى سلة التسوق
+              </span>
+              <BsCheckCircleFill className="text-emerald-500" size={18} />
+            </div>
+          </div>
+
+          {/* Product Info */}
+          <div className="p-4 flex items-center justify-end gap-4">
+            <div className="flex-1 flex flex-col justify-center">
+              <h4 className="text-sm font-bold text-gray-900 line-clamp-2 text-end">
+                {product.title}
+              </h4>
+              <p className="text-sm font-bold text-[rgb(60_28_84)] mt-1.5 text-end">
+                {formattedPrice}
+              </p>
+            </div>
+            <div className="relative w-16 h-16 rounded-md overflow-hidden bg-[rgb(244_242_245)] border border-gray-100 flex-shrink-0">
+              <Image
+                src={product.image}
+                alt={product.title}
+                fill
+                className="object-contain p-1 mix-blend-multiply"
+              />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="px-4 pb-4 flex gap-3">
+            <button
+              onClick={() => {
+                setAdded(false);
+                router.push("/cart");
+              }}
+              className="flex-1 py-2.5 border border-gray-300 rounded-md text-sm font-bold text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
+            >
+              <HiOutlineShoppingBag size={18} />
+              عرض السلة
+            </button>
+            <button
+              onClick={() => {
+                setAdded(false);
+                router.push("/checkout");
+              }}
+              className="flex-1 py-2.5 bg-[rgb(60_28_84)] rounded-md text-sm font-bold text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+            >
+              <BsCreditCard size={18} />
+              اتمام الطلب
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
 // unchanged hook (safe)
-function useAddedFlash(duration = 1400): [boolean, (val: boolean) => void] {
+function useAddedFlash(duration = 5000): [boolean, (val: boolean) => void] {
   const [added, setAddedRaw] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

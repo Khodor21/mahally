@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FaStar } from "react-icons/fa";
-import { FiChevronLeft, FiChevronRight, FiUser } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 type Testimonial = {
   id: number;
@@ -91,12 +91,12 @@ export default function TestimonialsSection({
   };
 
   return (
-    <section className="py-16 bg-white overflow-hidden" dir={dir}>
+    <section className="py-16 overflow-hidden" dir={dir}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header (Optional) */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-4">
           <h2 className="text-2xl md:text-3xl font-bold text-brand-dark">
-            {lang === "ar" ? "ماذا يقول عملاؤنا" : "What Our Clients Say"}
+            ماذا يقول عملاؤنا
           </h2>
         </div>
 
@@ -109,7 +109,6 @@ export default function TestimonialsSection({
             className="hidden md:flex flex-col items-center justify-center w-40 lg:w-56 min-h-[280px] rounded-2xl border border-brand-light bg-brand-white/50 opacity-50 hover:opacity-100 transition-all duration-300 group cursor-pointer"
           >
             <div className="w-16 h-16 rounded-full bg-brand-light/40 flex items-center justify-center mb-6 relative overflow-hidden">
-              <FiUser size={24} className="text-brand-dark/20" />
               {/* Arrow Overlay matched to image style */}
               <div className="absolute inset-0 bg-[#94A3B8]/90 flex items-center justify-center text-white transition-opacity">
                 <FiChevronLeft size={24} />
@@ -121,30 +120,22 @@ export default function TestimonialsSection({
           </button>
 
           {/* CENTER ACTIVE CARD */}
-          <div className="relative w-full max-w-2xl bg-white border border-brand-light rounded-2xl p-8 lg:p-12 shadow-[0_4px_40px_rgb(0,0,0,0.04)] min-h-[280px] flex flex-col transition-all duration-500 ease-in-out transform">
+          <div className="relative w-full max-w-2xlp-8 lg:p-12 min-h-[280px] flex flex-col transition-all duration-500 ease-in-out transform">
             <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between flex-1">
               {/* Content Side */}
               <div className="flex flex-col gap-4 flex-1 order-2 sm:order-1">
-                <p className="text-base sm:text-lg text-brand-dark/70 font-medium leading-relaxed italic">
+                <p className="text-base sm:text-lg text-brand-dark/70 font-medium leading-relaxed">
                   &quot;{activeTestimonial.content[lang]}&quot;
                 </p>
                 <div className="mt-auto pt-4 flex flex-col gap-1.5">
                   <h4 className="font-bold text-brand-dark text-sm">
                     {activeTestimonial.name[lang]}
                   </h4>
-                  <span className="text-xs text-brand-dark/50 font-medium">
-                    {activeTestimonial.role[lang]}
-                  </span>
                 </div>
                 {/* Stars Side (Aligned to bottom as in image) */}
                 <div className="flex items-center gap-1 mt-2">
                   {renderStars(activeTestimonial.rating)}
                 </div>
-              </div>
-
-              {/* Avatar Side */}
-              <div className="flex-shrink-0 order-1 sm:order-2 self-start sm:self-center bg-brand-grey w-20 h-20 rounded-full flex items-center justify-center text-brand-dark/20 border-4 border-white shadow-sm">
-                <FiUser size={32} />
               </div>
             </div>
           </div>
@@ -156,8 +147,6 @@ export default function TestimonialsSection({
             className="hidden md:flex flex-col items-center justify-center w-40 lg:w-56 min-h-[280px] rounded-2xl border border-brand-light bg-brand-white/50 opacity-50 hover:opacity-100 transition-all duration-300 group cursor-pointer"
           >
             <div className="w-16 h-16 rounded-full bg-brand-light/40 flex items-center justify-center mb-6 relative overflow-hidden">
-              <FiUser size={24} className="text-brand-dark/20" />
-              {/* Arrow Overlay matched to image style */}
               <div className="absolute inset-0 bg-[#94A3B8]/90 flex items-center justify-center text-white transition-opacity">
                 <FiChevronRight size={24} />
               </div>

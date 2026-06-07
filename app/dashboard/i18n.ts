@@ -8,6 +8,8 @@ export const t = {
     analytics: "الإحصاءات",
     settings: "الإعدادات",
     ai: "الذكاء الاصطناعي",
+    categories: "التصنيفات",
+    storefront: "واجهة المتجر",
     marketing: "التسويق",
     coupons: "كوبونات الخصم",
     partnerships: "الشراكات",
@@ -39,14 +41,28 @@ export const t = {
     viewOrders: "عرض الطلبات",
     manageStore: "إدارة المتجر",
 
+    // Categories
+    totalCategories: "إجمالي التصنيفات",
+    searchCategories: "ابحث عن تصنيف...",
+    addCategory: "إضافة تصنيف",
+    editCategory: "تعديل التصنيف",
+    logo: "الشعار",
+    logoUrl: "رابط الشعار (اختياري)",
+    productsCount: "عدد المنتجات",
+
+    // Storefront
+    sections: "أقسام الصفحة الرئيسية",
+    addSection: "إضافة قسم",
+
     // Form / Modal
     addProductTitle: "إضافة منتج جديد",
     editProductTitle: "تعديل المنتج",
     productName: "اسم المنتج",
     productNamePlaceholder: "مثال: سماعات لاسلكية",
+    title: "العنوان",
     description: "الوصف",
     descriptionPlaceholder: "وصف مختصر للمنتج…",
-    priceLabel: "السعر (ر.س)",
+    priceLabel: "السعر ($)",
     pricePlaceholder: "0.00",
     stockLabel: "الكمية في المخزون",
     stockPlaceholder: "0",
@@ -56,8 +72,10 @@ export const t = {
     removeImage: "إزالة",
     cancel: "إلغاء",
     save: "حفظ التغييرات",
-    create: "إضافة المنتج",
+    create: "إضافة",
     saving: "جارٍ الحفظ…",
+    actions: "إجراءات",
+    requiredField: "يرجى تعبئة الحقول المطلوبة",
 
     // Orders
     orderId: "رقم الطلب",
@@ -167,18 +185,19 @@ export const t = {
 
     // Delete confirm
     deleteTitle: "حذف المنتج",
+    confirmDelete: "تأكيد الحذف",
     deleteConfirm: "هل أنت متأكد من حذف",
     deleteNote: "لا يمكن التراجع عن هذا الإجراء.",
     deleteBtn: "حذف",
     deleting: "جارٍ الحذف…",
 
     // Toast
-    createdSuccess: "تمت إضافة المنتج بنجاح!",
-    updatedSuccess: "تم تحديث المنتج بنجاح!",
-    deletedSuccess: "تم حذف المنتج بنجاح!",
+    createdSuccess: "تمت الإضافة بنجاح!",
+    updatedSuccess: "تم التحديث بنجاح!",
+    deletedSuccess: "تم الحذف بنجاح!",
     errorOccurred: "حدث خطأ ما. يرجى المحاولة مجددًا.",
 
-    // Arabic
+    // Media
     maxImagesError: "الحد الأقصى 5 صور لكل رفع",
     uploading: "جاري رفع الصور...",
     imageUploadHint:
@@ -193,6 +212,8 @@ export const t = {
     analytics: "Analytics",
     settings: "Settings",
     ai: "Ai Assistant",
+    categories: "Categories",
+    storefront: "Storefront",
     marketing: "Marketing",
     coupons: "Discount Coupons",
     partnerships: "Partnerships",
@@ -224,6 +245,42 @@ export const t = {
     viewOrders: "View Orders",
     manageStore: "Manage Store",
 
+    // Categories
+    totalCategories: "Total Categories",
+    searchCategories: "Search categories...",
+    addCategory: "Add Category",
+    editCategory: "Edit Category",
+    logo: "Logo",
+    logoUrl: "Logo URL (Optional)",
+    productsCount: "Products Count",
+
+    // Storefront
+    sections: "Home Sections",
+    addSection: "Add Section",
+
+    // Form / Modal
+    addProductTitle: "Add New Product",
+    editProductTitle: "Edit Product",
+    productName: "Product Name",
+    productNamePlaceholder: "e.g. Wireless Headphones",
+    title: "Title",
+    description: "Description",
+    descriptionPlaceholder: "Brief description of the product…",
+    priceLabel: "Price ($)",
+    pricePlaceholder: "0.00",
+    stockLabel: "Stock Quantity",
+    stockPlaceholder: "0",
+    imagesLabel: "Image URLs",
+    imagesPlaceholder: "https://example.com/image.jpg",
+    addImageUrl: "Add Image URL",
+    removeImage: "Remove",
+    cancel: "Cancel",
+    save: "Save Changes",
+    create: "Create",
+    saving: "Saving…",
+    actions: "Actions",
+    requiredField: "Please fill required fields",
+
     // Orders
     orderId: "Order ID",
     customer: "Customer",
@@ -244,6 +301,7 @@ export const t = {
     quantity: "Quantity",
     address: "Address",
     currentStatus: "Current Status",
+
     // Products
     price: "Price",
     stock: "Stock",
@@ -256,25 +314,7 @@ export const t = {
     outOfStock: "Out of Stock",
     edit: "Edit",
     delete: "Delete",
-    // Form / Modal
-    addProductTitle: "Add New Product",
-    editProductTitle: "Edit Product",
-    productName: "Product Name",
-    productNamePlaceholder: "e.g. Wireless Headphones",
-    description: "Description",
-    descriptionPlaceholder: "Brief description of the product…",
-    priceLabel: "Price (SAR)",
-    pricePlaceholder: "0.00",
-    stockLabel: "Stock Quantity",
-    stockPlaceholder: "0",
-    imagesLabel: "Image URLs",
-    imagesPlaceholder: "https://example.com/image.jpg",
-    addImageUrl: "Add Image URL",
-    removeImage: "Remove",
-    cancel: "Cancel",
-    save: "Save Changes",
-    create: "Add Product",
-    saving: "Saving…",
+
     // Customers
     customerName: "Customer Name",
     email: "Email",
@@ -349,18 +389,19 @@ export const t = {
 
     // Delete confirm
     deleteTitle: "Delete Product",
+    confirmDelete: "Confirm Delete",
     deleteConfirm: "Are you sure you want to delete",
     deleteNote: "This action cannot be undone.",
     deleteBtn: "Delete",
     deleting: "Deleting…",
 
     // Toast
-    createdSuccess: "Product added successfully!",
-    updatedSuccess: "Product updated successfully!",
-    deletedSuccess: "Product deleted successfully!",
+    createdSuccess: "Added successfully!",
+    updatedSuccess: "Updated successfully!",
+    deletedSuccess: "Deleted successfully!",
     errorOccurred: "Something went wrong. Please try again.",
 
-    // English
+    // Media
     maxImagesError: "Maximum 5 images per upload",
     uploading: "Uploading images...",
     imageUploadHint:

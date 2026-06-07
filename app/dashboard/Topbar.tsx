@@ -1,24 +1,16 @@
+"use client";
+
 import { Menu, Bell, Search, Globe } from "lucide-react";
 import { useDashboard } from "./DashboardContext";
-import type { NavItem } from "./types";
-
-const pageTitles: Record<NavItem, { ar: string; en: string }> = {
-  home: { ar: "الرئيسية", en: "Dashboard" },
-  orders: { ar: "الطلبات", en: "Orders" },
-  products: { ar: "المنتجات", en: "Products" },
-  customers: { ar: "العملاء", en: "Customers" },
-  analytics: { ar: "الإحصاءات", en: "Analytics" },
-  settings: { ar: "الإعدادات", en: "Settings" },
-  ai: { ar: "الذكاء الاصطناعي", en: "AI Assistant" },
-  coupons: { ar: "كوبونات الخصم", en: "Discount Coupons" },
-  partnerships: { ar: "الشراكات", en: "Partnerships" },
-  occasions: { ar: "المناسبات", en: "Occasions" },
-};
 
 export default function Topbar() {
-  const { activeNav, lang, setLang, setIsSidebarOpen } = useDashboard();
+  const { activeNav, lang, setLang, setIsSidebarOpen, tr } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
-  const title = pageTitles[activeNav][lang];
+
+  // FIX: Instead of a hardcoded object, pull the title directly from the translation object.
+  // We use activeNav as the key to look up the translation.
+  // We add a fallback (activeNav) just in case a key is missing.
+  const title = tr[activeNav as keyof typeof tr] || activeNav;
 
   return (
     <header
@@ -34,7 +26,9 @@ export default function Topbar() {
       </button>
 
       {/* Title */}
-      <h1 className="font-bold text-[rgb(60_28_84)] text-lg flex-1">{title}</h1>
+      <h1 className="font-bold text-[rgb(60_28_84)] text-lg flex-1">
+        {String(title)}
+      </h1>
 
       {/* Search */}
       <div className="hidden md:flex items-center gap-2 bg-[rgb(244_242_245)] rounded-xl px-3 py-2 w-56">
@@ -47,7 +41,7 @@ export default function Topbar() {
         />
       </div>
 
-      {/* Language toggle (NOW PERSISTS) */}
+      {/* Language toggle */}
       <button
         onClick={() => setLang(lang === "ar" ? "en" : "ar")}
         className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)] transition-all text-sm font-semibold"

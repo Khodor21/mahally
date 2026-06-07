@@ -53,10 +53,10 @@ export default function ProductGrid({
   }, [products]);
 
   return (
-    <section className="w-full space-y-5">
+    <section className="w-full py-8 md:py-16 px-4 md:px-8 mx-auto overflow-hidden">
       {isMono && bannerSrc && (
-        <div className="flex flex-col lg:flex-row gap-5">
-          <div className="lg:w-[28%] w-full rounded-2xl overflow-hidden border border-[rgb(244_242_245)]">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
+          <div className="lg:w-[28%] w-full rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0">
             <img
               src={bannerSrc}
               alt=""
@@ -64,23 +64,25 @@ export default function ProductGrid({
             />
           </div>
 
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-[rgb(60_28_84)]">
-                {title}
-              </h2>
-
-              <button className="flex items-center gap-1 text-sm font-semibold text-[rgb(60_28_84)]/60">
+          <div className="flex-1 flex flex-col justify-center min-w-0">
+            <div className="flex items-center justify-between mb-6 px-1">
+              <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+              <button className="flex items-center gap-1 text-sm font-semibold text-gray-500 hover:text-black transition-colors">
                 View All
-                <MdOutlineKeyboardArrowRight size={18} />
+                <MdOutlineKeyboardArrowRight size={20} />
               </button>
             </div>
 
-            <div ref={scrollRef} className="flex gap-4 overflow-x-auto pb-2">
+            <div
+              ref={scrollRef}
+              // items-stretch ensures all flex children match the height of the tallest item
+              className="flex gap-2 overflow-x-auto pb-4 pt-2 px-1 items-stretch snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            >
               {mappedProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="flex-none w-[50vw] sm:w-[45vw] md:w-[31vw] lg:w-[20%]"
+                  // Added h-full to make the wrapper fill the stretched height
+                  className="flex-none h-auto w-[75vw] sm:w-[45vw] md:w-[32vw] lg:w-[calc(28.5%-1rem)] snap-start"
                 >
                   <ProductCard product={product} />
                 </div>
@@ -91,26 +93,31 @@ export default function ProductGrid({
       )}
 
       {!isMono && (
-        <>
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-[rgb(60_28_84)]">{title}</h2>
-
-            <button className="text-sm font-semibold text-[rgb(60_28_84)]/60">
-              View All
-            </button>
+        <div className="flex flex-col w-full min-w-0">
+          {/* Centered Title */}
+          <div className="flex justify-center mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center">
+              {title}
+            </h2>
           </div>
 
-          <div ref={scrollRef} className="flex gap-4 overflow-x-auto pb-2">
+          {/* Product Carousel / Grid */}
+          <div
+            ref={scrollRef}
+            // Reduced gap slightly, added items-stretch for uniform card heights
+            className="flex gap-3 md:gap-4 overflow-x-auto pb-6 pt-2 px-1 items-stretch snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          >
             {mappedProducts.map((product) => (
               <div
                 key={product.id}
-                className="flex-none w-[72vw] sm:w-[45vw] md:w-[31vw] lg:w-[260px]"
+                // Added h-full so the wrapper matches the stretched row height
+                className="flex-none h-auto w-[75vw] sm:w-[45vw] md:w-[31vw] lg:w-[calc(22.22%-1rem)] snap-start"
               >
                 <ProductCard product={product} />
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
     </section>
   );

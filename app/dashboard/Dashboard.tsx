@@ -14,6 +14,8 @@ import SettingsPanel from "./panels/SettingsPanel";
 import CouponsPanel from "./panels/CouponsPanel";
 import OccasionsPanel from "./panels/OccasionsPanel";
 import PartnershipsPanel from "./panels/PartnershipsPanel";
+import CategoriesPanel from "./panels/CategoriesPanel";
+import StoreFrontPanel from "./panels/StoreFrontPanel";
 import type { StoreData } from "./types";
 
 interface DashboardProps {
@@ -40,8 +42,12 @@ export default function Dashboard({ store }: DashboardProps) {
         return <AnalyticsPanel />;
       case "settings":
         return <SettingsPanel />;
+      case "categories":
+        return <CategoriesPanel />;
       case "ai":
         return <AIChatPanel />;
+      case "storefront":
+        return <StoreFrontPanel />;
       case "coupons":
         return <CouponsPanel />;
       case "occasions":
