@@ -102,3 +102,10 @@ export interface ApiErrorResponse {
   message: string;
   field?: string;
 }
+
+export type {
+  StoreData as ServerStoreData,
+  Order as ApiOrder,
+  Customer as ApiCustomer,
+  Product as ApiProduct,
+} from "@/types/api";

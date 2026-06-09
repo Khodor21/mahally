@@ -1,35 +1,57 @@
-export type Lang = "ar" | "en";
+/**
+ * @/lib/api.ts - Centralized API Layer
+ *
+ * Single source of truth for all API calls across the dashboard.
+ * All panels should import from here, not call fetch() directly.
+ */
 
-export interface Product {
-  id: string;
-  store_id: string;
-  title: string;
-  description: string;
-  price: number;
-  stock: number;
-  images: string[];
-  created_at: string;
+import {
+  Product,
+  ProductFormData,
+  Order,
+  Customer,
+  Coupon,
+  Category,
+  StoreData,
+  HeroBanner,
+} from "@/types/api";
+
+// ============================================
+// BASE RESPONSE TYPE
+// ============================================
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
 }
 
-export interface ProductFormData {
-  title: string;
-  description: string;
-  price: string;
-  stock: string;
-  images: string[];
-}
-
-export async function getProducts(): Promise<Product[]> {
-  const res = await fetch("/api/products");
-  if (!res.ok && res.headers.get("content-type")?.includes("text/html")) {
-    throw new Error(`Server error: ${res.status}`);
-  }
+// ============================================
+// ERROR HANDLING HELPER
+// ============================================
+async function handleApiResponse<T>(res: Response): Promise<T> {
   const json = await res.json();
-  if (!json.success) throw new Error(json.message);
+
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || `API Error: ${res.status}`);
+  }
+
+  if (!json.data) {
+    throw new Error("No data in response");
+  }
+
   return json.data;
 }
 
-// POST /api/products
+// ============================================
+// PRODUCTS
+// ============================================
+export async function getProducts(): Promise<Product[]> {
+  const res = await fetch("/api/products", { cache: "no-store" });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.message);
+  return json.data || [];
+}
+
 export async function createProduct(form: ProductFormData): Promise<Product> {
   const res = await fetch("/api/products", {
     method: "POST",
@@ -42,12 +64,9 @@ export async function createProduct(form: ProductFormData): Promise<Product> {
       images: form.images,
     }),
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message);
-  return json.data;
+  return handleApiResponse(res);
 }
 
-// PATCH /api/products
 export async function updateProduct(
   id: string,
   form: ProductFormData,
@@ -64,49 +83,335 @@ export async function updateProduct(
       images: form.images,
     }),
   });
-  const json = await res.json();
-  if (!json.success) throw new Error(json.message);
-  return json.data;
+  return handleApiResponse(res);
 }
 
-// DELETE /api/products?id=...
 export async function deleteProduct(id: string): Promise<void> {
   const res = await fetch(`/api/products?id=${id}`, { method: "DELETE" });
   const json = await res.json();
   if (!json.success) throw new Error(json.message);
 }
 
-export async function getOrders(storeId: string) {
+// ============================================
+// ORDERS
+// ============================================
+export async function getOrders(storeId: string): Promise<Order[]> {
   const res = await fetch(`/api/checkout?storeId=${storeId}`, {
     cache: "no-store",
   });
-
   const data = await res.json();
 
   if (!res.ok || !data.success) {
     throw new Error(data.message || "Failed to fetch orders");
   }
 
-  return data.data;
+  return data.data || [];
 }
 
-export async function updateOrderStatus(orderId: string, status: string) {
+export async function updateOrderStatus(
+  orderId: string,
+  status: string,
+): Promise<Order> {
   const res = await fetch("/api/checkout", {
     method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId, status }),
+  });
+
+  return handleApiResponse(res);
+}
+
+// ============================================
+// CUSTOMERS
+// ============================================
+export async function getCustomers(): Promise<Customer[]> {
+  const res = await fetch("/api/store-customers", {
+    cache: "no-store",
+  });
+  const data = await res.json();
+
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || "Failed to fetch customers");
+  }
+
+  return data.data || [];
+}
+
+// ============================================
+// COUPONS
+// ============================================
+export async function getCoupons(): Promise<Coupon[]> {
+  const res = await fetch("/api/coupons", { cache: "no-store" });
+  const data = await res.json();
+
+  if (!data.success) {
+    throw new Error(data.message || "Failed to load coupons");
+  }
+
+  return data.data || [];
+}
+
+export interface CouponFormData {
+  code: string;
+  type: "percentage" | "fixed";
+  discount: number;
+  description?: string;
+  minPurchase: number;
+  maxUses: number;
+  maxUsesPerCustomer: number;
+  expiryDate: string;
+  isActive: boolean;
+}
+
+export async function createCoupon(form: CouponFormData): Promise<Coupon> {
+  const res = await fetch("/api/coupons", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      orderId,
-      status,
+      code: form.code,
+      type: form.type,
+      discount: parseFloat(form.discount.toString()),
+      description: form.description,
+      min_purchase: parseFloat(form.minPurchase.toString()),
+      max_uses: parseInt(form.maxUses.toString()),
+      max_uses_per_customer: parseInt(form.maxUsesPerCustomer.toString()),
+      expiry_date: new Date(form.expiryDate).toISOString(),
+      is_active: form.isActive,
+    }),
+  });
+
+  return handleApiResponse(res);
+}
+
+export async function updateCoupon(
+  couponId: string,
+  form: CouponFormData,
+): Promise<Coupon> {
+  const res = await fetch("/api/coupons", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      couponId,
+      code: form.code,
+      type: form.type,
+      discount: parseFloat(form.discount.toString()),
+      description: form.description,
+      min_purchase: parseFloat(form.minPurchase.toString()),
+      max_uses: parseInt(form.maxUses.toString()),
+      max_uses_per_customer: parseInt(form.maxUsesPerCustomer.toString()),
+      expiry_date: new Date(form.expiryDate).toISOString(),
+      is_active: form.isActive,
+    }),
+  });
+
+  return handleApiResponse(res);
+}
+
+export async function deleteCoupon(couponId: string): Promise<void> {
+  const res = await fetch("/api/coupons", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ couponId }),
+  });
+
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message || "Failed to delete coupon");
+}
+
+export async function toggleCouponStatus(
+  couponId: string,
+  isActive: boolean,
+): Promise<Coupon> {
+  const res = await fetch("/api/coupons", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ couponId, is_active: isActive }),
+  });
+
+  return handleApiResponse(res);
+}
+
+// ============================================
+// CATEGORIES
+// ============================================
+export async function getCategories(storeId: string): Promise<Category[]> {
+  const res = await fetch(`/api/categories?store_id=${storeId}`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) throw new Error("Failed to fetch categories");
+
+  return res.json();
+}
+
+export interface CategoryFormData {
+  title: string;
+  logo_url?: string;
+}
+
+export async function createCategory(
+  storeId: string,
+  data: CategoryFormData,
+): Promise<Category> {
+  const res = await fetch("/api/categories", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: data.title,
+      logo_url: data.logo_url,
+      store_id: storeId,
+    }),
+  });
+
+  if (!res.ok) throw new Error("Failed to create category");
+  return res.json();
+}
+
+export async function updateCategory(
+  categoryId: string,
+  data: CategoryFormData,
+): Promise<Category> {
+  const res = await fetch(`/api/categories/${categoryId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) throw new Error("Failed to update category");
+  return res.json();
+}
+
+export async function deleteCategory(
+  categoryId: string,
+  storeId: string,
+): Promise<void> {
+  const res = await fetch(`/api/categories/${categoryId}?store_id=${storeId}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) throw new Error("Failed to delete category");
+}
+
+// ============================================
+// STORE / SETTINGS
+// ============================================
+export async function getStore(): Promise<StoreData> {
+  const res = await fetch("/api/stores", { cache: "no-store" });
+  const data = await res.json();
+
+  if (!res.ok || !data.store) {
+    throw new Error(data.message || "Failed to fetch store");
+  }
+
+  return data.store;
+}
+
+export async function updateStore(
+  updates: Partial<StoreData>,
+): Promise<StoreData> {
+  const res = await fetch("/api/stores", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.store) {
+    throw new Error(data.message || "Failed to update store");
+  }
+
+  return data.store;
+}
+
+// ============================================
+// HERO BANNERS
+// ============================================
+export interface HeroBannerFormData {
+  image: string;
+  active?: boolean;
+  order?: number;
+}
+
+export async function getHeroBanners(storeId: string): Promise<HeroBanner[]> {
+  const res = await fetch(`/api/hero?storeId=${storeId}&admin=true`, {
+    cache: "no-store",
+  });
+  const data = await res.json();
+
+  if (!data.success) {
+    throw new Error(data.message || "Failed to fetch banners");
+  }
+
+  return data.data || [];
+}
+
+export async function createHeroBanner(
+  storeId: string,
+  form: HeroBannerFormData,
+): Promise<HeroBanner> {
+  const res = await fetch("/api/hero", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      store_id: storeId,
+      image: form.image,
+      active: form.active !== false,
+      order: form.order || 0,
     }),
   });
 
   const data = await res.json();
-
-  if (!res.ok || !data.success) {
-    throw new Error(data.message || "Failed to update order");
-  }
-
+  if (!data.success) throw new Error(data.message);
   return data.data;
+}
+
+export async function updateHeroBanner(
+  bannerId: string,
+  form: HeroBannerFormData,
+): Promise<HeroBanner> {
+  const res = await fetch(`/api/hero/${bannerId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(form),
+  });
+
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
+export async function deleteHeroBanner(bannerId: string): Promise<void> {
+  const res = await fetch(`/api/hero/${bannerId}`, {
+    method: "DELETE",
+  });
+
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
+}
+
+export async function toggleHeroBanner(
+  bannerId: string,
+  active: boolean,
+): Promise<void> {
+  const res = await fetch(`/api/hero/${bannerId}/toggle`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ active }),
+  });
+
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
+}
+
+export async function reorderHeroBanners(
+  banners: Array<{ id: string; order: number }>,
+): Promise<void> {
+  const res = await fetch("/api/hero/reorder", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ banners }),
+  });
+
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
 }

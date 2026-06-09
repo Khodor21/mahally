@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+"use client";
+
+import { useState } from "react";
 import { Search, Plus, RefreshCw } from "lucide-react";
-import type { Product, ProductFormData } from "../types";
+import type { Product, ProductFormData } from "@/types/api";
 import {
-  getProducts,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-} from "@/lib/api";
+  useProducts,
+  useProductCreate,
+  useProductUpdate,
+  useProductDelete,
+} from "@/hooks/useApi";
 import { useDashboard } from "../DashboardContext";
 import ProductCard from "../components/ProductCard";
 import ProductFormModal from "../components/ProductFormModal";
@@ -25,35 +27,23 @@ export default function ProductsPanel() {
   // ✅ FIX: loosen type for runtime translations (IMPORTANT)
   const safeTr = tr as Record<string, string>;
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: products, loading, retry: fetchProducts } = useProducts();
+  const productsSafe: Product[] = products ?? [];
+  const { execute: createProduct, loading: createLoading } = useProductCreate();
+  const { execute: updateProduct, loading: updateLoading } = useProductUpdate();
+  const { execute: deleteProduct, loading: deleteLoading } = useProductDelete();
+
   const [search, setSearch] = useState("");
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [formTarget, setFormTarget] = useState<Product | null>(null);
-  const [formLoading, setFormLoading] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [toast, setToast] = useState<ToastState | null>(null);
 
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getProducts();
-      setProducts(data);
-    } catch {
-      showToast(safeTr.errorOccurred, "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [safeTr.errorOccurred]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  const formLoading = createLoading || updateLoading;
 
   function showToast(message: string, type: "success" | "error") {
     setToast({ message, type });
@@ -72,24 +62,18 @@ export default function ProductsPanel() {
   }
 
   async function handleFormSubmit(data: ProductFormData) {
-    setFormLoading(true);
     try {
       if (formMode === "create") {
-        const created = await createProduct(data);
-        setProducts((prev) => [created, ...prev]);
+        await createProduct(data);
         showToast(safeTr.createdSuccess, "success");
       } else if (formTarget) {
-        const updated = await updateProduct(formTarget.id, data);
-        setProducts((prev) =>
-          prev.map((p) => (p.id === updated.id ? updated : p)),
-        );
+        await updateProduct(formTarget.id, data);
         showToast(safeTr.updatedSuccess, "success");
       }
       setFormOpen(false);
+      fetchProducts(); // Refresh the product list via hook
     } catch {
       showToast(safeTr.errorOccurred, "error");
-    } finally {
-      setFormLoading(false);
     }
   }
 
@@ -99,27 +83,26 @@ export default function ProductsPanel() {
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    setDeleteLoading(true);
     try {
       await deleteProduct(deleteTarget.id);
-      setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
       showToast(safeTr.deletedSuccess, "success");
       setDeleteTarget(null);
+      fetchProducts(); // Refresh the product list via hook
     } catch {
       showToast(safeTr.errorOccurred, "error");
-    } finally {
-      setDeleteLoading(false);
     }
   }
 
-  const filtered = products.filter(
+  const filtered = productsSafe.filter(
     (p) =>
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       p.description?.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const totalInStock = products.filter((p) => p.stock > 10).length;
-  const totalLow = products.filter((p) => p.stock > 0 && p.stock <= 10).length;
+  const totalInStock = productsSafe.filter((p) => p.stock > 10).length;
+  const totalLow = productsSafe.filter(
+    (p) => p.stock > 0 && p.stock <= 10,
+  ).length;
 
   return (
     <div className="space-y-6" dir={dir}>
@@ -135,7 +118,7 @@ export default function ProductsPanel() {
           : [
               {
                 label: safeTr.totalProducts,
-                value: products.length,
+                value: productsSafe.length,
                 color: "bg-[rgb(60_28_84)] text-white",
               },
               {

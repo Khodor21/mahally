@@ -1,60 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 
 import { useDashboard } from "../DashboardContext";
-
-type Customer = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  phone: string;
-  governorate: string;
-  created_at: string;
-};
+import { useCustomers } from "@/hooks/useApi";
 
 export default function CustomersPanel() {
   const { tr, lang } = useDashboard();
-
   const dir = lang === "ar" ? "rtl" : "ltr";
 
+  // Using the hook to manage data and loading state
+  const { data, loading } = useCustomers();
+  const customers = data ?? [];
+
   const [search, setSearch] = useState("");
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Data fetching is back inside the component so it loads automatically
-  async function fetchCustomers() {
-    try {
-      setLoading(true);
-
-      const res = await fetch("/api/store-customers", {
-        cache: "no-store",
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        return;
-      }
-
-      setCustomers(data.data || []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchCustomers();
-  }, []);
 
   const filtered = useMemo(() => {
     return customers.filter((customer) => {
       const fullName =
         `${customer.first_name} ${customer.last_name}`.toLowerCase();
-
       return (
         fullName.includes(search.toLowerCase()) ||
         customer.phone.includes(search)
@@ -62,6 +27,7 @@ export default function CustomersPanel() {
     });
   }, [customers, search]);
 
+  // Derived metrics
   const activeCustomers = customers.length;
   const inactiveCustomers = 0;
 
@@ -70,18 +36,13 @@ export default function CustomersPanel() {
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 animate-fade-up">
         {loading
-          ? // Skeleton for Cards
-            [1, 2, 3].map((i) => (
+          ? [1, 2, 3].map((i) => (
               <div
                 key={i}
                 className="rounded-2xl p-5 bg-[rgb(244_242_245)] animate-pulse"
-              >
-                <div className="h-8 w-1/3 rounded bg-gray-300/40 mb-2"></div>
-                <div className="h-4 w-2/3 rounded bg-gray-300/40 mt-1"></div>
-              </div>
+              />
             ))
-          : // Actual Cards
-            [
+          : [
               {
                 label: tr.totalCustomers,
                 value: customers.length,
@@ -144,7 +105,6 @@ export default function CustomersPanel() {
 
             <tbody>
               {loading ? (
-                // Skeleton for Table Rows
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr
                     key={i}
@@ -179,7 +139,6 @@ export default function CustomersPanel() {
               ) : (
                 filtered.map((customer) => {
                   const fullName = `${customer.first_name} ${customer.last_name}`;
-
                   return (
                     <tr
                       key={customer.id}
@@ -190,21 +149,17 @@ export default function CustomersPanel() {
                           <div className="w-8 h-8 rounded-xl bg-[rgb(60_28_84)] text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
                             {fullName[0]}
                           </div>
-
                           <span className="font-semibold text-[rgb(60_28_84)] whitespace-nowrap">
                             {fullName}
                           </span>
                         </div>
                       </td>
-
                       <td className="px-5 py-4 text-[rgb(60_28_84)]/60 font-mono text-xs whitespace-nowrap">
                         {customer.phone}
                       </td>
-
                       <td className="px-5 py-4 text-[rgb(60_28_84)] whitespace-nowrap">
                         {customer.governorate}
                       </td>
-
                       <td className="px-5 py-4 text-[rgb(60_28_84)]/50 text-xs whitespace-nowrap">
                         {new Date(customer.created_at).toLocaleDateString(
                           lang === "ar" ? "ar-LB" : "en-US",

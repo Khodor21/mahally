@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   TrendingUp,
   ShoppingCart,
@@ -28,6 +28,7 @@ import {
 } from "recharts";
 
 import { useDashboard } from "../DashboardContext";
+import { useOrders, useProducts, useCustomers } from "@/hooks/useApi";
 import type { NavItem, StoreData } from "../types";
 
 const statusColors: Record<string, string> = {
@@ -36,28 +37,6 @@ const statusColors: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
   cancelled: "bg-red-100 text-red-700",
 };
-
-interface Order {
-  id: string;
-  customer_name: string;
-  total: number;
-  status: "pending" | "processing" | "completed" | "cancelled";
-  created_at: string;
-  order_items?: Array<{ id: string; qty: number }>;
-}
-
-interface Product {
-  id: string;
-  title: string;
-  store_id: string;
-}
-
-interface Customer {
-  id: string;
-  first_name?: string;
-  last_name?: string;
-  name?: string;
-}
 
 interface ChartDataPoint {
   month: string;
@@ -75,127 +54,50 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   const [copied, setCopied] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-
   const storeUrl = `${store.slug}.mysaas.com`;
 
-  // Fetch all data on component mount
-  useEffect(() => {
-    const fetchAllData = async () => {
-      if (!store?.id) {
-        setLoading(false);
-        return;
-      }
+  const { data: ordersData, loading: ordersLoading } = useOrders(store.id);
+  const { data: productsData, loading: productsLoading } = useProducts();
+  const { data: customersData, loading: customersLoading } = useCustomers();
 
-      setLoading(true);
-      try {
-        // Fetch orders
-        const ordersRes = await fetch(`/api/checkout?storeId=${store.id}`);
-        const ordersData = await ordersRes.json();
-        setOrders(ordersData.data || []);
+  const orders = ordersData ?? [];
+  const products = productsData ?? [];
+  const customers = customersData ?? [];
+  const loading = ordersLoading || productsLoading || customersLoading;
 
-        // Fetch products
-        const productsRes = await fetch(`/api/products?storeId=${store.id}`);
-        const productsData = await productsRes.json();
-        setProducts(productsData.data || []);
+  // Generate chart data dynamically
+  const chartData = useMemo(() => {
+    const monthsAr = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+    const monthsEn = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-        // Fetch customers from the correct endpoint
-        try {
-          const customersRes = await fetch(`/api/store-customers`);
-          const customersData = await customersRes.json();
-          setCustomers(customersData.data || []);
-        } catch (error) {
-          console.error("Error fetching customers:", error);
-          setCustomers([]);
-        }
-
-        // Generate chart data from orders (last 7 months)
-        generateChartData(ordersData.data || []);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAllData();
-  }, [store?.id]);
-
-  // Generate chart data from orders - LAST 7 MONTHS (DYNAMIC)
-  const generateChartData = (ordersList: Order[]) => {
-    const monthsAr = [
-      "يناير",
-      "فبراير",
-      "مارس",
-      "أبريل",
-      "مايو",
-      "يونيو",
-      "يوليو",
-      "أغسطس",
-      "سبتمبر",
-      "أكتوبر",
-      "نوفمبر",
-      "ديسمبر",
-    ];
-    const monthsEn = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-
-    // Get last 7 months dynamically from today
     const now = new Date();
     const months: Array<{ key: string; ar: string; date: Date }> = [];
-
     for (let i = 6; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthIndex = date.getMonth();
-      months.push({
-        key: monthsEn[monthIndex],
-        ar: monthsAr[monthIndex],
-        date,
-      });
+      months.push({ key: monthsEn[date.getMonth()], ar: monthsAr[date.getMonth()], date });
     }
 
-    const monthlyData: Record<string, number> = {};
-    months.forEach((m) => {
-      monthlyData[m.key] = 0;
-    });
+    const monthlyData: Record<string, number> = Object.fromEntries(months.map(m => [m.key, 0]));
 
-    // Sum sales by month (include all non-cancelled orders)
-    ordersList.forEach((order) => {
+    orders.forEach((order) => {
       if (order.status !== "cancelled") {
         const orderDate = new Date(order.created_at);
-        const monthIndex = orderDate.getMonth();
-        const monthKey = monthsEn[monthIndex];
-        monthlyData[monthKey] += Number(order.total || 0);
+        const monthKey = monthsEn[orderDate.getMonth()];
+        if (monthlyData.hasOwnProperty(monthKey)) {
+          monthlyData[monthKey] += Number(order.total || 0);
+        }
       }
     });
 
-    // Create chart data
-    const data = months.map((m) => ({
+    return months.map((m) => ({
       month: m.ar,
       monthEn: m.key,
       sales: monthlyData[m.key],
     }));
+  }, [orders]);
 
-    setChartData(data);
-  };
+  const chartKey = lang === "ar" ? "month" : "monthEn";
 
-  // Copy store link to clipboard
   const copyLink = () => {
     navigator.clipboard.writeText(storeUrl);
     setCopied(true);
@@ -210,164 +112,39 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
   };
 
   const quickActions = [
-    {
-      label: tr.addProduct || "إضافة منتج",
-      icon: Plus,
-      nav: "products" as NavItem,
-      color: "bg-[rgb(60_28_84)] text-white hover:bg-[rgb(60_28_84)]/90",
-    },
-    {
-      label: tr.viewOrders || "عرض الطلبات",
-      icon: Eye,
-      nav: "orders" as NavItem,
-      color:
-        "bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)]",
-    },
-    {
-      label: tr.createCoupon || "إنشاء كوبون",
-      icon: Ticket,
-      nav: "coupons" as NavItem,
-      color:
-        "bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)]",
-    },
-    {
-      label: tr.manageStore || "إدارة المتجر",
-      icon: Store,
-      nav: "settings" as NavItem,
-      color:
-        "bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)]",
-    },
+    { label: tr.addProduct || "إضافة منتج", icon: Plus, nav: "products" as NavItem, color: "bg-[rgb(60_28_84)] text-white hover:bg-[rgb(60_28_84)]/90" },
+    { label: tr.viewOrders || "عرض الطلبات", icon: Eye, nav: "orders" as NavItem, color: "bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)]" },
+    { label: tr.createCoupon || "إنشاء كوبون", icon: Ticket, nav: "coupons" as NavItem, color: "bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)]" },
+    { label: tr.manageStore || "إدارة المتجر", icon: Store, nav: "settings" as NavItem, color: "bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)]" },
   ];
 
-  // Calculate statistics from real data
   const stats = useMemo(() => {
-    // 1. Setup Dates for Month-over-Month Comparison
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+    const isCurrentMonth = (d: string) => new Date(d).getMonth() === now.getMonth() && new Date(d).getFullYear() === now.getFullYear();
+    const isLastMonth = (d: string) => new Date(d).getMonth() === now.getMonth() - 1 && new Date(d).getFullYear() === now.getFullYear();
+    
+    const calculateGrowth = (cur: number, prev: number) => prev === 0 ? (cur > 0 ? 100 : 0) : Number((((cur - prev) / prev) * 100).toFixed(1));
 
-    // Get exact previous month (handles year wrap-around automatically)
-    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonth = lastMonthDate.getMonth();
-    const lastMonthYear = lastMonthDate.getFullYear();
+    let curRev = 0, lastRev = 0, curOrds = 0, lastOrds = 0;
+    const curCusts = new Set<string>(), lastCusts = new Set<string>();
 
-    // Helper functions
-    const isCurrentMonth = (dateStr: string) => {
-      const d = new Date(dateStr);
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    };
-
-    const isLastMonth = (dateStr: string) => {
-      const d = new Date(dateStr);
-      return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
-    };
-
-    const calculateGrowth = (current: number, previous: number) => {
-      if (previous === 0) return current > 0 ? 100 : 0; // 100% if first month with sales
-      return Number((((current - previous) / previous) * 100).toFixed(1));
-    };
-
-    // 2. Base Totals
-    const activeOrders = orders.filter((o) => o.status !== "cancelled");
-    const totalRevenue = activeOrders.reduce(
-      (sum, o) => sum + Number(o.total || 0),
-      0,
-    );
-    const totalOrders = orders.length;
-    const uniqueCustomers =
-      customers.length > 0
-        ? customers.length
-        : new Set(orders.map((o) => o.customer_name)).size;
-
-    // 3. Calculate Current vs Previous Month Data
-    let currentMonthRev = 0,
-      lastMonthRev = 0;
-    let currentMonthOrds = 0,
-      lastMonthOrds = 0;
-    const currentMonthCusts = new Set<string>();
-    const lastMonthCusts = new Set<string>();
-
-    orders.forEach((o) => {
-      const amount = Number(o.total || 0);
-      const isCur = isCurrentMonth(o.created_at);
-      const isPrev = isLastMonth(o.created_at);
-      const notCancelled = o.status !== "cancelled";
-
-      if (isCur) {
-        currentMonthOrds++;
-        currentMonthCusts.add(o.customer_name);
-        if (notCancelled) currentMonthRev += amount;
-      } else if (isPrev) {
-        lastMonthOrds++;
-        lastMonthCusts.add(o.customer_name);
-        if (notCancelled) lastMonthRev += amount;
+    orders.forEach(o => {
+      if (isCurrentMonth(o.created_at)) {
+        curOrds++; curCusts.add(o.customer_name); if (o.status !== "cancelled") curRev += Number(o.total || 0);
+      } else if (isLastMonth(o.created_at)) {
+        lastOrds++; lastCusts.add(o.customer_name); if (o.status !== "cancelled") lastRev += Number(o.total || 0);
       }
     });
 
-    // 4. Generate Professional Growth Percentages
-    const revenueChange = calculateGrowth(currentMonthRev, lastMonthRev);
-    const ordersChange = calculateGrowth(currentMonthOrds, lastMonthOrds);
-    const customersChange = calculateGrowth(
-      currentMonthCusts.size,
-      lastMonthCusts.size,
-    );
-
-    const productsChange = 0;
-
     return [
-      {
-        label: tr.totalRevenue || "إجمالي الإيرادات",
-        value: totalRevenue.toLocaleString("en-US", {
-          maximumFractionDigits: 2,
-        }),
-        unit: "$",
-        change: revenueChange,
-        icon: TrendingUp,
-        color: "bg-[rgb(60_28_84)]",
-        iconColor: "text-white",
-      },
-      {
-        label: tr.totalOrders || "إجمالي الطلبات",
-        value: totalOrders.toString(),
-        unit: tr.order || "طلب",
-        change: ordersChange,
-        icon: ShoppingCart,
-        color: "bg-[rgb(244_242_245)]",
-        iconColor: "text-[rgb(60_28_84)]",
-      },
-      {
-        label: tr.totalCustomers || "إجمالي العملاء",
-        value: uniqueCustomers.toString(),
-        unit: "",
-        change: customersChange,
-        icon: Users,
-        color: "bg-[rgb(244_242_245)]",
-        iconColor: "text-[rgb(60_28_84)]",
-      },
-      {
-        label: tr.totalProducts || "إجمالي المنتجات",
-        value: products.length.toString(),
-        unit: tr.piece || "قطعة",
-        change: productsChange,
-        icon: Package,
-        color: "bg-[rgb(244_242_245)]",
-        iconColor: "text-[rgb(60_28_84)]",
-      },
+      { label: tr.totalRevenue || "إجمالي الإيرادات", value: orders.reduce((sum, o) => sum + (o.status !== "cancelled" ? Number(o.total) : 0), 0).toLocaleString(), unit: "$", change: calculateGrowth(curRev, lastRev), icon: TrendingUp, color: "bg-[rgb(60_28_84)]", iconColor: "text-white" },
+      { label: tr.totalOrders || "إجمالي الطلبات", value: orders.length.toString(), unit: tr.order || "طلب", change: calculateGrowth(curOrds, lastOrds), icon: ShoppingCart, color: "bg-[rgb(244_242_245)]", iconColor: "text-[rgb(60_28_84)]" },
+      { label: tr.totalCustomers || "إجمالي العملاء", value: customers.length.toString(), unit: "", change: calculateGrowth(curCusts.size, lastCusts.size), icon: Users, color: "bg-[rgb(244_242_245)]", iconColor: "text-[rgb(60_28_84)]" },
+      { label: tr.totalProducts || "إجمالي المنتجات", value: products.length.toString(), unit: tr.piece || "قطعة", change: 0, icon: Package, color: "bg-[rgb(244_242_245)]", iconColor: "text-[rgb(60_28_84)]" },
     ];
   }, [orders, products, customers, tr]);
 
-  const chartKey = lang === "ar" ? "month" : "monthEn";
-
-  // Get recent 5 orders
-  const recentOrders = useMemo(() => {
-    return orders
-      .sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      )
-      .slice(0, 5);
-  }, [orders]);
-
+  const recentOrders = useMemo(() => [...orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5), [orders]);
   return (
     <div className="space-y-6" dir={dir}>
       {/* Welcome */}

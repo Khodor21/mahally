@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Search,
-  Filter,
   Eye,
   RefreshCw,
   X,
@@ -15,37 +14,9 @@ import {
 } from "lucide-react";
 
 import { useDashboard } from "../DashboardContext";
-import { getOrders } from "@/lib/api";
+import { useOrders, useOrderStatusUpdate } from "@/hooks/useApi";
 import Toast from "../components/Toast";
-
-interface OrderItem {
-  id: string;
-  qty: number;
-  title?: string;
-  price?: number;
-  image?: string;
-  total?: number;
-}
-
-interface Order {
-  id: string;
-  customer_name: string;
-  customer_email?: string;
-  customer_phone?: string;
-  city?: string;
-  address?: string;
-  total: number;
-  subtotal?: number;
-  shipping?: number;
-  status: "pending" | "completed" | "cancelled";
-  created_at: string;
-  order_items: OrderItem[];
-}
-
-interface StoreData {
-  id: string;
-  store_name: string;
-}
+import type { Order, StoreData } from "@/types/api";
 
 const statusStyles: Record<
   string,
@@ -90,14 +61,27 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
   const { tr, lang } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const storeId = store?.id || "";
+
+  const {
+    data: ordersData,
+    loading,
+    error,
+    retry: fetchOrders,
+  } = useOrders(storeId, {
+    skip: !storeId,
+  });
+
+  const orders = ordersData ?? [];
+
+  const { execute: updateStatus, loading: updatingStatus } =
+    useOrderStatusUpdate();
+
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [toast, setToast] = useState<ToastState | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const statusLabel: Record<string, string> = {
     completed: tr.completed || "مكتمل",
@@ -118,25 +102,10 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
 
   const errorMsg = tr.errorOccurred || "حدث خطأ";
 
-  const fetchOrders = useCallback(async () => {
-    if (!store?.id) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      const data = await getOrders(store.id);
-      setOrders(data || []);
-    } catch {
-      showToast(errorMsg, "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [store?.id, errorMsg]);
-
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  // Show error toast automatically if hook returns error
+  useMemo(() => {
+    if (error) showToast(errorMsg, "error");
+  }, [error, errorMsg]);
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
@@ -171,32 +140,15 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
   const updateOrderStatus = async (newStatus: string) => {
     if (!selectedOrder || updatingStatus) return;
 
-    setUpdatingStatus(true);
-
     try {
-      const response = await fetch("/api/checkout", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId: selectedOrder.id,
-          status: newStatus,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        showToast(data.message || errorMsg, "error");
-        setUpdatingStatus(false);
-        return;
-      }
+      await updateStatus(selectedOrder.id, newStatus);
 
       const updatedOrder = { ...selectedOrder, status: newStatus as any };
       setSelectedOrder(updatedOrder);
 
-      setOrders((prev) =>
-        prev.map((o) => (o.id === selectedOrder.id ? updatedOrder : o)),
-      );
+      // We still update local state optimistically here or refetch
+      // To ensure strict sync with hook pattern, we call fetchOrders()
+      fetchOrders();
 
       showToast(
         lang === "ar"
@@ -204,10 +156,8 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
           : "Order status updated successfully",
         "success",
       );
-    } catch (error) {
+    } catch {
       showToast(errorMsg, "error");
-    } finally {
-      setUpdatingStatus(false);
     }
   };
 
@@ -220,10 +170,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
               <div
                 key={i}
                 className="rounded-lg md:rounded-xl p-3 md:p-6 bg-gray-100 animate-pulse"
-              >
-                <div className="h-6 md:h-8 w-1/3 rounded bg-gray-300/40 mb-2"></div>
-                <div className="h-3 md:h-4 w-2/3 rounded bg-gray-300/40 mt-1"></div>
-              </div>
+              />
             ))
           : [
               {
@@ -287,7 +234,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
 
             <button
               onClick={fetchOrders}
-              disabled={loading}
+              disabled={loading || !storeId}
               className="p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors disabled:opacity-50 shrink-0"
               title="تحديث"
             >
@@ -299,7 +246,6 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
 
           {/* Filter Buttons */}
           <div className="flex items-center gap-2 flex-wrap w-full md:w-auto overflow-x-auto md:overflow-x-visible">
-            {/* <Filter className="w-4 h-4 text-gray-400 shrink-0" /> */}
             {filters.map((f) => (
               <button
                 key={f.key}
@@ -352,7 +298,6 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                 ].map((h, i) => (
                   <th
                     key={i}
-                    // text-center added here for header alignment
                     className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap"
                   >
                     {h}

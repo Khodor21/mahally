@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { requireStoreSession } from "@/lib/store";
-import { headers } from "next/headers";
 
 export async function GET() {
   try {
@@ -31,6 +30,7 @@ export async function GET() {
     );
   }
 }
+
 export async function POST(req: Request) {
   try {
     const user = await requireStoreSession();
@@ -46,7 +46,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const { title, description, price, stock, images } = body;
+    // Added category_id to destructuring
+    const { title, description, price, stock, images, category_id } = body;
 
     // Validation
     if (!title || title.trim() === "") {
@@ -93,6 +94,7 @@ export async function POST(req: Request) {
         price: parsedPrice,
         stock: parsedStock,
         images: imageArray,
+        category_id: category_id || null, // Handle the category_id inclusion
       })
       .select()
       .single();
@@ -132,7 +134,8 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const { id, title, description, price, stock, images } = body;
+    // Added category_id to destructuring
+    const { id, title, description, price, stock, images, category_id } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -182,6 +185,12 @@ export async function PATCH(req: Request) {
 
     if (images !== undefined) {
       updates.images = Array.isArray(images) ? images : [];
+    }
+
+    // Add category_id update logic
+    if (category_id !== undefined) {
+      // Allows clearing the category by passing an empty string or null
+      updates.category_id = category_id === "" ? null : category_id;
     }
 
     // Check if there are any updates

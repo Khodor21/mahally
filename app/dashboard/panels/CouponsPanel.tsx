@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useMemo, useState } from "react";
 import {
   Plus,
   Copy,
@@ -19,26 +19,15 @@ import {
 } from "lucide-react";
 
 import { useDashboard } from "../DashboardContext";
+import {
+  useCoupons,
+  useCouponCreate,
+  useCouponUpdate,
+  useCouponDelete,
+  useCouponToggle,
+} from "@/hooks/useApi";
 import Toast from "../components/Toast";
-import type { StoreData } from "../types";
-
-interface Coupon {
-  id: string;
-  store_id: string;
-  code: string;
-  type: "percentage" | "fixed";
-  discount: number;
-  description?: string;
-  min_purchase: number;
-  max_uses: number;
-  max_uses_per_customer: number;
-  expiry_date: string;
-  is_active: boolean;
-  used_count: number;
-  created_at: string;
-  updated_at: string;
-  last_used_at?: string;
-}
+import type { Coupon, StoreData } from "@/types/api";
 
 interface ToastState {
   message: string;
@@ -53,13 +42,20 @@ export default function CouponsPanel({ store }: CouponsPanelProps) {
   const { tr, lang } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Hooks Integration
+  const { data: couponsData, loading, retry: fetchCoupons } = useCoupons();
+  const coupons = couponsData ?? [];
+  const { execute: createCoupon, loading: isCreating } = useCouponCreate();
+  const { execute: updateCoupon, loading: isUpdating } = useCouponUpdate();
+  const { execute: deleteCoupon } = useCouponDelete();
+  const { execute: toggleCoupon } = useCouponToggle();
+
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+
+  const submitting = isCreating || isUpdating;
 
   // Form state
   const [formData, setFormData] = useState({
@@ -80,25 +76,6 @@ export default function CouponsPanel({ store }: CouponsPanelProps) {
     setToast({ message, type });
   };
 
-  // 1. Fetching no longer needs the query param
-  const fetchCoupons = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/coupons`); // Cleaned up
-      const data = await res.json();
-      if (data.success) {
-        setCoupons(data.data || []);
-      } else {
-        showToast(data.message || "Failed to load coupons", "error");
-      }
-    } catch (error) {
-      showToast("Failed to load coupons", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, []); // Removed store dependency
-
-  // 2. Submit no longer sends storeId
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -110,13 +87,8 @@ export default function CouponsPanel({ store }: CouponsPanelProps) {
       return;
     }
 
-    setSubmitting(true);
-
     try {
-      const endpoint = "/api/coupons";
-      const method = editingCoupon ? "PATCH" : "POST";
-
-      const basePayload = {
+      const payload = {
         ...formData,
         discount: parseFloat(formData.discount.toString()),
         minPurchase: parseFloat(formData.minPurchase.toString()),
@@ -125,89 +97,49 @@ export default function CouponsPanel({ store }: CouponsPanelProps) {
         expiryDate: new Date(formData.expiryDate).toISOString(),
       };
 
-      const payload = editingCoupon
-        ? { couponId: editingCoupon.id, ...basePayload }
-        : basePayload;
-
-      const res = await fetch(endpoint, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
+      if (editingCoupon) {
+        await updateCoupon(editingCoupon.id, payload);
         showToast(
-          editingCoupon
-            ? lang === "ar"
-              ? "تم تحديث الكوبون"
-              : "Coupon updated"
-            : lang === "ar"
-              ? "تم إنشاء الكوبون"
-              : "Coupon created",
+          lang === "ar" ? "تم تحديث الكوبون" : "Coupon updated",
           "success",
         );
-        closeModal();
-        fetchCoupons();
       } else {
-        showToast(data.message || "Failed to save coupon", "error");
+        await createCoupon(payload);
+        showToast(
+          lang === "ar" ? "تم إنشاء الكوبون" : "Coupon created",
+          "success",
+        );
       }
-    } catch (error) {
-      showToast("Failed to save coupon", "error");
-    } finally {
-      setSubmitting(false);
+
+      closeModal();
+      fetchCoupons();
+    } catch (error: any) {
+      showToast(error.message || "Failed to save coupon", "error");
     }
   };
 
-  // 3. Delete no longer sends storeId
   const handleDelete = async (couponId: string) => {
     if (!window.confirm(lang === "ar" ? "هل أنت متأكد؟" : "Are you sure?"))
       return;
 
     try {
-      const res = await fetch(`/api/coupons?couponId=${couponId}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        showToast("Coupon deleted successfully", "success");
-        fetchCoupons();
-      } else {
-        showToast(data.message || "Failed to delete coupon", "error");
-      }
-    } catch (error) {
-      showToast("Failed to delete coupon", "error");
+      await deleteCoupon(couponId);
+      showToast("Coupon deleted successfully", "success");
+      fetchCoupons();
+    } catch (error: any) {
+      showToast(error.message || "Failed to delete coupon", "error");
     }
   };
 
-  // 4. Toggle Active no longer sends storeId
   const handleToggleActive = async (coupon: Coupon) => {
     try {
-      const res = await fetch("/api/coupons", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          couponId: coupon.id,
-          isActive: !coupon.is_active,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        showToast("Coupon status updated", "success");
-        fetchCoupons();
-      } else {
-        showToast(data.message || "Failed to update coupon", "error");
-      }
-    } catch (error) {
-      showToast("Failed to update coupon", "error");
+      await toggleCoupon(coupon.id, !coupon.is_active);
+      showToast("Coupon status updated", "success");
+      fetchCoupons();
+    } catch (error: any) {
+      showToast(error.message || "Failed to update coupon", "error");
     }
   };
-  useEffect(() => {
-    fetchCoupons();
-  }, [fetchCoupons]);
 
   const copyCode = (id: string, code: string) => {
     navigator.clipboard.writeText(code);
@@ -256,36 +188,17 @@ export default function CouponsPanel({ store }: CouponsPanelProps) {
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
-
-    if (!formData.code.trim()) {
-      errors.code = "Code is required";
+    if (!formData.code.trim()) errors.code = "Code is required";
+    if (
+      formData.type === "percentage"
+        ? formData.discount <= 0 || formData.discount > 100
+        : formData.discount <= 0
+    ) {
+      errors.discount = "Invalid discount value";
     }
-
-    if (formData.type === "percentage") {
-      if (formData.discount <= 0 || formData.discount > 100) {
-        errors.discount = "Percentage must be between 1 and 100";
-      }
-    } else {
-      if (formData.discount <= 0) {
-        errors.discount = "Discount amount must be greater than 0";
-      }
+    if (!formData.expiryDate || new Date(formData.expiryDate) <= new Date()) {
+      errors.expiryDate = "Valid future expiry date is required";
     }
-
-    // NEW: Check if the date is empty first
-    if (!formData.expiryDate) {
-      errors.expiryDate = "Expiry date is required";
-    } else if (new Date(formData.expiryDate) <= new Date()) {
-      errors.expiryDate = "Expiry date must be in the future";
-    }
-
-    if (formData.minPurchase < 0) {
-      errors.minPurchase = "Minimum purchase cannot be negative";
-    }
-
-    if (formData.maxUses <= 0) {
-      errors.maxUses = "Max uses must be greater than 0";
-    }
-
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -331,8 +244,6 @@ export default function CouponsPanel({ store }: CouponsPanelProps) {
       },
     ];
   }, [coupons, lang]);
-
-  const chartKey = lang === "ar" ? "month" : "monthEn";
 
   return (
     <div className="space-y-6" dir={dir}>

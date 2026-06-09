@@ -1,8 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
-import ProductGrid from "./components/landing/ProductGrid";
 import HeroSection from "./components/landing/Hero";
 import Testimonial from "./components/landing/Testimonial";
-import Footer from "./components/landing/Footer";
+import Sections from "./components/landing/Sections";
 import { notFound } from "next/navigation";
 
 export default async function StorePage({
@@ -10,7 +9,7 @@ export default async function StorePage({
 }: {
   params: { slug: string };
 }) {
-  // 1. Get store
+  // 1. Get store securely by slug
   const { data: store } = await supabaseAdmin
     .from("stores")
     .select("*")
@@ -19,24 +18,16 @@ export default async function StorePage({
 
   if (!store) return notFound();
 
-  // 2. Get products
-  const { data: products } = await supabaseAdmin
-    .from("products")
-    .select("*")
-    .eq("store_id", store.id)
-    .order("created_at", { ascending: false });
-
   return (
     <main className="min-h-screen bg-brand-white flex flex-col gap-10 pb-16">
       <div className="px-4 md:px-10 pt-6 max-w-7xl mx-auto w-full">
-        {/* Pass the actual store ID to your Client Component */}
         <HeroSection storeId={store.id} lang="en" />
       </div>
 
-      <div className="px-4 md:px-10 max-w-7xl mx-auto w-full">
-        <ProductGrid title={store.name} products={products || []} />
+      <div className="px-4 md:px-10 max-w-7xl mx-auto w-full flex flex-col gap-10">
+        <Sections storeId={store.id} />
+
         <Testimonial lang="en" />
-        <Footer />
       </div>
     </main>
   );

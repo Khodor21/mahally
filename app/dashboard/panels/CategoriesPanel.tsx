@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Search,
   Plus,
@@ -15,14 +15,13 @@ import {
 
 import { useDashboard } from "../DashboardContext";
 import Toast from "../components/Toast";
-
-interface Category {
-  id: string;
-  title: string;
-  logo_url?: string;
-  product_count: number;
-  created_at: string;
-}
+import { Category } from "@/types/api";
+import {
+  useCategories,
+  useCategoryCreate,
+  useCategoryUpdate,
+  useCategoryDelete,
+} from "@/hooks/useApi";
 
 interface ToastState {
   message: string;
@@ -33,8 +32,16 @@ export default function CategoriesPanel({ storeId }: { storeId: string }) {
   const { tr, lang } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading, retry: fetchCategories } = useCategories(storeId);
+  const categories = data || [];
+
+  const { execute: createCategory, loading: createLoading } =
+    useCategoryCreate();
+  const { execute: updateCategory, loading: updateLoading } =
+    useCategoryUpdate();
+  const { execute: deleteCategory, loading: deleteLoading } =
+    useCategoryDelete();
+
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState<ToastState | null>(null);
 
@@ -43,54 +50,28 @@ export default function CategoriesPanel({ storeId }: { storeId: string }) {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null,
   );
-  const [formLoading, setFormLoading] = useState(false);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [formData, setFormData] = useState({ title: "", logo: "" });
+
+  const formLoading = createLoading || updateLoading;
 
   const showToast = (message: string, type: "success" | "error") =>
     setToast({ message, type });
 
-  const fetchCategories = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/categories?store_id=${storeId}`);
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setCategories(data);
-    } catch {
-      showToast(tr.errorOccurred, "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [storeId, tr.errorOccurred]);
-
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
-
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormLoading(true);
     try {
-      const url =
-        formMode === "create"
-          ? "/api/categories"
-          : `/api/categories/${selectedCategory?.id}`;
-      const method = formMode === "create" ? "POST" : "PUT";
+      const payload = {
+        title: formData.title,
+        logo_url: formData.logo,
+      };
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: formData.title,
-          logo_url: formData.logo,
-          store_id: storeId,
-        }),
-      });
-
-      if (!res.ok) throw new Error();
+      if (formMode === "create") {
+        await createCategory(storeId, payload);
+      } else if (selectedCategory) {
+        await updateCategory(selectedCategory.id, payload);
+      }
 
       showToast(
         formMode === "create" ? tr.createdSuccess : tr.updatedSuccess,
@@ -100,8 +81,6 @@ export default function CategoriesPanel({ storeId }: { storeId: string }) {
       fetchCategories();
     } catch {
       showToast(tr.errorOccurred, "error");
-    } finally {
-      setFormLoading(false);
     }
   };
 
@@ -111,12 +90,14 @@ export default function CategoriesPanel({ storeId }: { storeId: string }) {
     setSelectedCategory(null);
     setFormOpen(true);
   };
+
   const openEdit = (cat: Category) => {
     setFormMode("edit");
     setSelectedCategory(cat);
     setFormData({ title: cat.title, logo: cat.logo_url || "" });
     setFormOpen(true);
   };
+
   const openDelete = (cat: Category) => {
     setSelectedCategory(cat);
     setDeleteOpen(true);
@@ -124,26 +105,19 @@ export default function CategoriesPanel({ storeId }: { storeId: string }) {
 
   const handleDelete = async () => {
     if (!selectedCategory) return;
-    setDeleteLoading(true);
     try {
-      const res = await fetch(
-        `/api/categories/${selectedCategory.id}?store_id=${storeId}`,
-        { method: "DELETE" },
-      );
-      if (!res.ok) throw new Error();
+      await deleteCategory(selectedCategory.id, storeId);
       showToast(tr.deletedSuccess, "success");
       setDeleteOpen(false);
       fetchCategories();
     } catch {
       showToast(tr.errorOccurred, "error");
-    } finally {
-      setDeleteLoading(false);
     }
   };
 
   const filtered = useMemo(
     () =>
-      categories.filter((c) =>
+      (categories || []).filter((c) =>
         c.title.toLowerCase().includes(search.toLowerCase()),
       ),
     [categories, search],

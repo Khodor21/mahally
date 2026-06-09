@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Plus, Trash2, ImageIcon, Package, Loader2 } from "lucide-react";
+import { X, ImageIcon, Package, Loader2, Trash2 } from "lucide-react";
 import type { Product, ProductFormData } from "../types";
 import type { Translations } from "../i18n";
 import { uploadImages } from "@/lib/image-upload";
+import { useCategories } from "@/hooks/useApi"; // Hook to retrieve categories list
 
 interface Props {
   mode: "create" | "edit";
@@ -16,12 +17,13 @@ interface Props {
   onClose: () => void;
 }
 
-const EMPTY_FORM: ProductFormData = {
+const EMPTY_FORM: any = {
   title: "",
   description: "",
   price: "",
   stock: "",
   images: [],
+  category_id: "",
 };
 
 export default function ProductFormModal({
@@ -33,13 +35,17 @@ export default function ProductFormModal({
   onSubmit,
   onClose,
 }: Props) {
-  const [form, setForm] = useState<ProductFormData>(EMPTY_FORM);
+  const [form, setForm] = useState<any>(EMPTY_FORM);
   const [errors, setErrors] = useState<
     Partial<Record<keyof ProductFormData, string>>
   >({});
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>("");
   const firstInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetching categories from your hook setup
+  // useCategories expects at least one argument (options or params); pass undefined to satisfy signature
+  const { data: categories } = useCategories(undefined as any);
 
   // Populate form when editing
   useEffect(() => {
@@ -50,6 +56,7 @@ export default function ProductFormModal({
         price: String(product.price),
         stock: String(product.stock),
         images: product.images ?? [],
+        category_id: (product as any).category_id ?? "",
       });
     } else {
       setForm(EMPTY_FORM);
@@ -91,7 +98,6 @@ export default function ProductFormModal({
 
       const files = Array.from(e.target.files);
 
-      // Validate file count
       if (files.length > 5) {
         alert(tr.maxImagesError || "Maximum 5 images per upload");
         return;
@@ -100,11 +106,9 @@ export default function ProductFormModal({
       setUploading(true);
       setUploadProgress(tr.uploading || "Uploading images...");
 
-      // Upload via secure server endpoint
       const result = await uploadImages(files);
 
-      // Add new URLs to form state
-      setForm((f) => ({
+      setForm((f: any) => ({
         ...f,
         images: [...f.images, ...result.urls],
       }));
@@ -116,7 +120,6 @@ export default function ProductFormModal({
       setUploadProgress("");
     } finally {
       setUploading(false);
-      // Reset input
       if (e.target) {
         e.target.value = "";
       }
@@ -124,15 +127,16 @@ export default function ProductFormModal({
   }
 
   function removeImage(idx: number) {
-    setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== idx) }));
-
-    // Note: We don't delete from storage immediately to avoid issues if user cancels.
-    // Storage cleanup can be done via a scheduled job or when product is saved.
+    setForm((f: any) => ({
+      ...f,
+      images: f.images.filter((_: any, i: number) => i !== idx),
+    }));
   }
 
-  function field(key: keyof ProductFormData, val: string) {
-    setForm((f) => ({ ...f, [key]: val }));
-    if (errors[key]) setErrors((e) => ({ ...e, [key]: undefined }));
+  function field(key: string, val: string) {
+    setForm((f: any) => ({ ...f, [key]: val }));
+    if (errors[key as keyof ProductFormData])
+      setErrors((e) => ({ ...e, [key]: undefined }));
   }
 
   return (
@@ -264,13 +268,37 @@ export default function ProductFormModal({
             </div>
           </div>
 
+          {/* 100% Exact Requested Style Category Dropdown Section */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+              ربط بتصنيف المنتجات *
+            </label>
+            <select
+              required
+              value={form.category_id}
+              onChange={(e) =>
+                setForm({ ...form, category_id: e.target.value })
+              }
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[rgb(60_28_84)]/20 focus:border-[rgb(60_28_84)] transition-all"
+              dir={dir}
+            >
+              <option value="" disabled>
+                اختر تصنيفاً...
+              </option>
+              {categories?.map((c: any) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Images Section */}
           <div>
             <label className="block text-xs font-semibold text-[rgb(60_28_84)]/60 mb-2 uppercase tracking-wide">
               {tr.imagesLabel || "Product Images"}
             </label>
 
-            {/* Upload Progress */}
             {uploading && uploadProgress && (
               <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
                 <div className="flex items-center gap-2">
@@ -283,8 +311,7 @@ export default function ProductFormModal({
             )}
 
             <div className="grid grid-cols-4 gap-3">
-              {/* Display current images */}
-              {form.images.map((url, idx) => (
+              {form.images.map((url: string, idx: number) => (
                 <div
                   key={idx}
                   className="relative group aspect-square rounded-xl overflow-hidden border border-[rgb(207_195_223)] bg-[rgb(244_242_245)]"
@@ -307,7 +334,6 @@ export default function ProductFormModal({
                 </div>
               ))}
 
-              {/* Upload button */}
               <label
                 className={`flex flex-col items-center justify-center aspect-square rounded-xl border-2 border-dashed transition-all bg-[rgb(244_242_245)]
                 ${
@@ -337,7 +363,6 @@ export default function ProductFormModal({
               </label>
             </div>
 
-            {/* Helper text */}
             <p className="text-xs text-[rgb(60_28_84)]/40 mt-2">
               {tr.imageUploadHint ||
                 "Maximum 5 images per upload. Supported: JPEG, PNG, WebP, GIF (max 5MB each)"}

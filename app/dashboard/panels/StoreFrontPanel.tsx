@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Search,
   Plus,
@@ -16,13 +16,14 @@ import {
 
 import { useDashboard } from "../DashboardContext";
 import Toast from "../components/Toast";
+import { useFetch, useCategories, useStore } from "@/hooks/useApi";
 
 // --- Types ---
 interface StoreSection {
   id: string;
   title: string;
   banner_url?: string;
-  category_id: string; // The category this section pulls products from
+  category_id: string;
   status: "active" | "draft";
   order: number;
 }
@@ -32,47 +33,34 @@ interface ToastState {
   type: "success" | "error";
 }
 
-// Mock Categories for dropdown
-const mockCategories = [
-  { id: "1", title: "Burgers" },
-  { id: "2", title: "Drinks" },
-  { id: "3", title: "Desserts" },
-];
-
-// Mock API
-const mockFetchSections = async (): Promise<StoreSection[]> => {
-  return new Promise((resolve) =>
-    setTimeout(
-      () =>
-        resolve([
-          {
-            id: "s1",
-            title: "عروض البرغر",
-            banner_url: "https://placehold.co/1200x400/png?text=Banner",
-            category_id: "1",
-            status: "active",
-            order: 0,
-          },
-          {
-            id: "s2",
-            title: "مشروبات منعشة",
-            category_id: "2",
-            status: "draft",
-            order: 1,
-          },
-        ]),
-      800,
-    ),
-  );
-};
-
 export default function StorefrontPanel() {
   const { tr, lang } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  const [sections, setSections] = useState<StoreSection[]>([]);
-  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<ToastState | null>(null);
+
+  // Dynamic API Hooks
+  const { data: store } = useStore();
+  const storeId = store?.id || "";
+
+  // Fetch real categories to replace mockCategories
+  const { data: categories = [] } = useCategories(storeId, { skip: !storeId });
+
+  // Use the generic useFetch hook since useSections doesn't exist natively in useApi.ts yet
+  const {
+    data,
+    loading,
+    retry: fetchSections,
+  } = useFetch<StoreSection[]>(
+    async () => {
+      const res = await fetch(`/api/sections?store_id=${storeId}`);
+      if (!res.ok) throw new Error("Failed to fetch sections");
+      const data = await res.json();
+      return data.sort((a: StoreSection, b: StoreSection) => a.order - b.order);
+    },
+    { skip: !storeId },
+  );
+  const sections = data ?? [];
 
   // Modal States
   const [formOpen, setFormOpen] = useState(false);
@@ -97,24 +85,10 @@ export default function StorefrontPanel() {
     setToast({ message, type });
   };
 
-  const fetchSections = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await mockFetchSections();
-      setSections(data.sort((a, b) => a.order - b.order));
-    } catch {
-      showToast(tr.errorOccurred || "حدث خطأ أثناء تحميل الأقسام", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [tr]);
-
-  useEffect(() => {
-    fetchSections();
-  }, [fetchSections]);
-
   const activeCount = useMemo(
-    () => sections.filter((s) => s.status === "active").length,
+    () =>
+      (sections || []).filter((s: StoreSection) => s.status === "active")
+        .length,
     [sections],
   );
 
@@ -124,7 +98,7 @@ export default function StorefrontPanel() {
     setFormData({
       title: "",
       banner_url: "",
-      category_id: mockCategories[0]?.id || "",
+      category_id: categories?.length ? categories[0].id : "",
       status: "active",
     });
     setFormOpen(true);
@@ -153,27 +127,37 @@ export default function StorefrontPanel() {
       showToast(tr.requiredField || "يرجى تعبئة الحقول المطلوبة", "error");
       return;
     }
+    if (!storeId) return;
 
     setFormLoading(true);
     try {
-      await new Promise((res) => setTimeout(res, 800)); // MOCK
-      if (formMode === "create") {
-        const newSec: StoreSection = {
-          id: Math.random().toString(36).substr(2, 9),
-          ...formData,
-          order: sections.length,
-        };
-        setSections((prev) => [...prev, newSec]);
-        showToast(tr.createdSuccess || "تم إنشاء القسم بنجاح", "success");
-      } else if (selectedSection) {
-        setSections((prev) =>
-          prev.map((s) =>
-            s.id === selectedSection.id ? { ...s, ...formData } : s,
-          ),
-        );
-        showToast(tr.updatedSuccess || "تم التحديث بنجاح", "success");
-      }
+      const url =
+        formMode === "create"
+          ? "/api/sections"
+          : `/api/sections/${selectedSection?.id}`;
+      const method = formMode === "create" ? "POST" : "PUT";
+
+      const payload =
+        formMode === "create"
+          ? { ...formData, store_id: storeId, order: sections?.length ?? 0 }
+          : { ...formData, store_id: storeId };
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error();
+
+      showToast(
+        formMode === "create"
+          ? tr.createdSuccess || "تم إنشاء القسم بنجاح"
+          : tr.updatedSuccess || "تم التحديث بنجاح",
+        "success",
+      );
       setFormOpen(false);
+      fetchSections();
     } catch {
       showToast(tr.errorOccurred || "حدث خطأ", "error");
     } finally {
@@ -182,13 +166,20 @@ export default function StorefrontPanel() {
   };
 
   const handleDelete = async () => {
-    if (!selectedSection) return;
+    if (!selectedSection || !storeId) return;
+
     setDeleteLoading(true);
     try {
-      await new Promise((res) => setTimeout(res, 800)); // MOCK
-      setSections((prev) => prev.filter((s) => s.id !== selectedSection.id));
+      const res = await fetch(
+        `/api/sections/${selectedSection.id}?store_id=${storeId}`,
+        { method: "DELETE" },
+      );
+
+      if (!res.ok) throw new Error();
+
       showToast(tr.deletedSuccess || "تم الحذف بنجاح", "success");
       setDeleteOpen(false);
+      fetchSections();
     } catch {
       showToast(tr.errorOccurred || "حدث خطأ", "error");
     } finally {
@@ -242,14 +233,15 @@ export default function StorefrontPanel() {
         <div className="flex items-center gap-2">
           <button
             onClick={fetchSections}
-            disabled={loading}
+            disabled={loading || !storeId}
             className="p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
           <button
             onClick={openCreate}
-            className="bg-[rgb(60_28_84)] text-white px-5 py-2.5 rounded-lg text-sm font-semibold flex gap-2 items-center justify-center hover:opacity-90 transition-opacity shadow-sm"
+            disabled={!storeId}
+            className="bg-[rgb(60_28_84)] text-white px-5 py-2.5 rounded-lg text-sm font-semibold flex gap-2 items-center justify-center hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50"
           >
             <Plus className="w-4 h-4" />
             {tr.addSection || "إضافة قسم"}
@@ -282,14 +274,14 @@ export default function StorefrontPanel() {
         ) : (
           sections.map((section) => {
             const categoryName =
-              mockCategories.find((c) => c.id === section.category_id)?.title ||
+              categories?.find((c) => c.id === section.category_id)?.title ||
               "Unknown";
             return (
               <div
                 key={section.id}
                 className="group flex flex-col md:flex-row bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
               >
-                {/* Drag Handle (Visual only in this mock) */}
+                {/* Drag Handle */}
                 <div className="hidden md:flex bg-gray-50 w-10 items-center justify-center border-e border-gray-100 cursor-move text-gray-300 group-hover:text-gray-500 transition-colors">
                   <GripVertical className="w-5 h-5" />
                 </div>
@@ -331,7 +323,6 @@ export default function StorefrontPanel() {
                   </h3>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-xs text-gray-500 font-semibold bg-gray-100 px-2.5 py-1 rounded-md flex items-center gap-1.5">
-                      {/* <Tags className="w-3 h-3" /> */}
                       مرتبط بتصنيف: {categoryName}
                     </span>
                   </div>
@@ -407,7 +398,7 @@ export default function StorefrontPanel() {
                   <option value="" disabled>
                     اختر تصنيفاً...
                   </option>
-                  {mockCategories.map((c) => (
+                  {categories?.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.title}
                     </option>

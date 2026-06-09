@@ -135,12 +135,12 @@ const SearchModal = ({
   </div>
 );
 
-// ✅ NEW: Language Confirmation Modal Component
 type LangModalProps = {
   isOpen: boolean;
   setIsOpen: (v: boolean) => void;
   currentLang: "en" | "ar";
   onConfirm: () => void;
+  primaryColor?: string; // Passed to style the confirm button
 };
 
 const LangModal = ({
@@ -148,6 +148,7 @@ const LangModal = ({
   setIsOpen,
   currentLang,
   onConfirm,
+  primaryColor,
 }: LangModalProps) => {
   const dir = currentLang === "ar" ? "rtl" : "ltr";
 
@@ -199,7 +200,8 @@ const LangModal = ({
                 onConfirm();
                 setIsOpen(false);
               }}
-              className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-brand-dark hover:bg-brand-dark/90 transition-colors"
+              style={{ backgroundColor: primaryColor || "#111827" }} // Dynamic Brand Color
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity"
             >
               {currentLang === "ar" ? "تأكيد" : "Confirm"}
             </button>
@@ -214,27 +216,24 @@ export default function Navbar({
   lang = "en",
   storeName = "Store",
   storeSlug = "",
+  logoUrl,
+  primaryColor,
 }: {
   lang?: "en" | "ar";
   storeName?: string;
   storeSlug?: string;
+  logoUrl?: string | null;
+  primaryColor?: string | null;
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [langModalOpen, setLangModalOpen] = useState(false); // ✅ NEW STATE
+  const [langModalOpen, setLangModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const { cartCount, favCount } = useShop();
-
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const tr = authTranslations[lang];
+  const router = useRouter();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  const router = useRouter();
-
-  // ✅ UPDATED: Triggered only after user confirms via Modal
   const confirmToggleLang = () => {
     const newLang = lang === "ar" ? "en" : "ar";
     setLanguage(newLang);
@@ -246,18 +245,42 @@ export default function Navbar({
     return `/store/${storeSlug}${path}?lang=${lang}`;
   };
 
-  // ✅ UPDATED: Added langModalOpen to lock body scroll
   useEffect(() => {
     if (searchOpen || mobileMenuOpen || langModalOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
-
     return () => {
       document.body.style.overflow = "";
     };
   }, [searchOpen, mobileMenuOpen, langModalOpen]);
+
+  // Reusable Logo Component for Desktop & Mobile Menus
+  const StoreLogo = () => (
+    <div className="flex items-center gap-2">
+      {logoUrl ? (
+        <img
+          src={logoUrl}
+          alt={storeName}
+          className="w-9 h-9 md:w-10 md:h-10 rounded-xl object-cover bg-gray-50 border border-gray-100"
+        />
+      ) : (
+        <div
+          className="w-9 h-9 md:w-10 md:h-10 rounded-xl text-white flex items-center justify-center font-bold text-sm"
+          style={{ backgroundColor: primaryColor || "#111827" }} // Dynamic fallback color
+        >
+          {storeName?.[0] || "S"}
+        </div>
+      )}
+      <div className="flex flex-col leading-tight">
+        <span className="text-sm font-bold text-brand-dark">{storeName}</span>
+        <span className="text-[11px] text-brand-dark/50">
+          {lang === "ar" ? "متجر إلكتروني" : "Online Store"}
+        </span>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -265,12 +288,10 @@ export default function Navbar({
         dir={dir}
         className="sticky top-0 z-50 bg-brand-white border-b border-brand-light"
       >
-        {/* TOP BAR */}
         <div className="w-full px-4 md:px-10">
           <div className="flex items-center justify-between h-14">
             {/* LEFT */}
             <div className="flex items-center gap-3">
-              {/* MOBILE MENU BUTTON */}
               <button
                 onClick={() => setMobileMenuOpen(true)}
                 className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl hover:bg-brand-grey transition-colors"
@@ -278,21 +299,8 @@ export default function Navbar({
                 <HiOutlineMenuAlt3 size={22} className="text-brand-dark" />
               </button>
 
-              {/* STORE NAME */}
-              <Link href={buildUrl("")} className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-brand-dark text-white flex items-center justify-center font-bold text-sm">
-                  {storeName?.[0] || "S"}
-                </div>
-
-                <div className="flex flex-col leading-tight">
-                  <span className="text-sm font-bold text-brand-dark">
-                    {storeName}
-                  </span>
-
-                  <span className="text-[11px] text-brand-dark/50">
-                    {lang === "ar" ? "متجر إلكتروني" : "Online Store"}
-                  </span>
-                </div>
+              <Link href={buildUrl("")}>
+                <StoreLogo />
               </Link>
             </div>
 
@@ -302,7 +310,6 @@ export default function Navbar({
               className="hidden md:flex items-center gap-2 bg-brand-grey px-4 h-9 rounded-xl flex-1 max-w-md mx-6"
             >
               <BsSearch className="text-brand-dark/40" />
-
               <span className="text-sm text-brand-dark/40">
                 {lang === "ar" ? "ابحث عن منتجات..." : "Search products..."}
               </span>
@@ -310,7 +317,6 @@ export default function Navbar({
 
             {/* ACTIONS */}
             <div className="flex items-center gap-3">
-              {/* LANGUAGE - Trigger Modal Instead of Direct Change */}
               <button
                 onClick={() => setLangModalOpen(true)}
                 className="hidden sm:flex items-center gap-1 px-3 h-9 rounded-xl bg-brand-grey text-sm text-brand-dark"
@@ -322,7 +328,6 @@ export default function Navbar({
               {/* FAVORITES */}
               <Link href={buildUrl("/favorites")} className="relative">
                 <AiOutlineHeart size={22} className="text-brand-dark" />
-
                 {favCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
                     {favCount > 9 ? "9+" : favCount}
@@ -333,9 +338,11 @@ export default function Navbar({
               {/* CART */}
               <Link href={buildUrl("/cart")} className="relative">
                 <LuShoppingBag size={22} className="text-brand-dark" />
-
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-dark text-white text-[10px] rounded-full flex items-center justify-center">
+                  <span
+                    className="absolute -top-1 -right-1 w-4 h-4 text-white text-[10px] rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: primaryColor || "#111827" }} // Dynamic badge color
+                  >
                     {cartCount > 9 ? "9+" : cartCount}
                   </span>
                 )}
@@ -351,7 +358,6 @@ export default function Navbar({
             className="flex items-center gap-2 bg-brand-grey h-10 rounded-xl px-3"
           >
             <BsSearch className="text-brand-dark/40" />
-
             <span className="text-sm text-brand-dark/40">
               {lang === "ar" ? "ابحث..." : "Search..."}
             </span>
@@ -367,13 +373,11 @@ export default function Navbar({
             : "opacity-0 pointer-events-none"
         }`}
       >
-        {/* BACKDROP */}
         <div
           onClick={() => setMobileMenuOpen(false)}
           className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         />
 
-        {/* PANEL */}
         <div
           className={`absolute top-0 ${
             dir === "rtl" ? "right-0" : "left-0"
@@ -385,22 +389,8 @@ export default function Navbar({
                 : "-translate-x-full"
           }`}
         >
-          {/* HEADER */}
           <div className="flex items-center justify-between px-5 h-16 border-b border-brand-light">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-brand-dark text-white flex items-center justify-center font-bold">
-                {storeName?.[0] || "S"}
-              </div>
-
-              <div>
-                <p className="text-sm font-bold text-brand-dark">{storeName}</p>
-
-                <p className="text-xs text-brand-dark/50">
-                  {lang === "ar" ? "متجر إلكتروني" : "Online Store"}
-                </p>
-              </div>
-            </div>
-
+            <StoreLogo />
             <button
               onClick={() => setMobileMenuOpen(false)}
               className="w-10 h-10 rounded-xl hover:bg-brand-grey flex items-center justify-center transition-colors"
@@ -409,7 +399,6 @@ export default function Navbar({
             </button>
           </div>
 
-          {/* LINKS */}
           <div className="p-5 flex flex-col gap-2">
             <Link
               href={buildUrl("")}
@@ -425,7 +414,6 @@ export default function Navbar({
               className="h-11 px-4 rounded-xl hover:bg-brand-grey flex items-center justify-between text-sm font-medium text-brand-dark transition-colors"
             >
               <span>{lang === "ar" ? "المفضلة" : "Favorites"}</span>
-
               {favCount > 0 && (
                 <span className="min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
                   {favCount}
@@ -439,24 +427,24 @@ export default function Navbar({
               className="h-11 px-4 rounded-xl hover:bg-brand-grey flex items-center justify-between text-sm font-medium text-brand-dark transition-colors"
             >
               <span>{lang === "ar" ? "السلة" : "Cart"}</span>
-
               {cartCount > 0 && (
-                <span className="min-w-5 h-5 px-1 rounded-full bg-brand-dark text-white text-[10px] flex items-center justify-center">
+                <span
+                  className="min-w-5 h-5 px-1 rounded-full text-white text-[10px] flex items-center justify-center"
+                  style={{ backgroundColor: primaryColor || "#111827" }} // Dynamic badge color
+                >
                   {cartCount}
                 </span>
               )}
             </Link>
 
-            {/* TRIGGER MODAL INSTEAD OF DIRECT CHANGE */}
             <button
               onClick={() => {
                 setLangModalOpen(true);
-                setMobileMenuOpen(false); // Close menu when modal opens
+                setMobileMenuOpen(false);
               }}
               className="mt-2 h-11 px-4 rounded-xl bg-brand-grey flex items-center justify-between text-sm font-medium text-brand-dark transition-colors"
             >
               <span>{lang === "ar" ? "تغيير اللغة" : "Change Language"}</span>
-
               <div className="flex items-center gap-2">
                 <Globe size={15} />
                 {lang.toUpperCase()}
@@ -473,12 +461,12 @@ export default function Navbar({
         setSearchQuery={setSearchQuery}
       />
 
-      {/* ✅ RENDER NEW MODAL */}
       <LangModal
         isOpen={langModalOpen}
         setIsOpen={setLangModalOpen}
         currentLang={lang}
         onConfirm={confirmToggleLang}
+        primaryColor={primaryColor || undefined}
       />
     </>
   );

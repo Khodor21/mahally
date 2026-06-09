@@ -27,39 +27,44 @@ type MappedProduct = {
   image: string;
   price: number;
   rating: number;
-  badge: "New" | "Best Seller" | "Hot" | "Sale";
+  badge?: "New" | "Best Seller" | "Hot" | "Sale";
 };
 
 export default function ProductGrid({
   title,
   products,
   bannerSrc,
-  bannerType = "wide",
+  bannerType = "wide", // Defaults to wide here
 }: ProductGridProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
-
   const isMono = bannerType === "mono";
 
   const mappedProducts: MappedProduct[] = useMemo(() => {
-    return products.map((product) => ({
+    return (products || []).map((product) => ({
       id: String(product.id),
-      title: product.title,
+      title: product.title || "Untitled Product",
       image:
-        product.images?.[0] || "https://placehold.co/600x600/png?text=Product",
-      price: product.price,
+        product.images?.[0] || "https://placehold.co/600x600/png?text=No+Image",
+      price: product.price || 0,
       rating: 5,
-      badge: product.stock ? (product.stock > 0 ? "New" : "Sale") : "Hot",
+      badge:
+        product.stock !== undefined
+          ? product.stock > 0
+            ? "New"
+            : "Sale"
+          : "Hot",
     }));
   }, [products]);
 
   return (
-    <section className="w-full py-8 md:py-16 px-4 md:px-8 mx-auto overflow-hidden">
+    <section className="w-full py-4 md:py-8 mx-auto overflow-hidden">
+      {/* MONO LAYOUT (Side-by-Side) */}
       {isMono && bannerSrc && (
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
           <div className="lg:w-[28%] w-full rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0">
             <img
               src={bannerSrc}
-              alt=""
+              alt={`${title} banner`}
               className="w-full h-full object-cover"
             />
           </div>
@@ -75,13 +80,11 @@ export default function ProductGrid({
 
             <div
               ref={scrollRef}
-              // items-stretch ensures all flex children match the height of the tallest item
-              className="flex gap-2 overflow-x-auto pb-4 pt-2 px-1 items-stretch snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              className="flex gap-3 overflow-x-auto pb-4 pt-2 px-1 items-stretch snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
             >
               {mappedProducts.map((product) => (
                 <div
                   key={product.id}
-                  // Added h-full to make the wrapper fill the stretched height
                   className="flex-none h-auto w-[75vw] sm:w-[45vw] md:w-[32vw] lg:w-[calc(28.5%-1rem)] snap-start"
                 >
                   <ProductCard product={product} />
@@ -92,25 +95,37 @@ export default function ProductGrid({
         </div>
       )}
 
+      {/* WIDE LAYOUT (Banner on top, Grid below) */}
       {!isMono && (
         <div className="flex flex-col w-full min-w-0">
-          {/* Centered Title */}
-          <div className="flex justify-center mb-8 md:mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center">
+          {/* THE NEW WIDE BANNER UI (Locked to 3:1) */}
+          {bannerSrc && (
+            <div className="w-full aspect-[3/1] rounded-sm overflow-hidden mb-8 md:mb-10 bg-gray-50 border border-gray-100">
+              <img
+                src={bannerSrc}
+                alt={`${title} banner`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+
+          <div className="flex items-center justify-between mb-6 md:mb-8 px-1">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
               {title}
             </h2>
+            <button className="flex items-center gap-1 text-sm font-semibold text-gray-500 hover:text-black transition-colors">
+              View All
+              <MdOutlineKeyboardArrowRight size={20} />
+            </button>
           </div>
 
-          {/* Product Carousel / Grid */}
           <div
             ref={scrollRef}
-            // Reduced gap slightly, added items-stretch for uniform card heights
             className="flex gap-3 md:gap-4 overflow-x-auto pb-6 pt-2 px-1 items-stretch snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {mappedProducts.map((product) => (
               <div
                 key={product.id}
-                // Added h-full so the wrapper matches the stretched row height
                 className="flex-none h-auto w-[75vw] sm:w-[45vw] md:w-[31vw] lg:w-[calc(22.22%-1rem)] snap-start"
               >
                 <ProductCard product={product} />

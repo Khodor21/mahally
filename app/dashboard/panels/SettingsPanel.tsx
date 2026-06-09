@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Save,
   Store,
@@ -19,45 +19,77 @@ import {
 
 import { useDashboard } from "../DashboardContext";
 import { STORE_TYPE_LABELS } from "../data";
-
-type StoreData = {
-  id: string;
-  admin_name: string;
-  admin_email: string;
-  store_name: string;
-  slug: string;
-  location: string | null;
-  phone: string | null;
-  store_type: string | null;
-  created_at: string;
-  is_active: boolean;
-  primary_color?: string;
-  privacy_policy?: string;
-  shipping_policy?: string;
-  return_policy?: string;
-  logo_url?: string;
-};
-
-export type HeroBanner = {
-  id: string;
-  image: string;
-  active: boolean;
-  order: number;
-};
+import { StoreData, HeroBanner } from "@/types/api";
+import {
+  useStore,
+  useStoreUpdate,
+  useHeroBanners,
+  useHeroBannerCreate,
+  useHeroBannerDelete,
+  useHeroBannerToggle,
+} from "@/hooks/useApi";
 
 export default function SettingsPanel() {
   const { tr, lang, setLang } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   const [saved, setSaved] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false); // <-- Added state for main form saving
-
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
-  const [isSavingBanner, setIsSavingBanner] = useState(false);
 
-  const [store, setStore] = useState<StoreData | null>(null);
+  const [formData, setFormData] = useState({
+    store_name: "",
+    location: "",
+    phone: "",
+    store_type: "",
+    admin_name: "",
+    admin_email: "",
+    primary_color: "#3C1C54",
+    privacy_policy: "",
+    shipping_policy: "",
+    return_policy: "",
+    logo_url: "",
+  });
+
+  // ✅ WRAP onSuccess IN useCallback
+  const handleStoreSuccess = useCallback((data: StoreData) => {
+    setFormData({
+      store_name: data.store_name || "",
+      location: data.location || "",
+      phone: data.phone || "",
+      store_type: data.store_type || "",
+      admin_name: data.admin_name || "",
+      admin_email: data.admin_email || "",
+      primary_color: data.primary_color || "#3C1C54",
+      privacy_policy: data.privacy_policy || "",
+      shipping_policy: data.shipping_policy || "",
+      return_policy: data.return_policy || "",
+      logo_url: data.logo_url || "",
+    });
+  }, []);
+
+  const {
+    data: store,
+    loading,
+    retry: refetchStore,
+  } = useStore({
+    onSuccess: handleStoreSuccess,
+  });
+
+  const storeId = store?.id || "";
+
+  const { data: banners = [], retry: refetchBanners } = useHeroBanners(
+    storeId,
+    {
+      skip: !storeId,
+    },
+  );
+
+  const { execute: updateStore, loading: isSaving } = useStoreUpdate();
+  const { execute: createHeroBanner, loading: isSavingBanner } =
+    useHeroBannerCreate();
+  const { execute: toggleHeroBanner } = useHeroBannerToggle();
+  const { execute: deleteHeroBanner } = useHeroBannerDelete();
 
   // Toast State
   const [toast, setToast] = useState<{
@@ -66,7 +98,6 @@ export default function SettingsPanel() {
   } | null>(null);
 
   // Hero Banners State
-  const [banners, setBanners] = useState<HeroBanner[]>([]);
   const [isAddingBanner, setIsAddingBanner] = useState(false);
   const [newBanner, setNewBanner] = useState<Partial<HeroBanner>>({
     image: "",
@@ -91,83 +122,69 @@ export default function SettingsPanel() {
     "store" | "account" | "notifications" | "appearance" | "policies"
   >("store");
 
-  const [formData, setFormData] = useState({
-    store_name: "",
-    location: "",
-    phone: "",
-    store_type: "",
-    admin_name: "",
-    admin_email: "",
-    primary_color: "#3C1C54",
-    privacy_policy: "",
-    shipping_policy: "",
-    return_policy: "",
-    logo_url: "",
-  });
+  const [notificationTitle, setNotificationTitle] = useState("");
+  const [notificationMessage, setNotificationMessage] = useState("");
+  const [sendingNotification, setSendingNotification] = useState(false);
 
+  const handleSendNotification = async () => {
+    try {
+      if (!notificationTitle.trim() || !notificationMessage.trim()) {
+        return;
+      }
+
+      setSendingNotification(true);
+
+      const response = await fetch("/api/notifications/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: notificationTitle,
+          message: notificationMessage,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to send notification");
+      }
+
+      setNotificationTitle("");
+      setNotificationMessage("");
+
+      if (typeof window !== "undefined") {
+        alert(
+          lang === "ar"
+            ? `تم إرسال الإشعار بنجاح إلى ${result.sent ?? 0} عميل`
+            : `Notification sent successfully to ${result.sent ?? 0} customers`,
+        );
+      }
+    } catch (error) {
+      console.error(error);
+
+      if (typeof window !== "undefined") {
+        alert(
+          lang === "ar" ? "فشل إرسال الإشعار" : "Failed to send notification",
+        );
+      }
+    } finally {
+      setSendingNotification(false);
+    }
+  };
   // Helper function to show toasts
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000); // Auto dismiss after 3s
   };
 
-  async function fetchStore() {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/stores", { cache: "no-store" });
-      const data = await res.json();
-
-      if (!res.ok || !data.store) return;
-
-      setStore(data.store);
-      setFormData({
-        store_name: data.store.store_name || "",
-        location: data.store.location || "",
-        phone: data.store.phone || "",
-        store_type: data.store.store_type || "",
-        admin_name: data.store.admin_name || "",
-        admin_email: data.store.admin_email || "",
-        primary_color: data.store.primary_color || "#3C1C54",
-        privacy_policy: data.store.privacy_policy || "",
-        shipping_policy: data.store.shipping_policy || "",
-        return_policy: data.store.return_policy || "",
-        logo_url: data.store.logo_url || "",
-      });
-
-      const bannerRes = await fetch(
-        `/api/hero?storeId=${data.store.id}&admin=true`,
-      );
-      const bannerData = await bannerRes.json();
-      if (bannerData.success) {
-        setBanners(bannerData.data);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchStore();
-  }, []);
-
   const handleSave = async () => {
     if (!store) return;
-    setIsSaving(true);
     setSaved(false);
 
     try {
-      const res = await fetch("/api/stores", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, id: store.id }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to update store");
-      }
+      await updateStore({ ...formData, id: store.id });
 
       setSaved(true);
       showToast(
@@ -178,14 +195,12 @@ export default function SettingsPanel() {
       );
 
       // ✅ REFETCH data after successful save to display updated values
-      await fetchStore();
+      await refetchStore();
 
       setTimeout(() => setSaved(false), 2500);
     } catch (error: any) {
       console.error(error);
-      showToast(error.message, "error");
-    } finally {
-      setIsSaving(false);
+      showToast(error.message || "Failed to update store", "error");
     }
   };
 
@@ -215,28 +230,23 @@ export default function SettingsPanel() {
   };
 
   const handleSaveBanner = async () => {
-    if (!store) return;
-    setIsSavingBanner(true);
+    if (!storeId) return;
     try {
-      const res = await fetch("/api/hero", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...newBanner, store_id: store.id }),
+      await createHeroBanner(storeId, {
+        image: newBanner.image || "",
+        active: newBanner.active,
+        order: newBanner.order,
       });
-      const result = await res.json();
-      if (result.success) {
-        setBanners([...banners, result.data]);
-        setIsAddingBanner(false);
-        setNewBanner({ image: "", active: true, order: 1 });
-        showToast(
-          lang === "ar"
-            ? "تم نشر اللافتة بنجاح!"
-            : "Banner published successfully!",
-          "success",
-        );
-      } else {
-        throw new Error(result.message || "Failed to save banner");
-      }
+
+      setIsAddingBanner(false);
+      setNewBanner({ image: "", active: true, order: 1 });
+      showToast(
+        lang === "ar"
+          ? "تم نشر اللافتة بنجاح!"
+          : "Banner published successfully!",
+        "success",
+      );
+      refetchBanners();
     } catch (e) {
       console.error(e);
       showToast(
@@ -245,8 +255,6 @@ export default function SettingsPanel() {
           : "Error publishing banner.",
         "error",
       );
-    } finally {
-      setIsSavingBanner(false);
     }
   };
 
@@ -258,36 +266,21 @@ export default function SettingsPanel() {
 
     try {
       if (action === "delete") {
-        const res = await fetch(`/api/hero?id=${banner.id}`, {
-          method: "DELETE",
-        });
-        const result = await res.json();
-        if (result.success) {
-          setBanners(banners.filter((b) => b.id !== banner.id));
-          showToast(
-            lang === "ar"
-              ? "تم حذف اللافتة بنجاح!"
-              : "Banner deleted successfully!",
-            "success",
-          );
-        }
+        await deleteHeroBanner(banner.id);
+        showToast(
+          lang === "ar"
+            ? "تم حذف اللافتة بنجاح!"
+            : "Banner deleted successfully!",
+          "success",
+        );
       } else if (action === "toggle") {
-        const res = await fetch("/api/hero", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: banner.id, active: !banner.active }),
-        });
-        const result = await res.json();
-        if (result.success) {
-          setBanners(
-            banners.map((b) => (b.id === banner.id ? result.data : b)),
-          );
-          showToast(
-            lang === "ar" ? "تم تحديث حالة اللافتة!" : "Banner status updated!",
-            "success",
-          );
-        }
+        await toggleHeroBanner(banner.id, !banner.active);
+        showToast(
+          lang === "ar" ? "تم تحديث حالة اللافتة!" : "Banner status updated!",
+          "success",
+        );
       }
+      refetchBanners();
     } catch (e) {
       console.error(e);
       showToast(
@@ -718,21 +711,74 @@ export default function SettingsPanel() {
               {tr.notificationSettings}
             </h3>
           </div>
-          <div className="p-12 flex flex-col items-center justify-center text-center space-y-4">
-            <div className="w-20 h-20 bg-[rgb(244_242_245)] rounded-full flex items-center justify-center">
-              <Bell className="w-10 h-10 text-[rgb(60_28_84)]/30" />
+
+          <div className="p-6 space-y-6">
+            <div className="grid gap-5">
+              <div>
+                <label className="block text-sm font-medium text-[rgb(60_28_84)] mb-2">
+                  {lang === "ar" ? "عنوان الإشعار" : "Notification Title"}
+                </label>
+
+                <input
+                  type="text"
+                  value={notificationTitle}
+                  onChange={(e) => setNotificationTitle(e.target.value)}
+                  placeholder={
+                    lang === "ar"
+                      ? "مثال: خصم 20% على جميع المنتجات"
+                      : "Example: 20% Off All Products"
+                  }
+                  className="w-full h-12 px-4 rounded-xl border border-[rgb(244_242_245)] focus:outline-none focus:ring-2 focus:ring-[rgb(60_28_84)]/20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[rgb(60_28_84)] mb-2">
+                  {lang === "ar" ? "محتوى الإشعار" : "Notification Message"}
+                </label>
+
+                <textarea
+                  rows={5}
+                  value={notificationMessage}
+                  onChange={(e) => setNotificationMessage(e.target.value)}
+                  placeholder={
+                    lang === "ar"
+                      ? "اكتب الرسالة التي ستصل لعملائك..."
+                      : "Write the message that will be sent to your customers..."
+                  }
+                  className="w-full px-4 py-3 rounded-xl border border-[rgb(244_242_245)] resize-none focus:outline-none focus:ring-2 focus:ring-[rgb(60_28_84)]/20"
+                />
+              </div>
             </div>
-            <div>
-              <h4 className="font-bold text-[rgb(60_28_84)] text-lg">
+
+            <div className="bg-[rgb(244_242_245)]/50 rounded-xl p-4">
+              <p className="text-sm text-[rgb(60_28_84)]/70">
                 {lang === "ar"
-                  ? "لا توجد إعدادات للإشعارات حالياً"
-                  : "No Notification Settings Yet"}
-              </h4>
-              <p className="text-sm text-[rgb(60_28_84)]/50 mt-2 max-w-sm mx-auto leading-relaxed">
-                {lang === "ar"
-                  ? "ستتمكن قريباً من إدارة تفضيلات التنبيهات والبريد الإلكتروني الخاصة بمتجرك من هذا القسم."
-                  : "You will soon be able to manage your store's alert and email preferences from this section."}
+                  ? "سيتم إرسال هذا الإشعار فقط إلى العملاء المسجلين في متجرك والذين سمحوا باستقبال الإشعارات."
+                  : "This notification will only be sent to customers of your store who allowed push notifications."}
               </p>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={handleSendNotification}
+                disabled={
+                  sendingNotification ||
+                  !notificationTitle.trim() ||
+                  !notificationMessage.trim()
+                }
+                className="h-12 px-6 rounded-xl bg-[rgb(60_28_84)] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 flex items-center gap-2"
+              >
+                <Bell className="w-4 h-4" />
+
+                {sendingNotification
+                  ? lang === "ar"
+                    ? "جاري الإرسال..."
+                    : "Sending..."
+                  : lang === "ar"
+                    ? "إرسال الإشعار"
+                    : "Send Notification"}
+              </button>
             </div>
           </div>
         </div>
@@ -883,14 +929,14 @@ export default function SettingsPanel() {
               )}
 
               <div className="space-y-3">
-                {banners.length === 0 && !isAddingBanner ? (
+                {!banners || (banners.length === 0 && !isAddingBanner) ? (
                   <p className="text-sm text-[rgb(60_28_84)]/50 text-center py-4">
                     {lang === "ar"
                       ? "لا توجد لافتات مضافة بعد."
                       : "No hero banners added yet."}
                   </p>
                 ) : (
-                  banners.map((banner, index) => (
+                  banners?.map((banner, index) => (
                     <div
                       key={banner.id}
                       className="flex items-center justify-between bg-[rgb(244_242_245)] p-3 rounded-xl"
