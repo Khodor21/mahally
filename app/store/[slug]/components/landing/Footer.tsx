@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   FaInstagram,
   FaTiktok,
@@ -15,27 +15,30 @@ import { FiPhone, FiMail } from "react-icons/fi";
 import { Globe } from "lucide-react";
 import { setLanguage } from "@/lib/setLanguage";
 
-const socials = [
-  { icon: FaFacebookF, href: "#", label: "Facebook" },
-  { icon: FaInstagram, href: "#", label: "Instagram" },
-  { icon: FaXTwitter, href: "#", label: "X" },
-  { icon: FaSnapchatGhost, href: "#", label: "Snapchat" },
-  { icon: FaTiktok, href: "#", label: "TikTok" },
-];
-
-export default function Footer({
-  lang = "ar",
-  storeName = "mahally",
-  storeSlug = "",
-  storeId = "2050147892", // يمكن تمرير الـ ID الخاص بالمتجر هنا
-}: {
+interface FooterProps {
   lang?: "en" | "ar";
   storeName?: string;
   storeSlug?: string;
   storeId?: string;
-}) {
+  logoUrl?: string | null;
+  primaryColor?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  instagramUrl?: string | null;
+}
+
+export default function Footer({
+  lang = "ar",
+  storeName = "Store",
+  storeSlug = "",
+  storeId = "",
+  logoUrl,
+  primaryColor,
+  phone,
+  email,
+  instagramUrl,
+}: FooterProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   const toggleLang = () => {
@@ -48,6 +51,10 @@ export default function Footer({
     if (!storeSlug) return `${path}?lang=${lang}`;
     return `/store/${storeSlug}${path}?lang=${lang}`;
   };
+
+  // Fallbacks for contact info
+  const displayEmail = email || `info@${storeSlug || "store"}.com`;
+  const displayPhone = phone || "";
 
   const content = {
     ar: {
@@ -98,12 +105,23 @@ export default function Footer({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-6">
         {/* MAIN COLUMNS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 mb-12">
-          {/* BRAND SECTION (Right in RTL) */}
+          {/* BRAND SECTION */}
           <div className="flex flex-col gap-5">
             <Link href={buildUrl("")} className="flex items-center gap-3 w-fit">
-              <div className="w-12 h-12 rounded-xl bg-brand-black text-white flex items-center justify-center font-black text-xl">
-                {storeName?.[0]?.toUpperCase() || "M"}
-              </div>
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt={storeName}
+                  className="w-12 h-12 rounded-xl object-cover bg-gray-50 border border-gray-100"
+                />
+              ) : (
+                <div
+                  className="w-12 h-12 rounded-xl text-white flex items-center justify-center font-black text-xl"
+                  style={{ backgroundColor: primaryColor || "#111827" }}
+                >
+                  {storeName?.[0]?.toUpperCase() || "S"}
+                </div>
+              )}
               <span className="text-xl font-bold text-brand-black tracking-tight">
                 {storeName}
               </span>
@@ -113,7 +131,7 @@ export default function Footer({
             </p>
           </div>
 
-          {/* IMPORTANT LINKS (Middle) */}
+          {/* IMPORTANT LINKS */}
           <div className="flex flex-col gap-5 md:items-center">
             <div className="flex flex-col gap-4">
               <p className="font-bold text-brand-black text-lg">
@@ -133,7 +151,7 @@ export default function Footer({
             </div>
           </div>
 
-          {/* CONTACT SECTION (Left in RTL) */}
+          {/* CONTACT SECTION */}
           <div className="flex flex-col gap-5 md:items-end">
             <div className="flex flex-col gap-4">
               <p className="font-bold text-brand-black text-base md:text-end">
@@ -141,34 +159,37 @@ export default function Footer({
               </p>
 
               <div className="flex flex-col gap-3">
+                {displayPhone && (
+                  <a
+                    href={`tel:${displayPhone.replace(/\s+/g, "")}`}
+                    className="flex items-center gap-3 text-sm text-brand-black/60 hover:text-brand-black font-medium transition-colors"
+                  >
+                    <span dir="ltr">{displayPhone}</span>
+                    <FiPhone size={16} />
+                  </a>
+                )}
                 <a
-                  href="tel:966508116023"
+                  href={`mailto:${displayEmail}`}
                   className="flex items-center gap-3 text-sm text-brand-black/60 hover:text-brand-black font-medium transition-colors"
                 >
-                  <span dir="ltr">+966 50 811 6023</span>
-                  <FiPhone size={16} />
-                </a>
-                <a
-                  href={`mailto:info@${storeName.toLowerCase()}.com`}
-                  className="flex items-center gap-3 text-sm text-brand-black/60 hover:text-brand-black font-medium transition-colors"
-                >
-                  <span>info@{storeName.toLowerCase()}.com</span>
+                  <span>{displayEmail}</span>
                   <FiMail size={16} />
                 </a>
               </div>
 
-              {/* SOCIAL ICONS */}
+              {/* SOCIAL ICONS (Dynamic rendering based on DB) */}
               <div className="flex items-center gap-2 pt-2">
-                {socials.map(({ icon: Icon, href, label }) => (
+                {instagramUrl && (
                   <a
-                    key={label}
-                    href={href}
-                    aria-label={label}
+                    href={instagramUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Instagram"
                     className="w-9 h-9 rounded-xl bg-brand-grey border border-transparent flex items-center justify-center text-brand-black/60 hover:text-brand-black hover:border-brand-light hover:bg-white transition-all duration-200"
                   >
-                    <Icon className="text-[15px]" />
+                    <FaInstagram className="text-[15px]" />
                   </a>
-                ))}
+                )}
               </div>
             </div>
           </div>
@@ -176,7 +197,6 @@ export default function Footer({
 
         {/* PAYMENT & COMMERCIAL ID ROW */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-6 border-t border-brand-light">
-          {/* Commercial ID */}
           {storeId && (
             <div className="flex items-center gap-2 text-sm font-semibold text-brand-black">
               <span>{t.commercialId}</span>
@@ -186,7 +206,6 @@ export default function Footer({
             </div>
           )}
 
-          {/* Payment Methods */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-brand-grey px-3 py-1.5 rounded-lg border border-brand-light/50">
               <FaMoneyBillWave className="text-emerald-600" size={16} />
