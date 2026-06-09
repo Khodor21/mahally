@@ -3,6 +3,9 @@ import { requireStoreSession } from "@/lib/store";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import admin from "@/lib/firebaseAdmin";
 
+// 1. Tell Next.js to NEVER statically analyze or cache this route at build time
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   try {
     const store = await requireStoreSession();
