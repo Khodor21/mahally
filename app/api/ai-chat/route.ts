@@ -109,7 +109,6 @@ export async function POST(req: NextRequest) {
       completion.choices[0]?.message?.content ??
       "Sorry, I couldn't generate a response.";
 
-    // ── Update usage ────────────────────────────────────────────────────
 
     await supabaseAdmin
 
@@ -121,7 +120,6 @@ export async function POST(req: NextRequest) {
 
       .eq("id", store.id);
 
-    // ── Optional logging ───────────────────────────────────────────────
 
     await supabaseAdmin.from("ai_usage_logs").insert({
       store_id: store.id,
