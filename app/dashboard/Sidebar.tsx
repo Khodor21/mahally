@@ -29,7 +29,6 @@ import type { Translations } from "./i18n";
 import LogoutModal from "./components/LogoutModal";
 
 type TranslationKey = keyof Translations;
-
 interface NavGroup {
   items: {
     id: NavItem;
@@ -167,7 +166,7 @@ export default function Sidebar({ store }: SidebarProps) {
             <div key={gi}>
               {group.titleKey && (
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[rgb(60_28_84)]/40 px-3 mb-2">
-                  {String(tr[group.titleKey])}
+                  {tr[group.titleKey]}
                 </p>
               )}
 
@@ -193,7 +192,7 @@ export default function Sidebar({ store }: SidebarProps) {
                       <item.icon className="w-4 h-4 flex-shrink-0" />
 
                       <span className="flex-1 text-start">
-                        {String(tr[item.labelKey])}
+                        {tr[item.labelKey]}
                       </span>
 
                       {item.soon && (

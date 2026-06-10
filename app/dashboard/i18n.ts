@@ -210,7 +210,7 @@ export const t = {
     home: "Home",
     orders: "Orders",
     products: "Products",
-    visitor: "Visitors",
+    visitors: "Visitors",
     customers: "Customers",
     analytics: "Analytics",
     settings: "Settings",

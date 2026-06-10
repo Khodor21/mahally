@@ -109,7 +109,6 @@ export async function POST(req: NextRequest) {
       completion.choices[0]?.message?.content ??
       "Sorry, I couldn't generate a response.";
 
-
     await supabaseAdmin
 
       .from("stores")
@@ -119,7 +118,6 @@ export async function POST(req: NextRequest) {
       })
 
       .eq("id", store.id);
-
 
     await supabaseAdmin.from("ai_usage_logs").insert({
       store_id: store.id,
