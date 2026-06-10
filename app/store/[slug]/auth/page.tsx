@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import CustomerAuth from "./CustomerAuth";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
@@ -20,9 +21,7 @@ export default async function AuthPage({ params, searchParams }: Props) {
     .eq("slug", params.slug)
     .maybeSingle();
 
-  if (!store) {
-    notFound();
-  }
+  if (!store) notFound();
 
   return <CustomerAuth storeId={store.id} lang={lang} />;
 }

@@ -1,11 +1,5 @@
-/**
- * @/hooks/useApi.ts - Custom Hooks for Data Fetching
- *
- * React hooks that wrap the API layer, providing a clean interface for components.
- * Handles loading, error, and retry logic automatically.
- */
-
 import { useCallback, useState, useEffect, useRef } from "react";
+import { supabase } from "@/lib/supabase/client";
 import {
   getProducts,
   getOrders,
@@ -32,6 +26,7 @@ import {
   toggleHeroBanner,
   reorderHeroBanners,
 } from "@/lib/api";
+
 import type {
   Product,
   ProductFormData,
@@ -502,6 +497,49 @@ export function useHeroBannerUpdate() {
   );
 
   return { execute, loading, error };
+}
+
+// Add this to your existing useApi.ts file
+
+export function useVisitors(storeId: string) {
+  const [data, setData] = useState<
+    Array<{
+      count_date: string;
+      visitor_count: number;
+    }>
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!storeId) return;
+
+    const fetchVisitors = async () => {
+      try {
+        setLoading(true);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const { data: visitorData, error } = await supabase
+          .from("visitor_counts")
+          .select("count_date, visitor_count")
+          .eq("store_id", storeId)
+          .gte("count_date", thirtyDaysAgo.toISOString().split("T")[0])
+          .order("count_date", { ascending: true });
+
+        if (error) throw error;
+        setData(visitorData || []);
+      } catch (error) {
+        console.error("Failed to fetch visitors:", error);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVisitors();
+  }, [storeId]);
+
+  return { data, loading };
 }
 
 export function useHeroBannerDelete() {

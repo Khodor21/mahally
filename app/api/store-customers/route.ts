@@ -21,46 +21,29 @@ export async function GET() {
 
     const { data, error } = await supabaseAdmin
       .from("store_customers")
-      .select(
-        `
-        id,
-        first_name,
-        last_name,
-        phone,
-        governorate,
-        created_at
-      `,
-      )
+      .select(`id, first_name, last_name, phone, governorate, created_at`)
       .eq("store_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
 
-    return NextResponse.json({
-      success: true,
-      data,
-    });
+    return NextResponse.json({ success: true, data });
   } catch (err: any) {
     const isAuth = err.message === "Unauthorized";
-
     return NextResponse.json(
-      {
-        success: false,
-        message: err.message,
-      },
-      {
-        status: isAuth ? 401 : 500,
-      },
+      { success: false, message: err.message },
+      { status: isAuth ? 401 : 500 },
     );
   }
 }
 
+// POST - Register a new customer
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-
     const { storeId, firstName, lastName, phone, governorate, password } = body;
 
+    // Validation
     if (
       !storeId ||
       !firstName ||
@@ -70,30 +53,21 @@ export async function POST(req: Request) {
       !password
     ) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Missing required fields",
-        },
-        {
-          status: 400,
-        },
+        { success: false, message: "Missing required fields" },
+        { status: 400 },
       );
     }
 
     if (!LEBANON_GOVERNORATES.includes(governorate)) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid governorate",
-        },
-        {
-          status: 400,
-        },
+        { success: false, message: "Invalid governorate" },
+        { status: 400 },
       );
     }
 
     const normalizedPhone = phone.trim();
 
+    // Check if phone already exists for this store
     const { data: existingCustomer } = await supabaseAdmin
       .from("store_customers")
       .select("id")
@@ -103,18 +77,14 @@ export async function POST(req: Request) {
 
     if (existingCustomer) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Phone already exists",
-        },
-        {
-          status: 409,
-        },
+        { success: false, message: "Phone already exists" },
+        { status: 409 },
       );
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // Insert new customer
     const { data: customer, error } = await supabaseAdmin
       .from("store_customers")
       .insert({
@@ -125,40 +95,22 @@ export async function POST(req: Request) {
         governorate,
         password_hash: passwordHash,
       })
-      .select(
-        `
-        id,
-        first_name,
-        last_name,
-        phone,
-        governorate,
-        store_id
-      `,
-      )
+      .select(`id, first_name, last_name, phone, governorate, store_id`)
       .single();
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
-    const sessionData = {
-      customerId: customer.id,
-      storeId: customer.store_id,
-    };
-
-    const response = NextResponse.json({
-      success: true,
-      customer,
-    });
+    // Generate response and set session cookie
+    const response = NextResponse.json({ success: true, customer });
 
     response.cookies.set(
       "store_customer_session",
-      JSON.stringify(sessionData),
+      JSON.stringify({ customerId: customer.id, storeId: customer.store_id }),
       {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 30,
+        maxAge: 60 * 60 * 24 * 30, // 30 days
         path: "/",
       },
     );
@@ -166,15 +118,9 @@ export async function POST(req: Request) {
     return response;
   } catch (err: any) {
     console.error("Signup error:", err);
-
     return NextResponse.json(
-      {
-        success: false,
-        message: err.message,
-      },
-      {
-        status: 500,
-      },
+      { success: false, message: err.message },
+      { status: 500 },
     );
   }
 }

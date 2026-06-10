@@ -30,6 +30,14 @@ type Customer = {
   store_id: string;
 };
 
+type Order = {
+  id: string;
+  date: string;
+  total: string;
+  status: string;
+  statusAr: string;
+};
+
 type Props = {
   customer: Customer;
   lang: "en" | "ar";
@@ -141,8 +149,7 @@ const orders = [
 
 export default function ProfileClient({ customer, lang, slug }: Props) {
   const router = useRouter();
-
-  const tr = translations[lang];
+  const tr = translations[lang] as any;
   const isArabic = lang === "ar";
 
   const [isEditing, setIsEditing] = useState(false);
@@ -186,52 +193,43 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
               : "Please enter current password",
             type: "error",
           });
-
           return;
         }
-
         payload.currentPassword = form.currentPassword;
         payload.newPassword = form.newPassword;
       }
 
       const res = await fetch("/api/profile", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
       if (!data.success) {
-        setToast({
-          message: data.message || tr.updateError,
-          type: "error",
-        });
-
+        setToast({ message: data.message || tr.updateError, type: "error" });
         return;
       }
 
-      setToast({
-        message: tr.updateSuccess,
-        type: "success",
-      });
+      // Update local storage to match the new database state
+      localStorage.setItem(
+        "store_customer",
+        JSON.stringify({
+          ...customer,
+          first_name: form.firstName,
+          last_name: form.lastName,
+          phone: form.phone,
+          governorate: form.governorate,
+        }),
+      );
 
+      setToast({ message: tr.updateSuccess, type: "success" });
       setIsEditing(false);
-
-      setForm((prev) => ({
-        ...prev,
-        currentPassword: "",
-        newPassword: "",
-      }));
-
-      router.refresh();
+      setForm((prev) => ({ ...prev, currentPassword: "", newPassword: "" }));
+      router.refresh(); // Crucial: syncs the new data with the Server Component
     } catch {
-      setToast({
-        message: tr.updateError,
-        type: "error",
-      });
+      setToast({ message: tr.updateError, type: "error" });
     } finally {
       setLoading(false);
     }
@@ -240,14 +238,12 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
   async function confirmLogout() {
     try {
       setLoading(true);
-
-      await fetch("/api/store-customers/logout", {
-        method: "POST",
-      });
-
+      await fetch("/api/store-customers/logout", { method: "POST" });
       localStorage.removeItem("store_customer");
 
-      router.push(`/store/${slug}/auth`);
+      // Absolute path to respect middleware domains
+      router.push("/auth");
+      router.refresh();
     } catch {
       setToast({
         message: isArabic ? "فشل تسجيل الخروج" : "Logout failed",
@@ -262,11 +258,7 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
   async function confirmDeleteAccount() {
     try {
       setLoading(true);
-
-      const res = await fetch("/api/profile", {
-        method: "DELETE",
-      });
-
+      const res = await fetch("/api/profile", { method: "DELETE" });
       const data = await res.json();
 
       if (!data.success) {
@@ -274,23 +266,25 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
           message: data.message || "Failed to delete account",
           type: "error",
         });
-
         return;
       }
 
       localStorage.removeItem("store_customer");
 
-      router.push(`/store/${slug}`);
+      // Absolute path to respect middleware domains
+      router.push("/");
+      router.refresh();
     } catch {
-      setToast({
-        message: "Failed to delete account",
-        type: "error",
-      });
+      setToast({ message: "Failed to delete account", type: "error" });
     } finally {
       setLoading(false);
       setDeleteModal(false);
     }
   }
+
+  // Safe checks for initials to prevent app crashes if name is empty
+  const firstInitial = customer.first_name?.[0] || "";
+  const lastInitial = customer.last_name?.[0] || "";
 
   return (
     <>
@@ -335,8 +329,8 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
               <div className="flex items-center gap-3 pb-5 border-b border-brand-light">
                 <div className="relative w-14 h-14 rounded-2xl overflow-hidden bg-brand-grey shrink-0">
                   <div className="w-full h-full flex items-center justify-center bg-brand-dark text-white text-xl font-bold">
-                    {customer.first_name[0]}
-                    {customer.last_name[0]}
+                    {firstInitial}
+                    {lastInitial}
                   </div>
                 </div>
 
@@ -344,7 +338,6 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                   <h2 className="text-sm font-bold text-brand-dark truncate">
                     {fullName}
                   </h2>
-
                   <p className="text-xs text-brand-dark/50 truncate">
                     {customer.phone}
                   </p>
@@ -357,20 +350,14 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                   icon={<User size={18} />}
                   label={tr.account}
                 />
-
                 <SidebarItem icon={<Package size={18} />} label={tr.orders} />
-
                 <SidebarItem icon={<Heart size={18} />} label={tr.wishlist} />
-
                 <SidebarItem icon={<MapPin size={18} />} label={tr.addresses} />
-
                 <SidebarItem
                   icon={<ShieldCheck size={18} />}
                   label={tr.security}
                 />
-
                 <SidebarItem icon={<Globe size={18} />} label={tr.language} />
-
                 <SidebarItem
                   danger
                   disabled={loading}
@@ -394,7 +381,6 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                     <h1 className="text-xl md:text-2xl font-bold text-brand-dark">
                       {tr.accountInfo}
                     </h1>
-
                     <p className="text-sm text-brand-dark/50 mt-1">
                       {tr.manageAccount}
                     </p>
@@ -413,7 +399,6 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                         disabled={loading}
                         onClick={() => {
                           setIsEditing(false);
-
                           setForm({
                             firstName: customer.first_name,
                             lastName: customer.last_name,
@@ -436,7 +421,6 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                         {loading && (
                           <Loader2 size={16} className="animate-spin" />
                         )}
-
                         {loading ? tr.saving : tr.save}
                       </button>
                     </div>
@@ -446,9 +430,7 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                 {!isEditing ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InfoCard label={tr.fullName} value={fullName} />
-
                     <InfoCard label={tr.phoneNumber} value={customer.phone} />
-
                     <InfoCard
                       label={tr.governorate}
                       value={customer.governorate}
@@ -461,37 +443,25 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                       label={tr.firstName}
                       value={form.firstName}
                       onChange={(v) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          firstName: v,
-                        }))
+                        setForm((prev) => ({ ...prev, firstName: v }))
                       }
                     />
-
                     <InputField
                       required
                       label={tr.lastName}
                       value={form.lastName}
                       onChange={(v) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          lastName: v,
-                        }))
+                        setForm((prev) => ({ ...prev, lastName: v }))
                       }
                     />
-
                     <InputField
                       required
                       label={tr.phoneNumber}
                       value={form.phone}
                       onChange={(v) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          phone: v,
-                        }))
+                        setForm((prev) => ({ ...prev, phone: v }))
                       }
                     />
-
                     <SelectField
                       required
                       options={governorates}
@@ -499,34 +469,23 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                       value={form.governorate}
                       placeholder={tr.selectGovernorate}
                       onChange={(v) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          governorate: v,
-                        }))
+                        setForm((prev) => ({ ...prev, governorate: v }))
                       }
                     />
-
                     <InputField
                       type="password"
                       label={`${tr.currentPassword} (${tr.optional})`}
                       value={form.currentPassword}
                       onChange={(v) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          currentPassword: v,
-                        }))
+                        setForm((prev) => ({ ...prev, currentPassword: v }))
                       }
                     />
-
                     <InputField
                       type="password"
                       label={`${tr.newPassword} (${tr.optional})`}
                       value={form.newPassword}
                       onChange={(v) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          newPassword: v,
-                        }))
+                        setForm((prev) => ({ ...prev, newPassword: v }))
                       }
                     />
                   </div>
@@ -551,12 +510,10 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                     <h2 className="text-lg font-bold text-brand-dark">
                       {tr.recentOrders}
                     </h2>
-
                     <p className="text-sm text-brand-dark/50 mt-1">
                       {tr.viewLatest}
                     </p>
                   </div>
-
                   <button className="text-sm text-brand-dark font-medium hover:opacity-70 transition-opacity">
                     {tr.viewAll}
                   </button>
@@ -572,21 +529,17 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                         <span className="text-sm font-semibold text-brand-dark">
                           {order.id}
                         </span>
-
                         <span className="text-xs text-brand-dark/50">
                           {order.date}
                         </span>
                       </div>
-
                       <div className="flex items-center gap-4">
                         <span className="text-sm font-medium text-brand-dark">
                           {order.total}
                         </span>
-
                         <span className="text-xs px-3 py-1 rounded-full bg-brand-grey text-brand-dark">
                           {isArabic ? order.statusAr : order.status}
                         </span>
-
                         <ChevronRight
                           size={18}
                           className="text-brand-dark/40"

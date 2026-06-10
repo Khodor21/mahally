@@ -4,6 +4,8 @@ export const t = {
     home: "الرئيسية",
     orders: "الطلبات",
     products: "المنتجات",
+    visitors: "الزوار",
+
     customers: "العملاء",
     analytics: "الإحصاءات",
     settings: "الإعدادات",
@@ -208,6 +210,7 @@ export const t = {
     home: "Home",
     orders: "Orders",
     products: "Products",
+    visitor: "Visitors",
     customers: "Customers",
     analytics: "Analytics",
     settings: "Settings",

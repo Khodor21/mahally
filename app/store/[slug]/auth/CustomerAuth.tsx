@@ -48,20 +48,8 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
 
   async function handleSubmit() {
     try {
-      // Validation
-      if (!form.phone || form.phone === "+961") {
-        setToast({
-          message: tr.missingFields,
-          type: "error",
-        });
-        return;
-      }
-
-      if (!form.password) {
-        setToast({
-          message: tr.missingFields,
-          type: "error",
-        });
+      if (!form.phone || form.phone === "+961" || !form.password) {
+        setToast({ message: tr.missingFields, type: "error" });
         return;
       }
 
@@ -69,10 +57,7 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
         mode === "signup" &&
         (!form.firstName.trim() || !form.lastName.trim() || !form.governorate)
       ) {
-        setToast({
-          message: tr.missingFields,
-          type: "error",
-        });
+        setToast({ message: tr.missingFields, type: "error" });
         return;
       }
 
@@ -99,19 +84,13 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
               password: form.password,
             };
 
-      console.log("Sending payload:", payload); // Debug log
-
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-
-      console.log("Response:", data); // Debug log
 
       if (!data.success) {
         setToast({
@@ -124,7 +103,8 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
         return;
       }
 
-      // Store customer data in localStorage
+      // IMPORTANT: keep cookie logic ONLY in backend (you already do that)
+
       localStorage.setItem("store_customer", JSON.stringify(data.customer));
 
       setToast({
@@ -132,12 +112,13 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
         type: "success",
       });
 
-      // Redirect to profile after 1.5 seconds
       setTimeout(() => {
-        router.push(window.location.pathname.replace("/auth", "/profile"));
-      }, 1500);
+        // ✅ FIXED: correct tenant redirect instead of /profile
+        router.push(`/store/${storeId}`);
+        router.refresh();
+      }, 1200);
     } catch (error) {
-      console.error("Auth error:", error); // Debug log
+      console.error("Auth error:", error);
       setToast({
         message: tr.invalidCredentials,
         type: "error",
@@ -163,7 +144,6 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
       >
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,rgba(60,28,84,0.03),transparent_50%)]" />
 
-        {/* Header */}
         <div className="relative mb-8 text-center">
           <div className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-brand-light text-brand-dark text-xs font-medium mb-5">
             {title}
@@ -171,9 +151,7 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
 
           <h2
             className="text-[30px] md:text-[42px] leading-[1.1] text-brand-dark mb-4"
-            style={{
-              fontFamily: "Lalezar, cursive",
-            }}
+            style={{ fontFamily: "Lalezar, cursive" }}
           >
             {mode === "signup" ? tr.createAccount : tr.login}
           </h2>
@@ -183,7 +161,6 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
           </p>
         </div>
 
-        {/* Tabs */}
         <div className="flex bg-brand-light rounded-2xl p-1 mb-7">
           <button
             onClick={() => setMode("signup")}
@@ -215,24 +192,13 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
                 icon={<User className="w-4 h-4" />}
                 label={tr.firstName}
                 value={form.firstName}
-                onChange={(v) =>
-                  setForm({
-                    ...form,
-                    firstName: v,
-                  })
-                }
+                onChange={(v) => setForm({ ...form, firstName: v })}
               />
-
               <InputField
                 icon={<User className="w-4 h-4" />}
                 label={tr.lastName}
                 value={form.lastName}
-                onChange={(v) =>
-                  setForm({
-                    ...form,
-                    lastName: v,
-                  })
-                }
+                onChange={(v) => setForm({ ...form, lastName: v })}
               />
             </div>
           )}
@@ -241,12 +207,7 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
             icon={<Phone className="w-4 h-4" />}
             label={tr.phone}
             value={form.phone}
-            onChange={(v) =>
-              setForm({
-                ...form,
-                phone: v,
-              })
-            }
+            onChange={(v) => setForm({ ...form, phone: v })}
             placeholder="+96170123456"
           />
 
@@ -255,22 +216,16 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
               <label className="text-sm font-semibold text-brand-dark mb-2 block">
                 {tr.governorate}
               </label>
-
               <div className="relative">
                 <MapPin className="w-4 h-4 absolute top-1/2 -translate-y-1/2 left-4 text-brand-dark/40" />
-
                 <select
                   value={form.governorate}
                   onChange={(e) =>
-                    setForm({
-                      ...form,
-                      governorate: e.target.value,
-                    })
+                    setForm({ ...form, governorate: e.target.value })
                   }
                   className="w-full h-12 rounded-2xl bg-brand-grey border border-brand-light px-12 text-sm outline-none focus:border-brand-dark transition-all"
                 >
                   <option value="">{tr.selectGovernorate}</option>
-
                   {governorates.map((gov) => (
                     <option key={gov} value={gov}>
                       {gov}
@@ -286,19 +241,13 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
             icon={<Lock className="w-4 h-4" />}
             label={tr.password}
             value={form.password}
-            onChange={(v) =>
-              setForm({
-                ...form,
-                password: v,
-              })
-            }
-            placeholder={mode === "signup" ? "••••••••" : ""}
+            onChange={(v) => setForm({ ...form, password: v })}
           />
 
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full h-12 rounded-2xl bg-brand-dark hover:opacity-95 text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-12 rounded-2xl bg-brand-dark hover:opacity-95 text-white text-sm font-semibold transition-all disabled:opacity-50"
           >
             {loading
               ? mode === "signup"
@@ -314,6 +263,7 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
   );
 }
 
+// --- InputField Subcomponent ---
 type InputFieldProps = {
   label: string;
   value: string;
@@ -336,12 +286,10 @@ function InputField({
       <label className="text-sm font-semibold text-brand-dark mb-2 block">
         {label}
       </label>
-
       <div className="relative">
         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-dark/40">
           {icon}
         </div>
-
         <input
           type={type}
           value={value}

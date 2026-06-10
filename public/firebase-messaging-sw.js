@@ -1,28 +1,45 @@
 importScripts(
   "https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js",
 );
-
 importScripts(
   "https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js",
 );
 
-firebase.initializeApp({
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-});
+const firebaseConfig = {
+  apiKey: "AIzaSyBQZoA1lhg8TZ0jIAkRrn_QgW8nmpp0XeQ",
+  authDomain: "mahally-notification.firebaseapp.com",
+  projectId: "mahally-notification",
+  storageBucket: "mahally-notification.appspot.com",
+  messagingSenderId: "893549676994",
+  appId: "1:893549676994:web:1a66a47ab644619c6bee5b",
+};
 
+firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || "New Notification";
-
-  const options = {
-    body: payload.notification?.body,
+  console.log("Background message received:", payload);
+  const notificationTitle = payload.notification?.title || "Notification";
+  const notificationOptions = {
+    body: payload.notification?.body || "",
     icon: "/logo.png",
+    badge: "/badge.png",
   };
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
 
-  self.registration.showNotification(title, options);
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window" }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === "/" && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow("/");
+      }
+    }),
+  );
 });

@@ -26,9 +26,13 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-
 import { useDashboard } from "../DashboardContext";
-import { useOrders, useProducts, useCustomers } from "@/hooks/useApi";
+import {
+  useOrders,
+  useProducts,
+  useCustomers,
+  useVisitors,
+} from "@/hooks/useApi";
 import type { NavItem, StoreData } from "../types";
 
 const statusColors: Record<string, string> = {
@@ -52,32 +56,69 @@ interface HomePanelProps {
 export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
   const { tr, lang } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
-
   const [copied, setCopied] = useState(false);
   const storeUrl = `${store.slug}.mysaas.com`;
 
   const { data: ordersData, loading: ordersLoading } = useOrders(store.id);
   const { data: productsData, loading: productsLoading } = useProducts();
   const { data: customersData, loading: customersLoading } = useCustomers();
+  const { data: visitorsData, loading: visitorsLoading } = useVisitors(
+    store.id,
+  );
 
   const orders = ordersData ?? [];
   const products = productsData ?? [];
   const customers = customersData ?? [];
-  const loading = ordersLoading || productsLoading || customersLoading;
+  const visitors = visitorsData ?? [];
+
+  const loading =
+    ordersLoading || productsLoading || customersLoading || visitorsLoading;
 
   // Generate chart data dynamically
   const chartData = useMemo(() => {
-    const monthsAr = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
-    const monthsEn = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
+    const monthsAr = [
+      "يناير",
+      "فبراير",
+      "مارس",
+      "أبريل",
+      "مايو",
+      "يونيو",
+      "يوليو",
+      "أغسطس",
+      "سبتمبر",
+      "أكتوبر",
+      "نوفمبر",
+      "ديسمبر",
+    ];
+    const monthsEn = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     const now = new Date();
     const months: Array<{ key: string; ar: string; date: Date }> = [];
+
     for (let i = 6; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({ key: monthsEn[date.getMonth()], ar: monthsAr[date.getMonth()], date });
+      months.push({
+        key: monthsEn[date.getMonth()],
+        ar: monthsAr[date.getMonth()],
+        date,
+      });
     }
 
-    const monthlyData: Record<string, number> = Object.fromEntries(months.map(m => [m.key, 0]));
+    const monthlyData: Record<string, number> = Object.fromEntries(
+      months.map((m) => [m.key, 0]),
+    );
 
     orders.forEach((order) => {
       if (order.status !== "cancelled") {
@@ -112,39 +153,147 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
   };
 
   const quickActions = [
-    { label: tr.addProduct || "إضافة منتج", icon: Plus, nav: "products" as NavItem, color: "bg-[rgb(60_28_84)] text-white hover:bg-[rgb(60_28_84)]/90" },
-    { label: tr.viewOrders || "عرض الطلبات", icon: Eye, nav: "orders" as NavItem, color: "bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)]" },
-    { label: tr.createCoupon || "إنشاء كوبون", icon: Ticket, nav: "coupons" as NavItem, color: "bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)]" },
-    { label: tr.manageStore || "إدارة المتجر", icon: Store, nav: "settings" as NavItem, color: "bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)]" },
+    {
+      label: tr.addProduct || "إضافة منتج",
+      icon: Plus,
+      nav: "products" as NavItem,
+      color: "bg-[rgb(60_28_84)] text-white hover:bg-[rgb(60_28_84)]/90",
+    },
+    {
+      label: tr.viewOrders || "عرض الطلبات",
+      icon: Eye,
+      nav: "orders" as NavItem,
+      color:
+        "bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)]",
+    },
+    {
+      label: tr.createCoupon || "إنشاء كوبون",
+      icon: Ticket,
+      nav: "coupons" as NavItem,
+      color:
+        "bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)]",
+    },
+    {
+      label: tr.manageStore || "إدارة المتجر",
+      icon: Store,
+      nav: "settings" as NavItem,
+      color:
+        "bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)]",
+    },
   ];
 
   const stats = useMemo(() => {
     const now = new Date();
-    const isCurrentMonth = (d: string) => new Date(d).getMonth() === now.getMonth() && new Date(d).getFullYear() === now.getFullYear();
-    const isLastMonth = (d: string) => new Date(d).getMonth() === now.getMonth() - 1 && new Date(d).getFullYear() === now.getFullYear();
-    
-    const calculateGrowth = (cur: number, prev: number) => prev === 0 ? (cur > 0 ? 100 : 0) : Number((((cur - prev) / prev) * 100).toFixed(1));
+    const today = now.toISOString().split("T")[0];
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
 
-    let curRev = 0, lastRev = 0, curOrds = 0, lastOrds = 0;
-    const curCusts = new Set<string>(), lastCusts = new Set<string>();
+    const isCurrentMonth = (d: string) =>
+      new Date(d).getMonth() === now.getMonth() &&
+      new Date(d).getFullYear() === now.getFullYear();
+    const isLastMonth = (d: string) =>
+      new Date(d).getMonth() === now.getMonth() - 1 &&
+      new Date(d).getFullYear() === now.getFullYear();
 
-    orders.forEach(o => {
+    const calculateGrowth = (cur: number, prev: number) =>
+      prev === 0
+        ? cur > 0
+          ? 100
+          : 0
+        : Number((((cur - prev) / prev) * 100).toFixed(1));
+
+    // Visitors data
+    const todayVisitors =
+      visitors.find((v) => v.count_date === today)?.visitor_count || 0;
+    const yesterdayVisitors =
+      visitors.find((v) => v.count_date === yesterday)?.visitor_count || 0;
+    const visitorGrowth = calculateGrowth(todayVisitors, yesterdayVisitors);
+
+    let curRev = 0,
+      lastRev = 0,
+      curOrds = 0,
+      lastOrds = 0;
+    const curCusts = new Set<string>(),
+      lastCusts = new Set<string>();
+
+    orders.forEach((o) => {
       if (isCurrentMonth(o.created_at)) {
-        curOrds++; curCusts.add(o.customer_name); if (o.status !== "cancelled") curRev += Number(o.total || 0);
+        curOrds++;
+        curCusts.add(o.customer_name);
+        if (o.status !== "cancelled") curRev += Number(o.total || 0);
       } else if (isLastMonth(o.created_at)) {
-        lastOrds++; lastCusts.add(o.customer_name); if (o.status !== "cancelled") lastRev += Number(o.total || 0);
+        lastOrds++;
+        lastCusts.add(o.customer_name);
+        if (o.status !== "cancelled") lastRev += Number(o.total || 0);
       }
     });
 
     return [
-      { label: tr.totalRevenue || "إجمالي الإيرادات", value: orders.reduce((sum, o) => sum + (o.status !== "cancelled" ? Number(o.total) : 0), 0).toLocaleString(), unit: "$", change: calculateGrowth(curRev, lastRev), icon: TrendingUp, color: "bg-[rgb(60_28_84)]", iconColor: "text-white" },
-      { label: tr.totalOrders || "إجمالي الطلبات", value: orders.length.toString(), unit: tr.order || "طلب", change: calculateGrowth(curOrds, lastOrds), icon: ShoppingCart, color: "bg-[rgb(244_242_245)]", iconColor: "text-[rgb(60_28_84)]" },
-      { label: tr.totalCustomers || "إجمالي العملاء", value: customers.length.toString(), unit: "", change: calculateGrowth(curCusts.size, lastCusts.size), icon: Users, color: "bg-[rgb(244_242_245)]", iconColor: "text-[rgb(60_28_84)]" },
-      { label: tr.totalProducts || "إجمالي المنتجات", value: products.length.toString(), unit: tr.piece || "قطعة", change: 0, icon: Package, color: "bg-[rgb(244_242_245)]", iconColor: "text-[rgb(60_28_84)]" },
+      {
+        label: tr.totalRevenue || "إجمالي الإيرادات",
+        value: orders
+          .reduce(
+            (sum, o) => sum + (o.status !== "cancelled" ? Number(o.total) : 0),
+            0,
+          )
+          .toLocaleString(),
+        unit: "$",
+        change: calculateGrowth(curRev, lastRev),
+        icon: TrendingUp,
+        color: "bg-[rgb(60_28_84)]",
+        iconColor: "text-white",
+      },
+      {
+        label: tr.totalOrders || "إجمالي الطلبات",
+        value: orders.length.toString(),
+        unit: tr.order || "طلب",
+        change: calculateGrowth(curOrds, lastOrds),
+        icon: ShoppingCart,
+        color: "bg-[rgb(244_242_245)]",
+        iconColor: "text-[rgb(60_28_84)]",
+      },
+      {
+        label: tr.totalCustomers || "إجمالي العملاء",
+        value: customers.length.toString(),
+        unit: "",
+        change: calculateGrowth(curCusts.size, lastCusts.size),
+        icon: Users,
+        color: "bg-[rgb(244_242_245)]",
+        iconColor: "text-[rgb(60_28_84)]",
+      },
+      {
+        label: tr.totalProducts || "إجمالي المنتجات",
+        value: products.length.toString(),
+        unit: tr.piece || "قطعة",
+        change: 0,
+        icon: Package,
+        color: "bg-[rgb(244_242_245)]",
+        iconColor: "text-[rgb(60_28_84)]",
+      },
+      {
+        label: tr.visits || "الزوار",
+        value: todayVisitors.toString(),
+        unit: "زائر",
+        change: visitorGrowth,
+        icon: Eye,
+        color: "bg-[rgb(244_242_245)]",
+        iconColor: "text-[rgb(60_28_84)]",
+      },
     ];
-  }, [orders, products, customers, tr]);
+  }, [orders, products, customers, visitors, tr]);
 
-  const recentOrders = useMemo(() => [...orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5), [orders]);
+  const recentOrders = useMemo(
+    () =>
+      [...orders]
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )
+        .slice(0, 5),
+    [orders],
+  );
+
   return (
     <div className="space-y-6" dir={dir}>
       {/* Welcome */}
@@ -159,7 +308,7 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up delay-100">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 animate-fade-up delay-100">
         {stats.map((stat, i) => {
           const isPositive = stat.change >= 0;
           return (
@@ -239,7 +388,6 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
               $
             </span>
           </div>
-
           {loading ? (
             <div className="flex items-center justify-center h-[200px]">
               <Loader2 className="w-8 h-8 text-[rgb(60_28_84)]/40 animate-spin" />
@@ -363,6 +511,8 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
                 )}
                 {copied ? tr.copied || "تم النسخ" : tr.copyLink || "نسخ الرابط"}
               </button>
+
+              {/* FIXED: Added missing 'a' tag here */}
               <a
                 href={`https://${storeUrl}`}
                 target="_blank"
@@ -390,7 +540,6 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
             <ExternalLink className="w-3.5 h-3.5" />
           </button>
         </div>
-
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 text-[rgb(60_28_84)]/40 animate-spin" />

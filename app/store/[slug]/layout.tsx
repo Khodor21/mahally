@@ -1,3 +1,5 @@
+// app/store/[slug]/layout.tsx
+
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabase/server";
@@ -5,6 +7,9 @@ import { ShopProvider } from "@/app/store/context";
 import Navbar from "./components/landing/Navbar";
 import Footer from "./components/landing/Footer";
 import LangDomSetter from "./LangSetter";
+import ThemeClient from "./components/ThemeClient";
+import VisitorTracker from "./components/VisitorTracker";
+import NotificationInitializer from "./components/NotificationInitializer"; // ADD THIS
 
 export default async function StoreLayout({
   children,
@@ -16,7 +21,6 @@ export default async function StoreLayout({
   const cookieStore = cookies();
   const lang = cookieStore.get("lang")?.value === "ar" ? "ar" : "en";
 
-  // 1. Fetch the store (Now including phone and admin_email)
   const { data: store, error: storeError } = await supabaseAdmin
     .from("stores")
     .select("id, store_name, slug, phone, admin_email")
@@ -25,7 +29,6 @@ export default async function StoreLayout({
 
   if (storeError || !store) return notFound();
 
-  // 2. Fetch the store settings (Now including whatsapp & instagram)
   const { data: settings } = await supabaseAdmin
     .from("store_settings")
     .select("logo_url, primary_color, whatsapp_number, instagram_url")
@@ -34,8 +37,10 @@ export default async function StoreLayout({
 
   return (
     <ShopProvider>
+      <VisitorTracker storeId={store.id} />
+      <ThemeClient primaryColor={settings?.primary_color} />
       <LangDomSetter lang={lang} />
-
+      <NotificationInitializer /> {/* ADD THIS LINE */}
       <Navbar
         storeName={store.store_name}
         storeSlug={store.slug}
@@ -43,11 +48,8 @@ export default async function StoreLayout({
         primaryColor={settings?.primary_color}
         lang={lang}
       />
-
-      {/* Main content wrapper to ensure footer pushes to bottom */}
       <div className="flex flex-col min-h-screen">
         <main className="flex-grow">{children}</main>
-
         <Footer
           storeName={store.store_name}
           storeSlug={store.slug}

@@ -18,11 +18,7 @@ const LEBANON_GOVERNORATES = [
 export async function GET() {
   try {
     const customer = await requireCustomerSession();
-
-    return NextResponse.json({
-      success: true,
-      data: customer,
-    });
+    return NextResponse.json({ success: true, data: customer });
   } catch (err: any) {
     return NextResponse.json(
       { success: false, message: err.message },
@@ -45,12 +41,11 @@ export async function PUT(req: Request) {
       currentPassword,
       newPassword,
     } = body;
-
-    // Build update object
     const updates: any = {};
 
     if (firstName) updates.first_name = firstName.trim();
     if (lastName) updates.last_name = lastName.trim();
+
     if (governorate) {
       if (!LEBANON_GOVERNORATES.includes(governorate)) {
         return NextResponse.json(
@@ -64,8 +59,6 @@ export async function PUT(req: Request) {
     // Handle phone update
     if (phone && phone !== customer.phone) {
       const normalizedPhone = phone.trim();
-
-      // Check if new phone already exists
       const { data: existingCustomer } = await supabaseAdmin
         .from("store_customers")
         .select("id")
@@ -80,7 +73,6 @@ export async function PUT(req: Request) {
           { status: 409 },
         );
       }
-
       updates.phone = normalizedPhone;
     }
 
@@ -93,7 +85,6 @@ export async function PUT(req: Request) {
         );
       }
 
-      // Fetch current password hash
       const { data: customerData, error: fetchError } = await supabaseAdmin
         .from("store_customers")
         .select("password_hash")
@@ -107,12 +98,10 @@ export async function PUT(req: Request) {
         );
       }
 
-      // Verify current password
       const passwordValid = await bcrypt.compare(
         currentPassword,
         customerData.password_hash,
       );
-
       if (!passwordValid) {
         return NextResponse.json(
           { success: false, message: "Current password is incorrect" },
@@ -120,11 +109,9 @@ export async function PUT(req: Request) {
         );
       }
 
-      // Hash new password
       updates.password_hash = await bcrypt.hash(newPassword, 12);
     }
 
-    // If no updates, return early
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({
         success: true,
@@ -150,7 +137,6 @@ export async function PUT(req: Request) {
     });
   } catch (err: any) {
     console.error("Profile update error:", err);
-
     return NextResponse.json(
       { success: false, message: err.message || "Internal server error" },
       { status: err.message === "Unauthorized" ? 401 : 500 },
@@ -163,7 +149,6 @@ export async function DELETE() {
   try {
     const customer = await requireCustomerSession();
 
-    // Delete customer
     const { error } = await supabaseAdmin
       .from("store_customers")
       .delete()
@@ -171,7 +156,6 @@ export async function DELETE() {
 
     if (error) throw error;
 
-    // Clear session cookie
     const response = NextResponse.json({
       success: true,
       message: "Account deleted successfully",
@@ -182,7 +166,6 @@ export async function DELETE() {
     return response;
   } catch (err: any) {
     console.error("Account deletion error:", err);
-
     return NextResponse.json(
       { success: false, message: err.message || "Internal server error" },
       { status: err.message === "Unauthorized" ? 401 : 500 },

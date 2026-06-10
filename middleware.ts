@@ -44,11 +44,36 @@ export async function middleware(req: NextRequest) {
   });
 
   const isLoggedIn = !!token;
+  const storeCustomerSession = req.cookies.get("store_customer_session")?.value;
 
+  let storeCustomer: any = null;
+
+  if (storeCustomerSession) {
+    try {
+      storeCustomer = JSON.parse(decodeURIComponent(storeCustomerSession));
+    } catch (err) {
+      storeCustomer = null;
+    }
+  }
+
+  const isStoreCustomerLoggedIn = !!storeCustomer?.storeId;
+
+  // ─────────────────────────────────────────────
+  // 3. BLOCK /AUTH IF STORE CUSTOMER EXISTS
+  // ─────────────────────────────────────────────
+
+  const isAuthRoute = url.pathname.includes("/auth");
+
+  if (isAuthRoute && isStoreCustomerLoggedIn) {
+    url.pathname = `/`;
+    return NextResponse.redirect(url);
+  }
   // ─────────────────────────────────────────────
   // 3. STORE ROUTING (CRITICAL PART)
   // ─────────────────────────────────────────────
-
+  if (url.pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
   // If it's a store subdomain → rewrite to store route
   if (isStoreSubdomain) {
     url.pathname = `/store/${subdomain}${url.pathname}`;
@@ -84,5 +109,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/auth).*)"],
+  matcher: ["/((?!api|_next|favicon.ico|.*\\..*).*)"],
 };
