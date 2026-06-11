@@ -127,52 +127,53 @@ export default function SettingsPanel() {
   const [sendingNotification, setSendingNotification] = useState(false);
 
   const handleSendNotification = async () => {
-    try {
-      if (!notificationTitle.trim() || !notificationMessage.trim()) {
-        return;
-      }
-
-      setSendingNotification(true);
-
-      const response = await fetch("/api/notifications/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: notificationTitle,
-          message: notificationMessage,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to send notification");
-      }
-
-      setNotificationTitle("");
-      setNotificationMessage("");
-
-      if (typeof window !== "undefined") {
-        alert(
-          lang === "ar"
-            ? `تم إرسال الإشعار بنجاح إلى ${result.sent ?? 0} عميل`
-            : `Notification sent successfully to ${result.sent ?? 0} customers`,
-        );
-      }
-    } catch (error) {
-      console.error(error);
-
-      if (typeof window !== "undefined") {
-        alert(
-          lang === "ar" ? "فشل إرسال الإشعار" : "Failed to send notification",
-        );
-      }
-    } finally {
-      setSendingNotification(false);
+  try {
+    if (!notificationTitle.trim() || !notificationMessage.trim()) {
+      return;
     }
-  };
+
+    setSendingNotification(true);
+
+    const response = await fetch("/api/notifications/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: notificationTitle,
+        body: notificationMessage,  // ← FIXED: was "message", now "body"
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "Failed to send notification");
+    }
+
+    setNotificationTitle("");
+    setNotificationMessage("");
+
+    if (typeof window !== "undefined") {
+      alert(
+        lang === "ar"
+          ? `تم إرسال الإشعار بنجاح إلى ${result.sentCount ?? 0} عميل`  // ← Fixed: was result.sent
+          : `Notification sent successfully to ${result.sentCount ?? 0} customers`,
+      );
+    }
+  } catch (error) {
+    console.error(error);
+
+    if (typeof window !== "undefined") {
+      alert(
+        lang === "ar" ? "فشل إرسال الإشعار" : "Failed to send notification",
+      );
+    }
+  } finally {
+    setSendingNotification(false);
+  }
+};
+
   // Helper function to show toasts
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });

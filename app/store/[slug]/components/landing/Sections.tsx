@@ -3,10 +3,12 @@ import ProductGrid from "./ProductGrid";
 
 interface StorefrontSectionsProps {
   storeId: string;
+  storeSlug: string;
 }
 
 export default async function StorefrontSections({
   storeId,
+  storeSlug,
 }: StorefrontSectionsProps) {
   const { data: sections, error: sectionsError } = await supabaseAdmin
     .from("storefront_sections")
@@ -36,12 +38,15 @@ export default async function StorefrontSections({
     <div className="flex flex-col gap-12 md:gap-16 w-full">
       {sections.map((section) => {
         // Strict ID Match
+        // Inside StorefrontSections component map function
+
         const sectionProducts =
           products?.filter(
             (product) => product.category_id === section.category_id,
           ) || [];
 
-        if (sectionProducts.length === 0) return null;
+        // 👇 Comment this out to force the section to show even without products
+        // if (sectionProducts.length === 0) return null;
 
         const hasBanner =
           section.banner_url && section.banner_url.trim() !== "";
@@ -51,8 +56,9 @@ export default async function StorefrontSections({
             key={section.id}
             title={section.title}
             bannerSrc={hasBanner ? section.banner_url : undefined}
-            bannerType="wide" // explicitly set to wide to use the new UI block
+            bannerType="wide"
             products={sectionProducts}
+            storeSlug={storeSlug}
           />
         );
       })}

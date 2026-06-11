@@ -82,6 +82,7 @@ export interface ProductFormData {
   price: string;
   stock: string;
   images: string[];
+  category_id: string;
 }
 
 // ─── Image Upload Types ───────────────────────────────────────────────────────

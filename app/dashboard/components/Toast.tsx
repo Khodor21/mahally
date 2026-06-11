@@ -15,8 +15,9 @@ export default function Toast({ message, type, onClose }: ToastProps) {
 
   return (
     <div
-      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl text-sm font-semibold
-        transition-all animate-slide-up
+      // 👇 FIX: Changed bottom-6... to top-6 right-6
+      className={`fixed top-6 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl text-sm font-semibold
+        transition-all animate-in fade-in slide-in-from-right-8
         ${type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}
     >
       {type === "success" ? (

@@ -20,7 +20,7 @@ interface ToastState {
   type: "success" | "error";
 }
 
-export default function ProductsPanel() {
+export default function ProductsPanel({ storeId }: { storeId: string }) {
   const { tr, lang } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
@@ -190,6 +190,7 @@ export default function ProductsPanel() {
           loading={formLoading}
           onSubmit={handleFormSubmit}
           onClose={() => !formLoading && setFormOpen(false)}
+          storeId={storeId}
         />
       )}
 

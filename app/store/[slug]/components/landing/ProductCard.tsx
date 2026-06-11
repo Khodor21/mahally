@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link"; // 👉 Added Link for SEO-friendly navigation
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -25,9 +26,9 @@ type Product = {
 
 type ProductCardProps = {
   product: Product;
+  storeSlug?: string;
 };
 
-// Kept object for type safety, but no longer rendered
 const BADGE_STYLES = {
   New: "bg-[rgb(60_28_84)] text-white",
   "Best Seller": "bg-[rgb(207_195_223)] text-[rgb(60_28_84)]",
@@ -36,7 +37,6 @@ const BADGE_STYLES = {
 };
 
 function formatPrice(value: number) {
-  // Enforce exactly 2 decimal places and automatic comma separators
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -45,20 +45,14 @@ function formatPrice(value: number) {
   }).format(value);
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, storeSlug }: ProductCardProps) {
   const router = useRouter();
-
   const { addToCart, toggleFavorite, isFavorite, cartItems } = useShop();
-
+  const productUrl = storeSlug
+    ? `/${storeSlug}/product/${product.id}`
+    : `/product/${product.id}`;
   const productId = String(product.id);
-
   const favorited = isFavorite(productId);
-
-  // Still keeping the variable for completeness if you ever need it, but removing it from the button UI
-  const inCart = cartItems.some(
-    (i: { product: { id: string | number } }) =>
-      String(i.product.id) === productId,
-  );
 
   const [added, setAdded] = useAddedFlash(5000);
 
@@ -82,22 +76,30 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   return (
     <>
+      {/* 👉 Make article relative so absolute children position themselves to it */}
       <article
         aria-label={product.title}
-        onClick={() => router.push(`/product`)}
-        // Ensures the card fills the available stretched height from the grid
-        className="group flex flex-col w-full h-full cursor-pointer"
+        className="group flex flex-col w-full h-full relative"
       >
+        {/* 👉 1. THE INVISIBLE STRETCHED LINK */}
+        {/* It has z-10 so it covers the image and text, but sits under z-20 buttons */}
+        <Link
+          href={productUrl}
+          className="absolute inset-0 z-10"
+          aria-label={`View ${product.title}`}
+        />
+
         {/* IMAGE CONTAINER */}
         <div className="relative w-full aspect-[4/5] sm:h-64 overflow-hidden rounded-xl bg-[rgb(244_242_245)]/[0.7] transition-all duration-300">
-          {/* ICONS LAYER - Icons reduced in size (w-8 h-8 / size={16}) */}
+          {/* ICONS LAYER 👉 Increased to z-20 so it sits ABOVE the stretched link */}
           <div
-            className="absolute z-10 flex pointer-events-none
+            className="absolute z-20 flex pointer-events-none
                           top-4 start-4 end-4 justify-between items-start 
                           md:top-auto md:bottom-4 md:start-0 md:end-0 md:justify-center md:gap-3 md:px-0"
           >
             <button
               onClick={(e) => {
+                e.preventDefault(); // Safety to prevent link navigation
                 e.stopPropagation();
                 // Add quick view logic here if needed
               }}
@@ -108,6 +110,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
             <button
               onClick={(e) => {
+                e.preventDefault(); // Safety to prevent link navigation
                 e.stopPropagation();
                 handleToggleFavorite();
               }}
@@ -134,24 +137,23 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* BODY */}
         <div className="flex flex-col flex-1 pt-4 pb-1 px-1">
-          {/* Title with min-height to guarantee identical card heights */}
           <h3 className="text-sm md:text-base font-medium text-gray-800 line-clamp-2 text-center min-h-[2.5rem] md:min-h-[3rem]">
             {product.title}
           </h3>
 
-          {/* Wrapper with mt-auto to push price & button cleanly to the bottom */}
           <div className="mt-auto flex flex-col items-center w-full">
             <p className="text-base md:text-lg font-bold text-[rgb(60_28_84)] text-center mt-1.5">
               {formattedPrice}
             </p>
 
-            {/* Clean Add to Cart button (No green state logic, relies purely on Toast) */}
+            {/* 👉 Added relative and z-20 so it sits ABOVE the stretched link */}
             <button
               onClick={(e) => {
+                e.preventDefault(); // Safety to prevent link navigation
                 e.stopPropagation();
                 handleAddToCart();
               }}
-              className="w-full mt-4 flex items-center justify-center gap-1 py-2 rounded-sm text-sm font-semibold border transition-all duration-300 border-[rgb(60_28_84)] text-[rgb(60_28_84)] bg-white hover:bg-[rgb(60_28_84)] hover:text-white"
+              className="relative z-20 w-full mt-4 flex items-center justify-center gap-1 py-2 rounded-sm text-sm font-semibold border transition-all duration-300 border-[rgb(60_28_84)] text-[rgb(60_28_84)] bg-white hover:bg-[rgb(60_28_84)] hover:text-white"
             >
               <RiShoppingBag2Line size={16} />
               إضافـة إلـى السلّـة
@@ -160,13 +162,10 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
       </article>
 
-      {/* PREMIUM ADD TO CART TOAST */}
+      {/* PREMIUM ADD TO CART TOAST (Kept exactly as you had it) */}
       {added && (
         <div className="fixed top-4 start-1/2 -translate-x-1/2 md:start-auto md:-translate-x-0 md:end-4 z-[100] w-[calc(100vw-2rem)] md:w-[400px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300">
-          {/* Top Green Bar */}
           <div className="h-1.5 w-full bg-emerald-500" />
-
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
             <button
               onClick={() => setAdded(false)}
@@ -182,8 +181,6 @@ export default function ProductCard({ product }: ProductCardProps) {
               <BsCheckCircleFill className="text-emerald-500" size={18} />
             </div>
           </div>
-
-          {/* Product Info */}
           <div className="p-4 flex items-center justify-end gap-4">
             <div className="flex-1 flex flex-col justify-center">
               <h4 className="text-sm font-bold text-gray-900 line-clamp-2 text-end">
@@ -202,8 +199,6 @@ export default function ProductCard({ product }: ProductCardProps) {
               />
             </div>
           </div>
-
-          {/* Actions */}
           <div className="px-4 pb-4 flex gap-3">
             <button
               onClick={() => {
@@ -232,7 +227,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   );
 }
 
-// unchanged hook (safe)
+// unchanged hook
 function useAddedFlash(duration = 5000): [boolean, (val: boolean) => void] {
   const [added, setAddedRaw] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

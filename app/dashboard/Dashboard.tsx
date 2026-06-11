@@ -35,7 +35,7 @@ export default function Dashboard({ store }: DashboardProps) {
       case "orders":
         return <OrdersPanel store={store} />;
       case "products":
-        return <ProductsPanel />;
+        return <ProductsPanel storeId={store.id} />;
       case "customers":
         return <CustomersPanel />;
       case "analytics":

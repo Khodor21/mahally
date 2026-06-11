@@ -12,6 +12,7 @@ type Product = {
   stock?: number;
   images?: string[];
   created_at?: string;
+  storeSlug: string;
 };
 
 type ProductGridProps = {
@@ -19,6 +20,7 @@ type ProductGridProps = {
   products: Product[];
   bannerSrc?: string;
   bannerType?: "wide" | "mono";
+  storeSlug: string;
 };
 
 type MappedProduct = {
@@ -33,6 +35,7 @@ type MappedProduct = {
 export default function ProductGrid({
   title,
   products,
+  storeSlug,
   bannerSrc,
   bannerType = "wide", // Defaults to wide here
 }: ProductGridProps) {
@@ -128,7 +131,7 @@ export default function ProductGrid({
                 key={product.id}
                 className="flex-none h-auto w-[75vw] sm:w-[45vw] md:w-[31vw] lg:w-[calc(22.22%-1rem)] snap-start"
               >
-                <ProductCard product={product} />
+                <ProductCard product={product} storeSlug={storeSlug} />
               </div>
             ))}
           </div>

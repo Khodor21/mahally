@@ -62,6 +62,7 @@ export async function createProduct(form: ProductFormData): Promise<Product> {
       price: parseFloat(form.price) || 0,
       stock: parseInt(form.stock) || 0,
       images: form.images,
+      category_id: form.category_id,
     }),
   });
   return handleApiResponse(res);
@@ -81,6 +82,7 @@ export async function updateProduct(
       price: parseFloat(form.price) || 0,
       stock: parseInt(form.stock) || 0,
       images: form.images,
+      category_id: form.category_id,
     }),
   });
   return handleApiResponse(res);

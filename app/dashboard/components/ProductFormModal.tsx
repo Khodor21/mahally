@@ -13,6 +13,7 @@ interface Props {
   tr: Translations;
   dir: "ltr" | "rtl";
   loading: boolean;
+  storeId: string;
   onSubmit: (data: ProductFormData) => void;
   onClose: () => void;
 }
@@ -30,6 +31,7 @@ export default function ProductFormModal({
   mode,
   product,
   tr,
+  storeId,
   dir,
   loading,
   onSubmit,
@@ -45,7 +47,15 @@ export default function ProductFormModal({
 
   // Fetching categories from your hook setup
   // useCategories expects at least one argument (options or params); pass undefined to satisfy signature
-  const { data: categories } = useCategories(undefined as any);
+  // 1. Fetch the raw data
+  const { data: rawCategoriesData } = useCategories(storeId);
+
+  // 2. Safely extract the array, no matter what shape the API returns
+  const categories = Array.isArray(rawCategoriesData)
+    ? rawCategoriesData
+    : (rawCategoriesData as any)?.data ||
+      (rawCategoriesData as any)?.categories ||
+      [];
 
   // Populate form when editing
   useEffect(() => {

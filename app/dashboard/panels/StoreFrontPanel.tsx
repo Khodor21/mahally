@@ -17,7 +17,7 @@ import {
 import { useDashboard } from "../DashboardContext";
 import Toast from "../components/Toast";
 import { useFetch, useCategories, useStore } from "@/hooks/useApi";
-
+import { uploadImages } from "@/lib/image-upload";
 // --- Types ---
 interface StoreSection {
   id: string;
@@ -69,7 +69,28 @@ export default function StorefrontPanel() {
     null,
   );
   const [formLoading, setFormLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    try {
+      if (!e.target.files || e.target.files.length === 0) return;
 
+      const file = e.target.files[0];
+
+      setUploading(true);
+
+      const result = await uploadImages([file]);
+
+      setFormData((prev) => ({
+        ...prev,
+        banner_url: result.urls[0],
+      }));
+    } catch (error: any) {
+      alert(error.message || "Failed to upload image");
+    } finally {
+      setUploading(false);
+      if (e.target) e.target.value = "";
+    }
+  }
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -406,20 +427,51 @@ export default function StorefrontPanel() {
                 </select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-3">
                 <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                  رابط لافتة إعلانية (Banner URL) - اختياري
+                  لافتة إعلانية (Banner)
                 </label>
-                <input
-                  type="url"
-                  value={formData.banner_url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, banner_url: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-[rgb(60_28_84)]/20 focus:border-[rgb(60_28_84)] transition-all"
-                  placeholder="https://..."
-                  dir="ltr"
-                />
+
+                {formData.banner_url ? (
+                  <div className="relative w-full h-40 rounded-xl overflow-hidden border">
+                    <img
+                      src={formData.banner_url}
+                      className="w-full h-full object-cover"
+                      alt="banner"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData({ ...formData, banner_url: "" })
+                      }
+                      className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center h-40 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50 transition">
+                    {uploading ? (
+                      <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+                    ) : (
+                      <>
+                        <ImageIcon className="w-6 h-6 text-gray-400 mb-2" />
+                        <span className="text-sm text-gray-500 font-medium">
+                          رفع صورة البانر
+                        </span>
+                      </>
+                    )}
+
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={handleBannerUpload}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                  </label>
+                )}
               </div>
 
               <div className="space-y-1.5 pt-2">
@@ -477,7 +529,7 @@ export default function StorefrontPanel() {
                 </button>
                 <button
                   type="submit"
-                  disabled={formLoading}
+                  disabled={formLoading || uploading}
                   className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-[rgb(60_28_84)] hover:opacity-90 rounded-xl transition-opacity flex items-center justify-center gap-2"
                 >
                   {formLoading && <Loader2 className="w-4 h-4 animate-spin" />}
