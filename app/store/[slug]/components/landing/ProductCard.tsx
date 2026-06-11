@@ -91,11 +91,11 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
 
         {/* IMAGE CONTAINER */}
         <div className="relative w-full aspect-[4/5] sm:h-64 overflow-hidden rounded-xl bg-[rgb(244_242_245)]/[0.7] transition-all duration-300">
-          {/* ICONS LAYER 👉 Increased to z-20 so it sits ABOVE the stretched link */}
+          {/* ICONS LAYER 👉 Strict w-full left-0 positioning to force them perfectly over the image edges on mobile */}
           <div
             className="absolute z-20 flex pointer-events-none
-                          top-4 start-4 end-4 justify-between items-start 
-                          md:top-auto md:bottom-4 md:start-0 md:end-0 md:justify-center md:gap-3 md:px-0"
+                       w-full top-3 px-3 left-0 justify-between items-start 
+                       md:top-auto md:bottom-4 md:px-0 md:justify-center md:gap-3"
           >
             <button
               onClick={(e) => {
@@ -162,7 +162,7 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
         </div>
       </article>
 
-      {/* PREMIUM ADD TO CART TOAST (Kept exactly as you had it) */}
+      {/* PREMIUM ADD TO CART TOAST */}
       {added && (
         <div className="fixed top-4 start-1/2 -translate-x-1/2 md:start-auto md:-translate-x-0 md:end-4 z-[100] w-[calc(100vw-2rem)] md:w-[400px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300">
           <div className="h-1.5 w-full bg-emerald-500" />
@@ -205,7 +205,7 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
                 setAdded(false);
                 router.push("/cart");
               }}
-              className="flex-1 py-2.5 border border-gray-300 rounded-md text-sm font-bold text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
+              className="flex-1 py-2.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
             >
               <HiOutlineShoppingBag size={18} />
               عرض السلة
@@ -215,7 +215,7 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
                 setAdded(false);
                 router.push("/checkout");
               }}
-              className="flex-1 py-2.5 bg-[rgb(60_28_84)] rounded-md text-sm font-bold text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+              className="flex-1 py-2.5 bg-[rgb(60_28_84)] rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
             >
               <BsCreditCard size={18} />
               اتمام الطلب

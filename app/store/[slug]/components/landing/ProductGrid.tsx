@@ -106,7 +106,8 @@ export default function ProductGrid({
               {mappedProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="flex-none h-auto w-[80vw] sm:w-[45vw] md:w-[32vw] lg:w-[calc(28.5%-1rem)] snap-start"
+                  // 👉 Changed w-[80vw] to w-[42vw] for perfectly calculated 2.25 cards on mobile
+                  className="flex-none h-auto w-[42vw] sm:w-[35vw] md:w-[32vw] lg:w-[calc(28.5%-1rem)] snap-start"
                 >
                   <ProductCard product={product} storeSlug={storeSlug} />
                 </div>
@@ -116,6 +117,7 @@ export default function ProductGrid({
         </div>
       )}
 
+      {/* WIDE LAYOUT */}
       {!isMono && (
         <div className="flex flex-col w-full min-w-0">
           {bannerSrc && (
@@ -148,7 +150,8 @@ export default function ProductGrid({
             {mappedProducts.map((product) => (
               <div
                 key={product.id}
-                className="flex-none h-auto w-[80vw] sm:w-[45vw] md:w-[31vw] lg:w-[calc(22.22%-1rem)] snap-start"
+                // 👉 Changed w-[80vw] to w-[42vw] for perfectly calculated 2.25 cards on mobile
+                className="flex-none h-auto w-[42vw] sm:w-[35vw] md:w-[31vw] lg:w-[calc(22.22%-1rem)] snap-start"
               >
                 <ProductCard product={product} storeSlug={storeSlug} />
               </div>

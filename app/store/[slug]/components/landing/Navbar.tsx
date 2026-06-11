@@ -59,7 +59,7 @@ export default function Navbar({
 
   return (
     <>
-      {/* TOP SLUG BAR (like your image) */}
+      {/* TOP SLUG BAR */}
       <div
         dir={dir}
         className="w-full bg-brand-dark text-white text-center py-2 text-xs md:text-sm font-medium"
@@ -70,7 +70,7 @@ export default function Navbar({
       {/* HEADER */}
       <header
         dir={dir}
-        className="sticky top-0 z-50 w-full bg-white border-b border-gray-200 px-3 md:px-10 py-2"
+        className="sticky top-0 z-50 w-full bg-white border-b border-gray-200 px-3 md:px-10 py-0 md:py-2"
       >
         <div className="flex flex-row-reverse items-center justify-between h-[78px] md:h-[86px]">
           {" "}
@@ -98,7 +98,6 @@ export default function Navbar({
             </Link>
           </div>
           {/* CENTER (LOGO + NAME) */}
-          {/* CENTER */}
           <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center h-full">
             <Link
               href={buildUrl("")}
@@ -119,8 +118,9 @@ export default function Navbar({
                 </div>
               )}
 
+              {/* Added hidden md:block to hide text on mobile screens */}
               <span
-                className="text-xs md:text-base font-medium mt-1 leading-none"
+                className="hidden md:block text-xs md:text-base font-medium mt-1 leading-none"
                 style={{ color: primaryColor || "#000" }}
               >
                 {storeName}
@@ -129,12 +129,13 @@ export default function Navbar({
           </div>
           {/* RIGHT ICONS */}
           <div className="flex items-center gap-2 md:gap-3">
-            <button onClick={() => setSearchOpen(true)}>
-              <Search className="w-[22px] md:w-[26px] h-[22px] md:h-[26px] text-black stroke-[1.4]" />
-            </button>
-
+            {/* Swapped order: Menu is now rendered first, then Search */}
             <button onClick={() => setMobileMenuOpen(true)}>
               <Menu className="w-[22px] md:w-[26px] h-[22px] md:h-[26px] text-black stroke-[1.4]" />
+            </button>
+
+            <button onClick={() => setSearchOpen(true)}>
+              <Search className="w-[22px] md:w-[26px] h-[22px] md:h-[26px] text-black stroke-[1.4]" />
             </button>
           </div>
         </div>
@@ -161,21 +162,34 @@ export default function Navbar({
         </div>
       )}
 
-      {/* MOBILE MENU */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[120] bg-black/40 flex">
-          <div
-            className={`w-[80%] max-w-sm bg-white h-full p-5 ${
-              dir === "rtl" ? "mr-auto" : "ml-auto"
-            }`}
-          >
-            <div className="flex justify-between mb-6">
-              <span className="font-bold">{storeName}</span>
-              <button onClick={() => setMobileMenuOpen(false)}>
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {/* MOBILE MENU - Animated Drawer */}
+      <div
+        className={`fixed inset-0 z-[120] transition-opacity duration-300 ease-in-out ${
+          mobileMenuOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
+        }`}
+      >
+        {/* Clickable Overlay */}
+        <div
+          className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          onClick={() => setMobileMenuOpen(false)}
+        />
 
+        {/* Sliding Panel from Right */}
+        <div
+          className={`absolute top-0 right-0 h-full w-[80%] max-w-sm bg-white p-5 shadow-2xl transition-transform duration-300 ease-in-out transform ${
+            mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          <div className="flex justify-between items-center mb-6">
+            <span className="font-bold">{storeName}</span>
+            <button onClick={() => setMobileMenuOpen(false)}>
+              <X className="w-5 h-5 text-black" />
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-2">
             <Link href={buildUrl("")} className="block py-3">
               {t.home}
             </Link>
@@ -187,13 +201,13 @@ export default function Navbar({
             <Link href={buildUrl("/cart")} className="block py-3">
               {t.cart}
             </Link>
-
-            <button onClick={toggleLang} className="mt-4 underline text-sm">
-              {lang === "ar" ? "English" : "العربية"}
-            </button>
           </div>
+
+          <button onClick={toggleLang} className="mt-4 underline text-sm">
+            {lang === "ar" ? "English" : "العربية"}
+          </button>
         </div>
-      )}
+      </div>
     </>
   );
 }

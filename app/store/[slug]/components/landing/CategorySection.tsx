@@ -73,7 +73,7 @@ export default function CategoriesSection({
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="aspect-[3/4] rounded-2xl bg-gray-100 animate-pulse"
+                className="w-[90%] md:w-full mx-auto aspect-[3/4] rounded-2xl bg-gray-100 animate-pulse"
               />
             ))}
           </div>
@@ -88,7 +88,7 @@ export default function CategoriesSection({
     <section dir={dir} className="w-full bg-white py-2 px-2">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-4">
           <p className="text-2xl md:text-4xl font-bold text-brand-black mb-2">
             {t.title}
           </p>
@@ -109,7 +109,7 @@ export default function CategoriesSection({
               className="group flex flex-col items-center gap-3"
             >
               {/* IMAGE */}
-              <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-[rgb(244_242_245)] border border-[rgb(207_195_223)]">
+              <div className="relative w-[90%] md:w-full aspect-[3/4] rounded-2xl overflow-hidden bg-[rgb(244_242_245)] border border-[rgb(207_195_223)]">
                 {cat.logo_url ? (
                   <Image
                     src={cat.logo_url}
