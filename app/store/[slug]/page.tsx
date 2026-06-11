@@ -21,11 +21,11 @@ export default async function StorePage({
 
   return (
     <main className="min-h-screen bg-brand-white flex flex-col gap-10 pb-16">
-      <div className="px-4 md:px-10 pt-6 max-w-7xl mx-auto w-full">
+      <div className="px-2 md:px-10 pt-3 mx-auto w-full">
         <HeroSection storeId={store.id} lang="en" />
       </div>
       <CategorySection storeId={store.id} />
-      <div className="px-4 md:px-10 max-w-7xl mx-auto w-full flex flex-col gap-10">
+      <div className="px-2 md:px-10 mx-auto w-full flex flex-col gap-10">
         <Sections storeId={store.id} storeSlug={params.slug} />
 
         <Testimonial lang="en" />

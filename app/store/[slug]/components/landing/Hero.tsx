@@ -27,7 +27,6 @@ export default function HeroSection({
 
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  // Fetch banners from API
   useEffect(() => {
     async function fetchBanners() {
       try {
@@ -47,13 +46,12 @@ export default function HeroSection({
     fetchBanners();
   }, [storeId]);
 
-  // Auto-slide functionality
   useEffect(() => {
     if (!isAutoPlaying || banners.length <= 1) return;
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % banners.length);
-    }, 5000); // Change slide every 5 seconds
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [isAutoPlaying, banners.length]);
@@ -75,44 +73,40 @@ export default function HeroSection({
 
   if (loading) {
     return (
-      <div className="w-full h-[400px] md:h-[500px] bg-brand-grey animate-pulse rounded-3xl" />
+      <div className="w-full aspect-[3/1] bg-brand-grey animate-pulse rounded-xs" />
     );
   }
 
-  if (banners.length === 0) {
-    return null;
-  }
+  if (banners.length === 0) return null;
 
   const currentBanner = banners[currentIndex];
 
-  // Single banner - no slider
+  // Single banner
   if (banners.length === 1) {
     return (
       <section
         dir={dir}
-        className="relative w-full h-[400px] md:h-[500px] rounded-3xl overflow-hidden  bg-[rgb(244_242_245)]"
+        className="relative w-full aspect-[3/1] rounded-xs overflow-hidden bg-[rgb(244_242_245)]"
       >
-        <div className="absolute inset-0">
-          <Image
-            src={currentBanner.image}
-            alt="Hero Banner"
-            fill
-            className="object-cover"
-            priority
-          />
-        </div>
+        <Image
+          src={currentBanner.image}
+          alt="Hero Banner"
+          fill
+          className="object-cover"
+          priority
+        />
       </section>
     );
   }
 
-  // Multiple banners - with slider
+  // Slider
   return (
     <section
       dir={dir}
-      className="relative w-full h-[400px] md:h-[500px] rounded-3xl overflow-hidden group bg-[rgb(244_242_245)]"
+      className="relative w-full aspect-[3/1] rounded-xs overflow-hidden group bg-[rgb(244_242_245)]"
     >
       {/* Slides */}
-      <div className="relative h-full">
+      <div className="relative w-full h-full">
         {banners.map((banner, index) => {
           const isActive = index === currentIndex;
 
@@ -125,21 +119,19 @@ export default function HeroSection({
                   : "opacity-0 translate-x-full z-0"
               }`}
             >
-              <div className="absolute inset-0">
-                <Image
-                  src={banner.image}
-                  alt={`Hero Banner ${index + 1}`}
-                  fill
-                  className="object-cover"
-                  priority={index === 0}
-                />
-              </div>
+              <Image
+                src={banner.image}
+                alt={`Hero Banner ${index + 1}`}
+                fill
+                className="object-cover"
+                priority={index === 0}
+              />
             </div>
           );
         })}
       </div>
 
-      {/* Navigation Arrows */}
+      {/* Prev */}
       <button
         onClick={goToPrev}
         className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-20"
@@ -148,6 +140,7 @@ export default function HeroSection({
         <ChevronLeft className="w-6 h-6 text-brand-dark" />
       </button>
 
+      {/* Next */}
       <button
         onClick={goToNext}
         className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-20"
@@ -156,7 +149,7 @@ export default function HeroSection({
         <ChevronRight className="w-6 h-6 text-brand-dark" />
       </button>
 
-      {/* Dots Indicator */}
+      {/* Dots */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
         {banners.map((_, index) => (
           <button

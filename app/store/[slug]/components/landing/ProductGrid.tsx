@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo, useRef } from "react";
-import { MdOutlineKeyboardArrowRight } from "react-icons/md";
+import {
+  MdOutlineKeyboardArrowRight,
+  MdOutlineKeyboardArrowLeft,
+} from "react-icons/md";
 import ProductCard from "./ProductCard";
 
 type Product = {
@@ -21,6 +24,7 @@ type ProductGridProps = {
   bannerSrc?: string;
   bannerType?: "wide" | "mono";
   storeSlug: string;
+  lang?: "en" | "ar";
 };
 
 type MappedProduct = {
@@ -37,10 +41,16 @@ export default function ProductGrid({
   products,
   storeSlug,
   bannerSrc,
-  bannerType = "wide", // Defaults to wide here
+  bannerType = "wide",
+  lang = "ar", // Defaults to Arabic based on global system pref
 }: ProductGridProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const isMono = bannerType === "mono";
+
+  // Dynamic RTL/LTR text and icons
+  const viewAllText = lang === "ar" ? "عرض الكل" : "View All";
+  const ArrowIcon =
+    lang === "ar" ? MdOutlineKeyboardArrowLeft : MdOutlineKeyboardArrowRight;
 
   const mappedProducts: MappedProduct[] = useMemo(() => {
     return (products || []).map((product) => ({
@@ -60,11 +70,14 @@ export default function ProductGrid({
   }, [products]);
 
   return (
-    <section className="w-full py-4 md:py-8 mx-auto overflow-hidden">
+    <section
+      dir={lang === "ar" ? "rtl" : "ltr"}
+      className="w-full py-6 md:py-10 mx-auto overflow-hidden"
+    >
       {/* MONO LAYOUT (Side-by-Side) */}
       {isMono && bannerSrc && (
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
-          <div className="lg:w-[28%] w-full rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0">
+          <div className="lg:w-[28%] w-full rounded-sm overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0 shadow-sm">
             <img
               src={bannerSrc}
               alt={`${title} banner`}
@@ -73,24 +86,29 @@ export default function ProductGrid({
           </div>
 
           <div className="flex-1 flex flex-col justify-center min-w-0">
-            <div className="flex items-center justify-between mb-6 px-1">
-              <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-              <button className="flex items-center gap-1 text-sm font-semibold text-gray-500 hover:text-black transition-colors">
-                View All
-                <MdOutlineKeyboardArrowRight size={20} />
+            <div className="flex items-center justify-between mb-6 px-2 md:px-0">
+              <p className="text-lg md:text-xl font-black text-[#111827] tracking-tight">
+                {title}
+              </p>
+              <button className="flex items-center gap-1.5 text-sm font-bold text-brand-black/90 hover:text-[#111827] transition-colors duration-200 group">
+                {viewAllText}
+                <ArrowIcon
+                  size={20}
+                  className="transition-transform duration-200 group-hover:translate-x-1 rtl:group-hover:-translate-x-1"
+                />
               </button>
             </div>
 
             <div
               ref={scrollRef}
-              className="flex gap-3 overflow-x-auto pb-4 pt-2 px-1 items-stretch snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              className="flex gap-4 overflow-x-auto pb-6 pt-2 px-2 md:px-0 items-stretch snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
             >
               {mappedProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="flex-none h-auto w-[75vw] sm:w-[45vw] md:w-[32vw] lg:w-[calc(28.5%-1rem)] snap-start"
+                  className="flex-none h-auto w-[80vw] sm:w-[45vw] md:w-[32vw] lg:w-[calc(28.5%-1rem)] snap-start"
                 >
-                  <ProductCard product={product} />
+                  <ProductCard product={product} storeSlug={storeSlug} />
                 </div>
               ))}
             </div>
@@ -101,9 +119,9 @@ export default function ProductGrid({
       {/* WIDE LAYOUT (Banner on top, Grid below) */}
       {!isMono && (
         <div className="flex flex-col w-full min-w-0">
-          {/* THE NEW WIDE BANNER UI (Locked to 3:1) */}
+          {/* THE WIDE BANNER UI */}
           {bannerSrc && (
-            <div className="w-full aspect-[3/1] rounded-sm overflow-hidden mb-8 md:mb-10 bg-gray-50 border border-gray-100">
+            <div className="w-full aspect-[21/9] md:aspect-[3/1] rounded-xs overflow-hidden mb-8 md:mb-12 bg-gray-50 border border-gray-100 shadow-sm">
               <img
                 src={bannerSrc}
                 alt={`${title} banner`}
@@ -112,24 +130,27 @@ export default function ProductGrid({
             </div>
           )}
 
-          <div className="flex items-center justify-between mb-6 md:mb-8 px-1">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+          <div className="flex items-center justify-between mb-2 md:mb-4 px-2 md:px-0">
+            <p className="text-lg md:text-xl font-black text-[#111827] tracking-tight">
               {title}
-            </h2>
-            <button className="flex items-center gap-1 text-sm font-semibold text-gray-500 hover:text-black transition-colors">
-              View All
-              <MdOutlineKeyboardArrowRight size={20} />
+            </p>
+            <button className="flex items-center gap-1.5 text-sm font-bold text-brand-black/90 hover:text-[#111827] transition-colors duration-200 group">
+              {viewAllText}
+              <ArrowIcon
+                size={20}
+                className="transition-transform duration-200 group-hover:translate-x-1 rtl:group-hover:-translate-x-1"
+              />
             </button>
           </div>
 
           <div
             ref={scrollRef}
-            className="flex gap-3 md:gap-4 overflow-x-auto pb-6 pt-2 px-1 items-stretch snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            className="flex gap-4 md:gap-5 overflow-x-auto pb-4 px-2 md:px-0 items-stretch snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {mappedProducts.map((product) => (
               <div
                 key={product.id}
-                className="flex-none h-auto w-[75vw] sm:w-[45vw] md:w-[31vw] lg:w-[calc(22.22%-1rem)] snap-start"
+                className="flex-none h-auto w-[80vw] sm:w-[45vw] md:w-[31vw] lg:w-[calc(22.22%-1rem)] snap-start"
               >
                 <ProductCard product={product} storeSlug={storeSlug} />
               </div>

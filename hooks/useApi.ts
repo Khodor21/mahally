@@ -458,7 +458,9 @@ export function useHeroBannerCreate() {
       setLoading(true);
       setError(null);
       try {
-        return await createHeroBanner(storeId, form);
+        // ensure image is a string for API (backend expects string, not undefined)
+        const payload = { ...form, image: form.image ?? "" };
+        return await createHeroBanner(storeId, payload);
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error("Failed to create banner");
@@ -483,7 +485,9 @@ export function useHeroBannerUpdate() {
       setLoading(true);
       setError(null);
       try {
-        return await updateHeroBanner(bannerId, form);
+        // ensure image is a string for API (backend expects string, not undefined)
+        const payload = { ...form, image: form.image ?? "" };
+        return await updateHeroBanner(bannerId, payload);
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error("Failed to update banner");
@@ -571,11 +575,17 @@ export function useHeroBannerToggle() {
   const execute = useCallback(async (bannerId: string, active: boolean) => {
     setLoading(true);
     setError(null);
+
     try {
-      await toggleHeroBanner(bannerId, active);
+      // IMPORTANT: use your existing PUT-based API
+      return await updateHeroBanner(bannerId, {
+        active,
+        image: "",
+      });
     } catch (err) {
       const error =
         err instanceof Error ? err : new Error("Failed to toggle banner");
+
       setError(error);
       throw error;
     } finally {

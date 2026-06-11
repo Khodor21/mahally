@@ -164,7 +164,7 @@ export interface CategoryFormData {
 }
 
 export interface HeroBannerFormData {
-  image: string;
+  image?: string;
   active?: boolean;
   order?: number;
 }

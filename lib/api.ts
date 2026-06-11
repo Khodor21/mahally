@@ -369,19 +369,25 @@ export async function createHeroBanner(
 
 export async function updateHeroBanner(
   bannerId: string,
-  form: HeroBannerFormData,
+  form: Partial<HeroBannerFormData>,
 ): Promise<HeroBanner> {
-  const res = await fetch(`/api/hero/${bannerId}`, {
+  const res = await fetch(`/api/hero`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(form),
+    body: JSON.stringify({
+      id: bannerId,
+      ...form,
+    }),
   });
 
   const data = await res.json();
-  if (!data.success) throw new Error(data.message);
+
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || "Failed to update hero banner");
+  }
+
   return data.data;
 }
-
 export async function deleteHeroBanner(bannerId: string): Promise<void> {
   const res = await fetch(`/api/hero/${bannerId}`, {
     method: "DELETE",
@@ -391,18 +397,25 @@ export async function deleteHeroBanner(bannerId: string): Promise<void> {
   if (!data.success) throw new Error(data.message);
 }
 
-export async function toggleHeroBanner(
-  bannerId: string,
-  active: boolean,
-): Promise<void> {
-  const res = await fetch(`/api/hero/${bannerId}/toggle`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ active }),
+export async function toggleHeroBanner(id: string, active: boolean) {
+  const res = await fetch("/api/hero", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id,
+      active,
+    }),
   });
 
   const data = await res.json();
-  if (!data.success) throw new Error(data.message);
+
+  if (!res.ok || !data.success) {
+    throw new Error(data.message || "Failed to toggle hero banner");
+  }
+
+  return data.data;
 }
 
 export async function reorderHeroBanners(

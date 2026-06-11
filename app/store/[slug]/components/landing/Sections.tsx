@@ -37,16 +37,10 @@ export default async function StorefrontSections({
   return (
     <div className="flex flex-col gap-12 md:gap-16 w-full">
       {sections.map((section) => {
-        // Strict ID Match
-        // Inside StorefrontSections component map function
-
         const sectionProducts =
           products?.filter(
             (product) => product.category_id === section.category_id,
           ) || [];
-
-        // 👇 Comment this out to force the section to show even without products
-        // if (sectionProducts.length === 0) return null;
 
         const hasBanner =
           section.banner_url && section.banner_url.trim() !== "";

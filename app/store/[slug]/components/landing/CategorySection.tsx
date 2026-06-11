@@ -8,7 +8,6 @@ import { Loader2 } from "lucide-react";
 interface Category {
   id: string;
   title: string;
-
   logo_url: string | null;
 }
 
@@ -19,7 +18,7 @@ interface CategoriesSectionProps {
 
 export default function CategoriesSection({
   storeId,
-  lang = "en",
+  lang = "ar", // FIX 1: Matched the default lang with your Footer component
 }: CategoriesSectionProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,19 +37,20 @@ export default function CategoriesSection({
   };
 
   const t = content[lang];
+
   useEffect(() => {
     async function fetchCategories() {
       try {
-        // 👇 FIX: Changed storeId= to store_id= in the URL string
-        const res = await fetch(`/api/categories?store_id=${storeId}`);
+        // FIX 2: Added &lang=${lang} so your backend knows to send Arabic category titles
+        const res = await fetch(
+          `/api/categories?store_id=${storeId}&lang=${lang}`,
+        );
 
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
 
         const data = await res.json();
-
-        // The backend returns an array directly, but keeping your fallbacks is safe
         const list = data?.data || data?.categories || data || [];
 
         setCategories(Array.isArray(list) ? list : []);
@@ -63,10 +63,11 @@ export default function CategoriesSection({
     }
 
     fetchCategories();
-  }, [storeId]);
+  }, [storeId, lang]); // Added lang to the dependency array so it refetches if language changes
+
   if (loading) {
     return (
-      <section className="w-full py-12 px-4">
+      <section className="w-full py-4 px-2">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -84,14 +85,14 @@ export default function CategoriesSection({
   if (!categories.length) return null;
 
   return (
-    <section dir={dir} className="w-full bg-white py-12 px-4">
+    <section dir={dir} className="w-full bg-white py-2 px-2">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
         <div className="text-center mb-10">
-          <h2 className="text-2xl md:text-4xl font-extrabold text-brand-black mb-2">
+          <p className="text-2xl md:text-4xl font-bold text-brand-black mb-2">
             {t.title}
-          </h2>
-          <p className="text-sm md:text-base text-brand-black/50 font-medium">
+          </p>
+          <p className="text-sm md:text-base text-brand-black/90 font-medium">
             {t.subtitle}
           </p>
 
@@ -99,11 +100,12 @@ export default function CategoriesSection({
         </div>
 
         {/* GRID */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6">
           {categories.map((cat) => (
             <Link
               key={cat.id}
-              href={`/category/${cat.id}`}
+              // FIX 3: Added ?lang=${lang} to maintain the language state on the next page
+              href={`/category/${cat.id}?lang=${lang}`}
               className="group flex flex-col items-center gap-3"
             >
               {/* IMAGE */}
@@ -126,7 +128,7 @@ export default function CategoriesSection({
               </div>
 
               {/* TITLE */}
-              <p className="text-sm md:text-base font-bold text-brand-black group-hover:text-[rgb(60_28_84)] transition-colors text-center">
+              <p className="text-sm md:text-base font-medium text-brand-black group-hover:text-[rgb(60_28_84)] transition-colors text-center">
                 {cat.title}
               </p>
             </Link>
