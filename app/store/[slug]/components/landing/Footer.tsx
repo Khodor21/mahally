@@ -176,7 +176,6 @@ export default function Footer({
                 </a>
               </div>
 
-              {/* SOCIAL ICONS (Dynamic rendering based on DB) */}
               <div className="flex items-center gap-2 pt-2">
                 {instagramUrl && (
                   <a
@@ -221,7 +220,6 @@ export default function Footer({
           </div>
         </div>
 
-        {/* COPYRIGHT & LANGUAGE ROW */}
         <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 pt-6 border-t border-brand-light text-sm font-medium text-brand-black/50">
           <p>
             {storeName} © {new Date().getFullYear()} {t.rights}.
