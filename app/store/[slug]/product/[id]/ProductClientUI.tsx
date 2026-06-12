@@ -184,11 +184,11 @@ export default function ProductClientUI({
 
           {/* Buttons */}
           <div className="grid grid-cols-2 gap-4 mt-auto">
-            <button className="flex items-center justify-center gap-2 bg-[rgb(60_28_84)] text-white py-4 rounded-xl font-bold hover:bg-[rgb(75_35_105)] transition-colors shadow-lg shadow-[rgb(60_28_84)]/20">
+            <button className="flex items-center justify-center gap-2 bg-[rgb(60_28_84)] text-white py-4 rounded-xl font-medium hover:bg-[rgb(75_35_105)] transition-colors">
               <ShoppingBag className="w-5 h-5" />
               إضافة للسلة
             </button>
-            <button className="flex items-center justify-center gap-2 bg-white border-2 border-[rgb(60_28_84)] text-[rgb(60_28_84)] py-4 rounded-xl font-bold hover:bg-[rgb(244_242_245)] transition-colors">
+            <button className="flex items-center justify-center gap-2 bg-white border-2 border-[rgb(60_28_84)] text-[rgb(60_28_84)] py-4 rounded-xl font-medium hover:bg-[rgb(244_242_245)] transition-colors">
               <CreditCard className="w-5 h-5" />
               اشتري الآن
             </button>
@@ -227,16 +227,12 @@ export default function ProductClientUI({
           <div className="flex-1 pr-0 md:pr-4">
             {activeTab === "details" ? (
               <div className="prose prose-lg max-w-none text-gray-600 leading-relaxed">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">
+                <h3 className="text-xl font-medium text-gray-900 mb-4">
                   {product.title}
                 </h3>
-                <p className="whitespace-pre-wrap">
+                <p className="whitespace-pre-wrap font-medium">
                   {product.description ||
                     "لا يوجد وصف متاح لهذا المنتج حالياً."}
-                </p>
-                <p className="mt-4 font-semibold text-gray-800">
-                  أضف على مناسباتك لمسة من الفخامة مع {product.title}. تم
-                  تصميمها بعناية لتكون الخيار الأمثل للضيافة والإهداء.
                 </p>
               </div>
             ) : (

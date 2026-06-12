@@ -154,7 +154,7 @@ export default function Footer({
           {/* CONTACT SECTION */}
           <div className="flex flex-col gap-5 md:items-end">
             <div className="flex flex-col gap-4">
-              <p className="font-bold text-brand-black text-base md:text-end">
+              <p className="font-bold text-brand-black text-base">
                 {t.contactUs}
               </p>
 
@@ -164,16 +164,15 @@ export default function Footer({
                     href={`tel:${displayPhone.replace(/\s+/g, "")}`}
                     className="flex items-center gap-3 text-sm text-brand-black/60 hover:text-brand-black font-medium transition-colors"
                   >
-                    <span dir="ltr">{displayPhone}</span>
-                    <FiPhone size={16} />
+                    <FiPhone size={16} /> <span dir="ltr">{displayPhone}</span>
                   </a>
                 )}
                 <a
                   href={`mailto:${displayEmail}`}
                   className="flex items-center gap-3 text-sm text-brand-black/60 hover:text-brand-black font-medium transition-colors"
                 >
-                  <span>{displayEmail}</span>
                   <FiMail size={16} />
+                  <span>{displayEmail}</span>
                 </a>
               </div>
 

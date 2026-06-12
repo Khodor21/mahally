@@ -85,7 +85,7 @@ export default function CategoriesSection({
   if (!categories.length) return null;
 
   return (
-    <section dir={dir} className="w-full bg-white py-2 px-2">
+    <section dir={dir} className="w-full bg-white px-2">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
         <div className="text-center mb-4">

@@ -48,9 +48,7 @@ function formatPrice(value: number) {
 export default function ProductCard({ product, storeSlug }: ProductCardProps) {
   const router = useRouter();
   const { addToCart, toggleFavorite, isFavorite, cartItems } = useShop();
-  const productUrl = storeSlug
-    ? `/${storeSlug}/product/${product.id}`
-    : `/product/${product.id}`;
+  const productUrl = `/product/${product.id}`;
   const productId = String(product.id);
   const favorited = isFavorite(productId);
 
