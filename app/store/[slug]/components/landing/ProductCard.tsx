@@ -104,8 +104,8 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
           {/* ICONS LAYER 👉 Strict w-full left-0 positioning to force them perfectly over the image edges on mobile */}
           <div
             className="absolute z-20 flex pointer-events-none
-                       w-full top-3 px-3 left-0 justify-between items-start 
-                       md:top-auto md:bottom-4 md:px-0 md:justify-center md:gap-3"
+             w-full top-6 px-3 left-0 justify-between items-start 
+             md:top-auto md:bottom-4 md:px-0 md:justify-center md:gap-3"
           >
             <button
               onClick={(e) => {
@@ -113,9 +113,11 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
                 e.stopPropagation();
                 // Add quick view logic here if needed
               }}
-              className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-600 shadow-sm hover:scale-110 hover:text-[rgb(60_28_84)] transition-all pointer-events-auto"
+              // 👉 تم تغيير حجم الزر هنا (w-7 h-7 للموبايل، w-8 h-8 للشاشات الأكبر)
+              className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white flex items-center justify-center text-gray-600 shadow-sm hover:scale-110 hover:text-[rgb(60_28_84)] transition-all pointer-events-auto"
             >
-              <Eye size={16} />
+              {/* 👉 استبدال size=16 بفئات Tailwind لتتجاوب مع الشاشة */}
+              <Eye className="w-3.5 h-3.5 md:w-4 md:h-4" />
             </button>
 
             <button
@@ -124,19 +126,16 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
                 e.stopPropagation();
                 handleToggleFavorite();
               }}
-              className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm hover:scale-110 transition-all pointer-events-auto"
+              // 👉 تم تغيير حجم الزر هنا أيضاً
+              className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white flex items-center justify-center shadow-sm hover:scale-110 transition-all pointer-events-auto"
             >
               {favorited ? (
-                <Heart size={16} className="text-rose-500 fill-rose-500" />
+                <Heart className="w-3.5 h-3.5 md:w-4 md:h-4 text-rose-500 fill-rose-500" />
               ) : (
-                <Heart
-                  size={16}
-                  className="text-gray-600 hover:text-[rgb(60_28_84)]"
-                />
+                <Heart className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-600 hover:text-[rgb(60_28_84)]" />
               )}
             </button>
           </div>
-
           <Image
             src={product.image}
             alt={product.title}

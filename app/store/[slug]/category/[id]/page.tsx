@@ -38,7 +38,7 @@ export default function CategoryPage() {
   // --- Translations ---
   const t = {
     ar: {
-      home: "الصفحة الرئيسية",
+      home: " الرئيسية",
       back: "العودة للرئيسية",
       emptyState: "لا توجد منتجات في هذا القسم حالياً.",
     },
@@ -85,7 +85,7 @@ export default function CategoryPage() {
   // --- Loading State ---
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <Loader2 className="w-10 h-10 animate-spin text-brand-black" />
       </div>
     );
@@ -95,7 +95,7 @@ export default function CategoryPage() {
   if (error || !categoryData) {
     return (
       <div
-        className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4"
+        className="min-h-screen flex flex-col items-center justify-center bg-white gap-4"
         dir={dir}
       >
         <p className="text-red-500 font-medium">
@@ -115,12 +115,12 @@ export default function CategoryPage() {
   const BreadcrumbIcon = dir === "rtl" ? ChevronLeft : ChevronRight;
 
   return (
-    <div dir={dir} className="min-h-screen bg-gray-50 pb-16">
+    <div dir={dir} className="min-h-screen bg-white pb-16">
       {/* HEADER SECTION - Removed white bg, aligned to start */}
       <div className="py-8 px-4">
         <div className="max-w-7xl mx-auto flex flex-col items-start">
           {/* Breadcrumb Title format: Home < Category */}
-          <p className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2 flex-wrap">
+          <p className="text-lg md:text-xl font-bold text-gray-800 flex items-center flex-wrap">
             <Link
               href={`/?lang=${lang}`}
               className="hover:text-brand-black transition-colors"
@@ -134,7 +134,7 @@ export default function CategoryPage() {
       </div>
 
       {/* PRODUCTS GRID SECTION */}
-      <div className="max-w-7xl mx-auto px-4 mt-2">
+      <div className="max-w-7xl mx-auto px-4">
         {categoryData.products.length === 0 ? (
           // EMPTY STATE WITH ICON
           <div className="flex flex-col items-center justify-center py-20 text-gray-500">
@@ -145,7 +145,7 @@ export default function CategoryPage() {
             <p className="text-lg font-medium">{t.emptyState}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {categoryData.products.map((product) => {
               const mappedProduct = {
                 id: product.id,
