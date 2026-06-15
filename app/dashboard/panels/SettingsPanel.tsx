@@ -15,6 +15,12 @@ import {
   Power,
   Loader2,
   AlertTriangle,
+  Facebook,
+  Instagram,
+  Twitter,
+  MessageCircle,
+  Music,
+  Camera,
 } from "lucide-react";
 
 import { useDashboard } from "../DashboardContext";
@@ -37,6 +43,7 @@ export default function SettingsPanel() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
+  // Updated formData with new fields
   const [formData, setFormData] = useState({
     store_name: "",
     location: "",
@@ -49,6 +56,14 @@ export default function SettingsPanel() {
     shipping_policy: "",
     return_policy: "",
     logo_url: "",
+    // New fields
+    description: "",
+    whatsapp_number: "",
+    instagram_url: "",
+    facebook_url: "",
+    tiktok_url: "",
+    twitter_url: "",
+    snapchat_url: "",
   });
 
   // ✅ WRAP onSuccess IN useCallback
@@ -65,6 +80,14 @@ export default function SettingsPanel() {
       shipping_policy: data.shipping_policy || "",
       return_policy: data.return_policy || "",
       logo_url: data.logo_url || "",
+      // Mapping new fields
+      description: data.description || "",
+      whatsapp_number: data.whatsapp_number || "",
+      instagram_url: data.instagram_url || "",
+      facebook_url: data.facebook_url || "",
+      tiktok_url: data.tiktok_url || "",
+      twitter_url: data.twitter_url || "",
+      snapchat_url: data.snapchat_url || "",
     });
   }, []);
 
@@ -127,52 +150,52 @@ export default function SettingsPanel() {
   const [sendingNotification, setSendingNotification] = useState(false);
 
   const handleSendNotification = async () => {
-  try {
-    if (!notificationTitle.trim() || !notificationMessage.trim()) {
-      return;
+    try {
+      if (!notificationTitle.trim() || !notificationMessage.trim()) {
+        return;
+      }
+
+      setSendingNotification(true);
+
+      const response = await fetch("/api/notifications/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: notificationTitle,
+          body: notificationMessage,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to send notification");
+      }
+
+      setNotificationTitle("");
+      setNotificationMessage("");
+
+      if (typeof window !== "undefined") {
+        alert(
+          lang === "ar"
+            ? `تم إرسال الإشعار بنجاح إلى ${result.sentCount ?? 0} عميل`
+            : `Notification sent successfully to ${result.sentCount ?? 0} customers`,
+        );
+      }
+    } catch (error) {
+      console.error(error);
+
+      if (typeof window !== "undefined") {
+        alert(
+          lang === "ar" ? "فشل إرسال الإشعار" : "Failed to send notification",
+        );
+      }
+    } finally {
+      setSendingNotification(false);
     }
-
-    setSendingNotification(true);
-
-    const response = await fetch("/api/notifications/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title: notificationTitle,
-        body: notificationMessage,  // ← FIXED: was "message", now "body"
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || "Failed to send notification");
-    }
-
-    setNotificationTitle("");
-    setNotificationMessage("");
-
-    if (typeof window !== "undefined") {
-      alert(
-        lang === "ar"
-          ? `تم إرسال الإشعار بنجاح إلى ${result.sentCount ?? 0} عميل`  // ← Fixed: was result.sent
-          : `Notification sent successfully to ${result.sentCount ?? 0} customers`,
-      );
-    }
-  } catch (error) {
-    console.error(error);
-
-    if (typeof window !== "undefined") {
-      alert(
-        lang === "ar" ? "فشل إرسال الإشعار" : "Failed to send notification",
-      );
-    }
-  } finally {
-    setSendingNotification(false);
-  }
-};
+  };
 
   // Helper function to show toasts
   const showToast = (message: string, type: "success" | "error") => {
@@ -311,7 +334,8 @@ export default function SettingsPanel() {
     { id: "appearance" as const, label: tr.appearance, icon: Globe },
     {
       id: "policies" as const,
-      label: lang === "ar" ? "السياسات" : "Policies",
+      // Renamed Label as requested
+      label: lang === "ar" ? "روابط هامة" : "Important Links",
       icon: ShieldCheck,
     },
   ];
@@ -623,6 +647,96 @@ export default function SettingsPanel() {
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            {/* Description Field */}
+            <div className="grid md:grid-cols-1 gap-5 pt-2">
+              <div>
+                <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
+                  {lang === "ar" ? "وصف المتجر" : "Store Description"}
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  placeholder={
+                    lang === "ar"
+                      ? "اكتب وصفاً مختصراً عن متجرك..."
+                      : "Write a brief description of your store..."
+                  }
+                  className="w-full bg-[rgb(244_242_245)] rounded-xl px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all resize-none"
+                  dir={dir}
+                />
+              </div>
+            </div>
+
+            {/* Social Media Fields */}
+            <div className="space-y-3 pt-4 border-t border-[rgb(244_242_245)]">
+              <h4 className="text-sm font-bold text-[rgb(60_28_84)]">
+                {lang === "ar" ? "وسائل التواصل الاجتماعي" : "Social Media"}
+              </h4>
+              <div className="grid md:grid-cols-2 gap-5">
+                {[
+                  {
+                    label: lang === "ar" ? "واتساب" : "WhatsApp",
+                    key: "whatsapp_number",
+                    icon: <MessageCircle className="w-4 h-4" />,
+                  },
+                  {
+                    label: lang === "ar" ? "إنستجرام" : "Instagram",
+                    key: "instagram_url",
+                    icon: <Instagram className="w-4 h-4" />,
+                  },
+                  {
+                    label: lang === "ar" ? "فيسبوك" : "Facebook",
+                    key: "facebook_url",
+                    icon: <Facebook className="w-4 h-4" />,
+                  },
+                  {
+                    label: lang === "ar" ? "تيك توك" : "TikTok",
+                    key: "tiktok_url",
+                    icon: <Music className="w-4 h-4" />,
+                  },
+                  {
+                    label: lang === "ar" ? "تويتر (X)" : "Twitter (X)",
+                    key: "twitter_url",
+                    icon: <Twitter className="w-4 h-4" />,
+                  },
+                  {
+                    label: lang === "ar" ? "سناب شات" : "Snapchat",
+                    key: "snapchat_url",
+                    icon: <Camera className="w-4 h-4" />,
+                  },
+                ].map((social) => (
+                  <div key={social.key}>
+                    <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2 flex items-center gap-2">
+                      {social.icon}
+                      {social.label}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData[social.key as keyof typeof formData]}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          [social.key]: e.target.value,
+                        }))
+                      }
+                      placeholder={
+                        social.key === "whatsapp_number"
+                          ? lang === "ar"
+                            ? "رقم الهاتف..."
+                            : "Phone number..."
+                          : "https://..."
+                      }
+                      className="w-full bg-[rgb(244_242_245)] rounded-xl px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
+                      dir="ltr"
+                    />
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -954,7 +1068,11 @@ export default function SettingsPanel() {
                               : `Banner ${index + 1}`}
                           </p>
                           <p
-                            className={`text-xs ${banner.active ? "text-emerald-500" : "text-red-400"}`}
+                            className={`text-xs ${
+                              banner.active
+                                ? "text-emerald-500"
+                                : "text-red-400"
+                            }`}
                           >
                             {banner.active
                               ? lang === "ar"
@@ -1014,7 +1132,9 @@ export default function SettingsPanel() {
           <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
             <h3 className="font-bold text-[rgb(60_28_84)] flex items-center gap-2">
               <ShieldCheck className="w-5 h-5" />
-              {lang === "ar" ? "السياسات والمعلومات" : "Policies & Information"}
+              {lang === "ar"
+                ? "الروابط والسياسات"
+                : "Important Links & Policies"}
             </h3>
           </div>
 

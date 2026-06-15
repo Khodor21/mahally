@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { FiCheck, FiX } from "react-icons/fi";
+// Changed imports to lucide-react
+import { Check, X } from "lucide-react";
 
 const plans = [
   {
@@ -84,7 +85,10 @@ export default function Pricing() {
   const [yearly, setYearly] = useState(false);
 
   return (
-    <section id="pricing" className="py-8 md:py-18 bg-brand-grey overflow-hidden">
+    <section
+      id="pricing"
+      className="py-8 md:py-18 bg-brand-grey overflow-hidden"
+    >
       <div className="w-full mx-auto px-5 md:px-10">
         {/* Header */}
         <div className="text-center mb-14 md:mb-16">
@@ -107,7 +111,7 @@ export default function Pricing() {
           <div className="inline-flex items-center gap-2 p-1.5 rounded-full border border-brand-light bg-brand-white">
             <button
               onClick={() => setYearly(false)}
-              className={`h-[38px] px-3 rounded-full text-xs  transition-all duration-300 ${
+              className={`h-[38px] px-3 rounded-full text-xs transition-all duration-300 ${
                 !yearly
                   ? "bg-brand-dark text-brand-white"
                   : "text-brand-dark/60 hover:text-brand-dark"
@@ -118,7 +122,7 @@ export default function Pricing() {
 
             <button
               onClick={() => setYearly(true)}
-              className={`h-[38px] px-3 rounded-full text-sm  transition-all duration-300 flex items-center gap-2 ${
+              className={`h-[38px] px-3 rounded-full text-sm transition-all duration-300 flex items-center gap-2 ${
                 yearly
                   ? "bg-brand-dark text-brand-white"
                   : "text-brand-dark/60 hover:text-brand-dark"
@@ -210,7 +214,7 @@ export default function Pricing() {
                         }`}
                       >
                         {feature.included ? (
-                          <FiCheck
+                          <Check
                             size={12}
                             strokeWidth={3}
                             className={
@@ -218,7 +222,7 @@ export default function Pricing() {
                             }
                           />
                         ) : (
-                          <FiX
+                          <X
                             size={11}
                             strokeWidth={3}
                             className="text-brand-dark/40"

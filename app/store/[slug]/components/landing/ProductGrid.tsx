@@ -1,10 +1,7 @@
 "use client";
 
 import { useMemo, useRef } from "react";
-import {
-  MdOutlineKeyboardArrowRight,
-  MdOutlineKeyboardArrowLeft,
-} from "react-icons/md";
+import { ChevronRight, ChevronLeft } from "lucide-react";
 import ProductCard from "./ProductCard";
 
 type Product = {
@@ -49,8 +46,7 @@ export default function ProductGrid({
 
   // Dynamic RTL/LTR text and icons
   const viewAllText = lang === "ar" ? "عرض الكل" : "View All";
-  const ArrowIcon =
-    lang === "ar" ? MdOutlineKeyboardArrowLeft : MdOutlineKeyboardArrowRight;
+  const ArrowIcon = lang === "ar" ? ChevronLeft : ChevronRight;
 
   const mappedProducts: MappedProduct[] = useMemo(() => {
     return (products || []).map((product) => ({

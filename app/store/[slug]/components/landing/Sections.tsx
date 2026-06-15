@@ -1,5 +1,6 @@
-import { supabaseAdmin } from "@/lib/supabase/server";
+// /app/store/[slug]/components/landing/Sections.tsx
 import ProductGrid from "./ProductGrid";
+import { getCachedSectionsAndProducts } from "@/lib/store-queries";
 
 interface StorefrontSectionsProps {
   storeId: string;
@@ -10,27 +11,10 @@ export default async function StorefrontSections({
   storeId,
   storeSlug,
 }: StorefrontSectionsProps) {
-  const { data: sections, error: sectionsError } = await supabaseAdmin
-    .from("storefront_sections")
-    .select("*")
-    .eq("store_id", storeId)
-    .eq("status", "active")
-    .order("section_order", { ascending: true });
+  // استدعاء البيانات من الكاش (يستغرق 1-2 ملي ثانية فقط!)
+  const { sections, products } = await getCachedSectionsAndProducts(storeId);
 
-  if (sectionsError || !sections || sections.length === 0) {
-    return null;
-  }
-
-  const categoryIds = sections.map((section) => section.category_id);
-
-  const { data: products, error: productsError } = await supabaseAdmin
-    .from("products")
-    .select("*")
-    .eq("store_id", storeId)
-    .in("category_id", categoryIds);
-
-  if (productsError) {
-    console.error("Failed to fetch section products:", productsError);
+  if (!sections || sections.length === 0) {
     return null;
   }
 

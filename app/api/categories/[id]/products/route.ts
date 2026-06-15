@@ -1,5 +1,4 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { getCurrentStore } from "@/lib/store";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -7,9 +6,10 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   try {
-    const store = await getCurrentStore();
-    if (!store) return NextResponse.json({ success: false }, { status: 401 });
+    // 1. Await params if using Next.js 15 (safe for 14 too)
+    const categoryId = params.id;
 
+    // 2. Fetch from Supabase
     const { data, error } = await supabaseAdmin
       .from("categories")
       .select(
@@ -18,11 +18,20 @@ export async function GET(
         products(id, title, price, images, stock)
       `,
       )
-      .eq("id", params.id)
-      .eq("store_id", store.id)
+      .eq("id", categoryId)
       .single();
 
-    if (error) throw error;
+    // 3. IF SUPABASE FAILS, SEND THE EXACT ERROR TO THE BROWSER
+    if (error) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Supabase Error: ${error.message}`,
+          details: error.hint || error.details,
+        },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -33,9 +42,11 @@ export async function GET(
         products: data.products || [],
       },
     });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-
-    return NextResponse.json({ success: false, message }, { status: 500 });
+  } catch (error: any) {
+    // IF THE SERVER CRASHES, SEND THE CRASH LOG TO THE BROWSER
+    return NextResponse.json(
+      { success: false, message: `Server Crash: ${error.message}` },
+      { status: 500 },
+    );
   }
 }

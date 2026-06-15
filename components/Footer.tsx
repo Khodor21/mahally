@@ -1,10 +1,10 @@
 import {
-  FaFacebookF,
-  FaInstagram,
-  FaTiktok,
-  FaLinkedinIn,
-  FaWhatsapp,
-} from "react-icons/fa";
+  Facebook,
+  Instagram,
+  Music,
+  Linkedin,
+  MessageCircle,
+} from "lucide-react";
 
 const platformLinks = [
   { label: "المميزات", href: "#features" },
@@ -38,13 +38,13 @@ const legalLinks = [
 ];
 
 const socials = [
-  { icon: FaFacebookF, href: "#", label: "Facebook" },
-  { icon: FaInstagram, href: "#", label: "Instagram" },
-  { icon: FaTiktok, href: "#", label: "TikTok" },
-  { icon: FaLinkedinIn, href: "#", label: "LinkedIn" },
+  { icon: Facebook, href: "#", label: "Facebook" },
+  { icon: Instagram, href: "#", label: "Instagram" },
+  { icon: Music, href: "#", label: "TikTok" }, // Lucide doesn't have a direct TikTok icon
+  { icon: Linkedin, href: "#", label: "LinkedIn" },
   {
-    icon: FaWhatsapp,
-    href: "https://wa.me/9611234567",
+    icon: MessageCircle, // Using MessageCircle for WhatsApp
+    href: "https://wa.me/96171708103",
     label: "WhatsApp",
   },
 ];

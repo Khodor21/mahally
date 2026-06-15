@@ -20,7 +20,7 @@ export async function requireStoreSession() {
     throw new Error("Unauthorized");
   }
 
-  return user; 
+  return user;
 }
 
 export async function getCurrentStore() {
@@ -60,6 +60,8 @@ export async function getStoreBySlug(slug: string) {
       slug,
       location,
       phone,
+      language, currency, currency_symbol,
+
       store_type,
       created_at,
       is_active

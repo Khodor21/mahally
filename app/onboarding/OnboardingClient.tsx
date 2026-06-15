@@ -1,11 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { signIn } from "next-auth/react";
-
-// ===============================
-// CONSTANTS
-// ===============================
+import { signIn } from "next-auth/react"; // ← ADD THIS
+import { useRouter } from "next/navigation";
 
 const STORAGE_KEY = "mahalli_onboarding";
 
@@ -31,7 +28,7 @@ const STEPS = [
 ];
 
 // ===============================
-// TYPES (FIX)
+// TYPES
 // ===============================
 
 type Errors = {
@@ -75,6 +72,8 @@ const DEFAULT_FORM = {
 // ===============================
 
 export default function OnboardingClient() {
+  const router = useRouter();
+
   const [step, setStep] = useState<number>(1);
   const [form, setForm] = useState(DEFAULT_FORM);
 
@@ -141,7 +140,7 @@ export default function OnboardingClient() {
   }, [form.slug]);
 
   // ===============================
-  // VALIDATION (FIXED TYPE)
+  // VALIDATION
   // ===============================
 
   function validate(step: number): boolean {
@@ -158,50 +157,77 @@ export default function OnboardingClient() {
   }
 
   // ===============================
-  // SUBMIT
+  // SUBMIT - NOW USES NextAuth signIn()
   // ===============================
 
   const handleSubmit = async () => {
     if (!validate(5)) return;
 
     setLoading(true);
+    setErrors({});
 
     try {
-      const res = await fetch("/api/stores", {
+      // ========================================
+      // STEP 1: Create the store in database
+      // ========================================
+      const storeRes = await fetch("/api/stores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 
-      const data = await res.json();
+      const storeData = await storeRes.json();
 
-      if (!res.ok) {
-        setErrors({ global: data.error });
+      if (!storeRes.ok) {
+        // Store creation failed
+        setErrors({ global: storeData.error || "Failed to create store" });
+        setLoading(false);
         return;
       }
 
-      const login = await signIn("credentials", {
+      // ========================================
+      // STEP 2: Sign in with NextAuth
+      // Use the same credentials provider as login page
+      // ========================================
+      const signInResult = await signIn("credentials", {
         email: form.email,
         password: form.password,
-        redirect: false,
+        redirect: false, // We handle redirect manually
       });
 
-      if (!login?.ok) {
-        setErrors({ global: "Login failed after signup" });
+      if (signInResult?.error) {
+        // SignIn failed - this shouldn't happen if store was created
+        // but can occur if there's a timing issue
+        console.error("SignIn error:", signInResult.error);
+        setErrors({
+          global:
+            "متجرك تم إنشاؤه بنجاح، لكن حدث خطأ في تسجيل الدخول. يرجى تسجيل الدخول يدويًا.",
+        });
+        setLoading(false);
         return;
       }
 
+      // ========================================
+      // STEP 3: Success - Clean up and redirect
+      // NextAuth's signIn() has established the session
+      // ========================================
       localStorage.removeItem(STORAGE_KEY);
-      window.location.href = "/dashboard";
-    } catch {
-      setErrors({ global: "Server error" });
-    } finally {
+
+      // Redirect to dashboard
+      // The user is now authenticated (session cookie is set)
+      router.push("/dashboard");
+
+      // Optional: wait a bit to ensure session is established
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    } catch (error) {
+      console.error("Onboarding error:", error);
+      setErrors({ global: "حدث خطأ في الخادم، يرجى المحاولة مجددًا" });
       setLoading(false);
     }
   };
 
   // ===============================
-  // UI
+  // UI (Placeholder - your existing UI)
   // ===============================
 
   return (
@@ -209,11 +235,19 @@ export default function OnboardingClient() {
       <div className="w-full max-w-md">
         <h1>Onboarding Step {step}</h1>
 
-        {errors?.global && <p>{errors.global}</p>}
+        {errors?.global && (
+          <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg mb-4">
+            {errors.global}
+          </div>
+        )}
 
         {step === 5 && (
-          <button onClick={handleSubmit} disabled={loading}>
-            {loading ? "Loading..." : "Create Account"}
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full py-2 bg-brand-dark text-white rounded-lg font-bold disabled:opacity-50"
+          >
+            {loading ? "جاري الإنشاء..." : "إنشاء متجري"}
           </button>
         )}
       </div>

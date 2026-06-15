@@ -1,4 +1,6 @@
-import { FaWhatsapp } from "react-icons/fa";
+"use client";
+
+import { MessageCircle } from "lucide-react";
 
 export default function WhatsAppFloat() {
   return (
@@ -9,7 +11,7 @@ export default function WhatsAppFloat() {
       className="whatsapp-float"
       aria-label="تواصل معنا عبر واتساب"
     >
-      <FaWhatsapp size={30} color="white" />
+      <MessageCircle size={30} stroke="white" />
     </a>
   );
 }

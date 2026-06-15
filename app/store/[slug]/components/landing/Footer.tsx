@@ -3,16 +3,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  FaInstagram,
-  FaTiktok,
-  FaSnapchatGhost,
-  FaFacebookF,
-  FaMoneyBillWave,
-} from "react-icons/fa";
-import { FaXTwitter } from "react-icons/fa6";
-import { IoWalletOutline } from "react-icons/io5";
-import { FiPhone, FiMail } from "react-icons/fi";
-import { Globe } from "lucide-react";
+  Globe,
+  Phone,
+  Mail,
+  Instagram,
+  Facebook,
+  Twitter,
+  Ghost,
+  Music,
+  MessageCircle,
+  Banknote,
+  Wallet,
+} from "lucide-react";
 import { setLanguage } from "@/lib/setLanguage";
 
 interface FooterProps {
@@ -24,7 +26,13 @@ interface FooterProps {
   primaryColor?: string | null;
   phone?: string | null;
   email?: string | null;
+  description?: string | null;
+  whatsappNumber?: string | null; // ✅ NEW
   instagramUrl?: string | null;
+  facebookUrl?: string | null;
+  tiktokUrl?: string | null;
+  twitterUrl?: string | null;
+  snapchatUrl?: string | null;
 }
 
 export default function Footer({
@@ -36,7 +44,13 @@ export default function Footer({
   primaryColor,
   phone,
   email,
+  description,
+  whatsappNumber, // ✅ DESTRUCTURED
   instagramUrl,
+  facebookUrl,
+  tiktokUrl,
+  twitterUrl,
+  snapchatUrl,
 }: FooterProps) {
   const router = useRouter();
   const dir = lang === "ar" ? "rtl" : "ltr";
@@ -58,7 +72,10 @@ export default function Footer({
 
   const content = {
     ar: {
+      // ✅ LOGIC: If description is empty/null, it falls back to the static text.
+      // Ensure your Parent Component passes 'description' correctly from the DB.
       description:
+        description ||
         "علامة تجارية، تأسست في عام 2021. رسالتنا هي التصميم البسيط والجودة العالية، ونسعى دائماً لتطوير مهاراتنا في التصميم وتحسين جودة المنتجات. أولويتنا رضا العملاء وتقديم تجربة فريدة ومميزة لهم.",
       importantLinks: "روابط مهمة",
       contactUs: "تواصل معنا",
@@ -67,16 +84,16 @@ export default function Footer({
       cashOnDelivery: "الدفع عند الاستلام",
       whishMoney: "Whish Money",
       links: [
-        { label: "سياسة الإستبدال و الإسترجاع", href: "/return-policy" },
+        { label: "سياسة الخصوصية", href: "/privacy" },
+        { label: "الشروط و الأحكام", href: "/terms" },
+        { label: "سياسة الإسترجاع و الاستبدال", href: "/return-policy" },
         { label: "الشحن والتوصيل", href: "/shipping" },
         { label: "الأسئلة الشائعة", href: "/faq" },
-        { label: "الشروط و الأحكام", href: "/terms" },
-        { label: "سياسة الخصوصية", href: "/privacy" },
-        { label: "الشكاوى و الإقتراحات", href: "/complaints" },
       ],
     },
     en: {
       description:
+        description ||
         "A brand established in 2021. Our mission is simple design and high quality. We constantly strive to develop our skills and improve product quality. Customer satisfaction is our priority.",
       importantLinks: "Important Links",
       contactUs: "Contact Us",
@@ -85,12 +102,11 @@ export default function Footer({
       cashOnDelivery: "Cash on Delivery",
       whishMoney: "Whish Money",
       links: [
-        { label: "Return & Exchange Policy", href: "/return-policy" },
+        { label: "Privacy Policy", href: "/privacy" },
+        { label: "Terms & Conditions", href: "/terms" },
+        { label: "Returns & Exchange Policy", href: "/return-policy" },
         { label: "Shipping & Delivery", href: "/shipping" },
         { label: "FAQs", href: "/faq" },
-        { label: "Terms & Conditions", href: "/terms" },
-        { label: "Privacy Policy", href: "/privacy" },
-        { label: "Complaints & Suggestions", href: "/complaints" },
       ],
     },
   };
@@ -164,28 +180,90 @@ export default function Footer({
                     href={`tel:${displayPhone.replace(/\s+/g, "")}`}
                     className="flex items-center gap-3 text-sm text-brand-black/60 hover:text-brand-black font-medium transition-colors"
                   >
-                    <FiPhone size={16} /> <span dir="ltr">{displayPhone}</span>
+                    <Phone size={16} /> <span dir="ltr">{displayPhone}</span>
                   </a>
                 )}
                 <a
                   href={`mailto:${displayEmail}`}
                   className="flex items-center gap-3 text-sm text-brand-black/60 hover:text-brand-black font-medium transition-colors"
                 >
-                  <FiMail size={16} />
+                  <Mail size={16} />
                   <span>{displayEmail}</span>
                 </a>
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
+              {/* ✅ FIXED: Dynamic social media icons including WhatsApp */}
+              <div className="flex items-center gap-2 pt-2 flex-wrap">
+                {whatsappNumber && (
+                  <a
+                    href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="WhatsApp"
+                    title="WhatsApp"
+                    className="w-9 h-9 rounded-xl bg-brand-grey border border-transparent flex items-center justify-center text-brand-black/60 hover:text-brand-black hover:border-brand-light hover:bg-white transition-all duration-200"
+                  >
+                    <MessageCircle size={15} />
+                  </a>
+                )}
                 {instagramUrl && (
                   <a
                     href={instagramUrl}
                     target="_blank"
                     rel="noreferrer"
                     aria-label="Instagram"
+                    title="Instagram"
                     className="w-9 h-9 rounded-xl bg-brand-grey border border-transparent flex items-center justify-center text-brand-black/60 hover:text-brand-black hover:border-brand-light hover:bg-white transition-all duration-200"
                   >
-                    <FaInstagram className="text-[15px]" />
+                    <Instagram size={15} />
+                  </a>
+                )}
+                {facebookUrl && (
+                  <a
+                    href={facebookUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Facebook"
+                    title="Facebook"
+                    className="w-9 h-9 rounded-xl bg-brand-grey border border-transparent flex items-center justify-center text-brand-black/60 hover:text-brand-black hover:border-brand-light hover:bg-white transition-all duration-200"
+                  >
+                    <Facebook size={15} />
+                  </a>
+                )}
+                {tiktokUrl && (
+                  <a
+                    href={tiktokUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="TikTok"
+                    title="TikTok"
+                    className="w-9 h-9 rounded-xl bg-brand-grey border border-transparent flex items-center justify-center text-brand-black/60 hover:text-brand-black hover:border-brand-light hover:bg-white transition-all duration-200"
+                  >
+                    <Music size={15} />
+                  </a>
+                )}
+                {twitterUrl && (
+                  <a
+                    href={twitterUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Twitter/X"
+                    title="Twitter/X"
+                    className="w-9 h-9 rounded-xl bg-brand-grey border border-transparent flex items-center justify-center text-brand-black/60 hover:text-brand-black hover:border-brand-light hover:bg-white transition-all duration-200"
+                  >
+                    <Twitter size={15} />
+                  </a>
+                )}
+                {snapchatUrl && (
+                  <a
+                    href={snapchatUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Snapchat"
+                    title="Snapchat"
+                    className="w-9 h-9 rounded-xl bg-brand-grey border border-transparent flex items-center justify-center text-brand-black/60 hover:text-brand-black hover:border-brand-light hover:bg-white transition-all duration-200"
+                  >
+                    <Ghost size={15} />
                   </a>
                 )}
               </div>
@@ -206,13 +284,13 @@ export default function Footer({
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-brand-grey px-3 py-1.5 rounded-lg border border-brand-light/50">
-              <FaMoneyBillWave className="text-emerald-600" size={16} />
+              <Banknote className="text-emerald-600" size={16} />
               <span className="text-xs font-bold text-brand-black">
                 {t.cashOnDelivery}
               </span>
             </div>
             <div className="flex items-center gap-2 bg-[#E1251B]/10 px-3 py-1.5 rounded-lg border border-[#E1251B]/20">
-              <IoWalletOutline className="text-[#E1251B]" size={16} />
+              <Wallet className="text-[#E1251B]" size={16} />
               <span className="text-xs font-bold text-[#E1251B]">
                 {t.whishMoney}
               </span>

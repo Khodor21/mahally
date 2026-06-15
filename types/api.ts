@@ -1,9 +1,28 @@
-/**
- * @/types/api.ts - Centralized Type Definitions
- *
- * All API-related types should be defined here, not scattered across components.
- * Import from here in api.ts, hooks, and panels.
- */
+export interface BilingualText {
+  ar: string;
+  en: string;
+}
+
+export interface Testimonial {
+  id: number;
+  name: BilingualText;
+  role: BilingualText;
+  content: BilingualText;
+  rating: number; // 1-5
+  avatar?: string; // Optional image URL
+}
+
+export interface TestimonialFormData {
+  name: BilingualText;
+  role: BilingualText;
+  content: BilingualText;
+  rating: number;
+  avatar?: string;
+}
+
+export interface TestimonialsList {
+  testimonials: Testimonial[];
+}
 
 // ============================================
 // PRODUCTS
@@ -104,9 +123,11 @@ export interface Category {
 // STORE
 // ============================================
 export interface StoreData {
+  // Store table fields
   id: string;
   admin_name: string;
   admin_email: string;
+  email?: string;
   store_name: string;
   slug: string;
   location: string | null;
@@ -114,11 +135,27 @@ export interface StoreData {
   store_type: string | null;
   created_at: string;
   is_active: boolean;
+
+  // store_settings table fields - Branding
   primary_color?: string;
+  logo_url?: string;
+  description?: string;
+
+  // store_settings table fields - Policies
   privacy_policy?: string;
   shipping_policy?: string;
   return_policy?: string;
-  logo_url?: string;
+
+  // store_settings table fields - Social Media
+  whatsapp_number?: string;
+  instagram_url?: string;
+  facebook_url?: string;
+  tiktok_url?: string;
+  twitter_url?: string;
+  snapchat_url?: string;
+
+  // ✅ NEW: Testimonials
+  testimonials?: TestimonialsList;
 }
 
 // ============================================

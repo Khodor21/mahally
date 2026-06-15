@@ -42,18 +42,62 @@ export async function GET() {
   // 3. MERGE settings into store object for frontend consistency
   const mergedStore = {
     ...store,
+    // Contact info
+    email: store.admin_email,
+
+    // Branding
     primary_color: settings?.primary_color || null,
+    logo_url: settings?.logo_url || null,
+    description: settings?.description || null,
+
+    // Policies
     privacy_policy: settings?.privacy_policy || null,
     shipping_policy: settings?.shipping_policy || null,
     return_policy: settings?.return_policy || null,
-    logo_url: settings?.logo_url || null,
+
+    // Social media URLs
+    whatsapp_number: settings?.whatsapp_number || null,
+    instagram_url: settings?.instagram_url || null,
+    facebook_url: settings?.facebook_url || null,
+    tiktok_url: settings?.tiktok_url || null,
+    twitter_url: settings?.twitter_url || null,
+    snapchat_url: settings?.snapchat_url || null,
+
+    // ✅ NEW: Testimonials
+    testimonials: settings?.testimonials || { testimonials: [] },
   };
 
   return NextResponse.json({
     store: mergedStore,
-    settings: settings, // Keep for reference if needed
+    settings: settings,
   });
 }
+
+/* ─────────────────────────────────────────────
+   TESTIMONIAL VALIDATION SCHEMAS
+───────────────────────────────────────────── */
+
+const BilingualTextSchema = z.object({
+  ar: z.string().min(1, "نص عربي مطلوب").max(500),
+  en: z.string().min(1, "English text required").max(500),
+});
+
+const TestimonialSchema = z.object({
+  id: z.number().optional(), // Will be auto-generated if not provided
+  name: BilingualTextSchema,
+  role: BilingualTextSchema,
+  content: BilingualTextSchema,
+  rating: z.number().min(1).max(5, "Rating must be between 1 and 5"),
+  avatar: z.string().url().optional().or(z.literal("")),
+});
+
+const TestimonialsListSchema = z.object({
+  testimonials: z.array(TestimonialSchema),
+});
+
+/* ─────────────────────────────────────────────
+   REST OF EXISTING CODE (CreateStoreSchema, POST, PUT, etc.)
+───────────────────────────────────────────── */
 
 const CreateStoreSchema = z.object({
   adminName: z
@@ -120,7 +164,7 @@ const CreateStoreSchema = z.object({
   password: z
     .string()
     .min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
-    .max(72, "كلمة المرور طويلة جداً") // bcrypt max
+    .max(72, "كلمة المرور طويلة جداً")
     .regex(/[A-Z]/, "يجب أن تحتوي على حرف كبير")
     .regex(/[0-9]/, "يجب أن تحتوي على رقم"),
 });
@@ -161,9 +205,9 @@ interface RateLimitEntry {
 }
 
 const rateLimitMap = new Map<string, RateLimitEntry>();
-const WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const MAX_REQUESTS = 5; // 5 store creations per IP per hour
-const BLOCK_DURATION_MS = 24 * 60 * 60 * 1000; // 24h block after abuse
+const WINDOW_MS = 60 * 60 * 1000;
+const MAX_REQUESTS = 5;
+const BLOCK_DURATION_MS = 24 * 60 * 60 * 1000;
 
 function getRateLimitKey(req: NextRequest): string {
   return (
@@ -180,7 +224,6 @@ function checkRateLimit(key: string): {
   const now = Date.now();
   const entry = rateLimitMap.get(key);
 
-  // Blocked
   if (entry?.blockedUntil && now < entry.blockedUntil) {
     return {
       allowed: false,
@@ -188,22 +231,18 @@ function checkRateLimit(key: string): {
     };
   }
 
-  // Reset window
   if (!entry || now - entry.firstRequest > WINDOW_MS) {
     rateLimitMap.set(key, { count: 1, firstRequest: now });
     return { allowed: true };
   }
 
-  // Increment
   entry.count += 1;
 
-  // Abuse: block
   if (entry.count > MAX_REQUESTS * 2) {
     entry.blockedUntil = now + BLOCK_DURATION_MS;
     return { allowed: false, retryAfter: BLOCK_DURATION_MS / 1000 };
   }
 
-  // Limit reached
   if (entry.count > MAX_REQUESTS) {
     return {
       allowed: false,
@@ -215,7 +254,6 @@ function checkRateLimit(key: string): {
 }
 
 export async function POST(request: NextRequest) {
-  // ── Rate limit ────────────────────────────────────────────────────────────
   const ipKey = getRateLimitKey(request);
   const rateLimit = checkRateLimit(ipKey);
 
@@ -232,7 +270,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── Parse body ────────────────────────────────────────────────────────────
   let rawBody: unknown;
   try {
     rawBody = await request.json();
@@ -240,7 +277,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "طلب غير صالح" }, { status: 400 });
   }
 
-  // ── Validate ──────────────────────────────────────────────────────────────
   const parsed = CreateStoreSchema.safeParse(rawBody);
 
   if (!parsed.success) {
@@ -254,7 +290,6 @@ export async function POST(request: NextRequest) {
             ? firstError.path[0]
             : undefined,
 
-        // Only expose full errors in dev
         ...(process.env.NODE_ENV === "development" && {
           errors: parsed.error.issues,
         }),
@@ -274,7 +309,6 @@ export async function POST(request: NextRequest) {
     password,
   } = parsed.data;
 
-  // ── Reserved slug check ───────────────────────────────────────────────────
   if (RESERVED_SLUGS.has(slug)) {
     return NextResponse.json(
       { error: "هذا الرابط محجوز، يرجى اختيار رابط آخر", field: "slug" },
@@ -282,7 +316,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── Duplicate checks (parallel) ───────────────────────────────────────────
   const [slugCheck, emailCheck] = await Promise.all([
     supabaseAdmin.from("stores").select("id").eq("slug", slug).maybeSingle(),
     supabaseAdmin
@@ -315,11 +348,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── Hash password ─────────────────────────────────────────────────────────
-  // Cost factor 12: ~300ms on modern hardware — good balance
   const passwordHash = await bcrypt.hash(password, 12);
 
-  // ── Insert ────────────────────────────────────────────────────────────────
   const { data: newStore, error: insertError } = await supabaseAdmin
     .from("stores")
     .insert({
@@ -340,7 +370,6 @@ export async function POST(request: NextRequest) {
   if (insertError) {
     console.error("Insert error:", insertError);
 
-    // Unique constraint violations (race condition fallback)
     if (insertError.code === "23505") {
       const isSlug = insertError.message.includes("slug");
       return NextResponse.json(
@@ -360,7 +389,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── Success ───────────────────────────────────────────────────────────────
   return NextResponse.json(
     {
       success: true,
@@ -373,7 +401,9 @@ export async function POST(request: NextRequest) {
   );
 }
 
-// ─── Update Store Settings (PUT) ──────────────────────────────────────────────
+/* ─────────────────────────────────────────────
+   UPDATE STORE SETTINGS (PUT) - HANDLES TESTIMONIALS
+───────────────────────────────────────────── */
 
 export async function PUT(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -394,13 +424,21 @@ export async function PUT(request: NextRequest) {
       store_type,
       admin_name,
       admin_email,
-
-      // settings only
       primary_color,
       privacy_policy,
       shipping_policy,
       return_policy,
       logo_url,
+      description,
+      instagram_url,
+      facebook_url,
+      tiktok_url,
+      twitter_url,
+      snapchat_url,
+      whatsapp_number,
+
+      // ✅ NEW: Testimonials
+      testimonials,
     } = body;
 
     /* ─────────────────────────────
@@ -447,13 +485,37 @@ export async function PUT(request: NextRequest) {
     if (return_policy !== undefined)
       settingsUpdate.return_policy = return_policy;
     if (logo_url !== undefined) settingsUpdate.logo_url = logo_url;
+    if (description !== undefined) settingsUpdate.description = description;
+    if (instagram_url !== undefined)
+      settingsUpdate.instagram_url = instagram_url;
+    if (facebook_url !== undefined) settingsUpdate.facebook_url = facebook_url;
+    if (tiktok_url !== undefined) settingsUpdate.tiktok_url = tiktok_url;
+    if (twitter_url !== undefined) settingsUpdate.twitter_url = twitter_url;
+    if (snapchat_url !== undefined) settingsUpdate.snapchat_url = snapchat_url;
+    if (whatsapp_number !== undefined)
+      settingsUpdate.whatsapp_number = whatsapp_number;
+
+    // ✅ NEW: Validate and save testimonials
+    if (testimonials !== undefined) {
+      const testimonialsParsed = TestimonialsListSchema.safeParse(testimonials);
+      if (!testimonialsParsed.success) {
+        return NextResponse.json(
+          {
+            error: "Invalid testimonials format",
+            details: testimonialsParsed.error.issues,
+          },
+          { status: 422 },
+        );
+      }
+      settingsUpdate.testimonials = testimonialsParsed.data;
+    }
 
     settingsUpdate.updated_at = new Date().toISOString();
 
     const { data: settingsData, error: settingsError } = await supabaseAdmin
       .from("store_settings")
       .upsert(settingsUpdate, {
-        onConflict: "store_id", // Ensures only ONE row per store
+        onConflict: "store_id",
       })
       .select()
       .single();

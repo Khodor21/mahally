@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FiMenu, FiX } from "react-icons/fi";
+import { Menu, X } from "lucide-react";
 
 const navLinks = [
   { label: "المميزات", href: "#features" },
@@ -99,7 +99,8 @@ export default function Navbar() {
               className="lg:hidden w-9 h-9 rounded-2xl border border-brand-light bg-brand-white text-brand-dark flex items-center justify-center transition-all duration-200"
               aria-label="القائمة"
             >
-              {mobileOpen ? <FiX size={16} /> : <FiMenu size={16} />}
+              {/* Using Lucide icons with size 16 to match your original configuration */}
+              {mobileOpen ? <X size={16} /> : <Menu size={16} />}
             </button>
           </div>
         </div>

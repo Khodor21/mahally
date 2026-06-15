@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { RiUserFill } from "react-icons/ri";
-import { PiMonitorFill } from "react-icons/pi";
-import { MdHomeFilled } from "react-icons/md";
-import { PiPackageFill } from "react-icons/pi";
-import { RiShoppingBag3Fill } from "react-icons/ri";
+import { Home, LayoutGrid, ShoppingBag, Package, User } from "lucide-react";
 import { useShop } from "@/app/store/context";
 
 const translations = {
@@ -40,10 +36,10 @@ export default function BottomNavbar({
   const base = (path: string) => `/store/${storeSlug}${path}?lang=${lang}`;
 
   const navItems = [
-    { label: t.home, icon: <MdHomeFilled size={23} />, href: base("") },
+    { label: t.home, icon: <Home size={23} />, href: base("") },
     {
       label: t.categories,
-      icon: <PiMonitorFill size={23} />,
+      icon: <LayoutGrid size={23} />,
       href: base("/categories"),
     },
     {
@@ -51,7 +47,7 @@ export default function BottomNavbar({
       href: base("/cart"),
       icon: (
         <span className="relative flex items-center justify-center leading-none">
-          <RiShoppingBag3Fill size={23} />
+          <ShoppingBag size={23} />
           {cartCount > 0 && (
             <span className="absolute -top-1.5 -right-1.5 w-3 h-3 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-0.5 leading-none">
               {cartCount > 9 ? "9+" : cartCount}
@@ -62,12 +58,12 @@ export default function BottomNavbar({
     },
     {
       label: t.orders,
-      icon: <PiPackageFill size={23} />,
+      icon: <Package size={23} />,
       href: base("/orders"),
     },
     {
       label: t.account,
-      icon: <RiUserFill size={23} />,
+      icon: <User size={23} />,
       href: base("/account"),
     },
   ];

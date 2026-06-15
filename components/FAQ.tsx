@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FiChevronDown } from "react-icons/fi";
-import { FaWhatsapp } from "react-icons/fa";
+import { ChevronDown, MessageCircle } from "lucide-react";
 
 const faqs = [
   {
@@ -98,7 +97,7 @@ export default function FAQ() {
                         : "bg-brand-grey border-brand-light text-brand-dark"
                     }`}
                   >
-                    <FiChevronDown size={18} />
+                    <ChevronDown size={18} />
                   </div>
                 </button>
 
@@ -131,9 +130,9 @@ export default function FAQ() {
             href="https://wa.me/+96171708103"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-1 h-[50px] md:h-[56px] px-6 md:px-8 rouded-lg md:rounded-2xl bg-brand-dark text-brand-white text-[15px] md:text-[16px] font-bold transition-all duration-300 hover:opacity-90 hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center gap-1 h-[50px] md:h-[56px] px-6 md:px-8 rounded-lg md:rounded-2xl bg-brand-dark text-brand-white text-[15px] md:text-[16px] font-bold transition-all duration-300 hover:opacity-90 hover:-translate-y-0.5"
           >
-            <FaWhatsapp size={18} />
+            <MessageCircle size={18} />
             تواصل معنا على واتساب
           </a>
         </div>

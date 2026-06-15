@@ -5,15 +5,14 @@ import Link from "next/link"; // 👉 Added Link for SEO-friendly navigation
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  AiFillHeart,
-  AiOutlineHeart,
-  AiOutlineEye,
-  AiOutlineClose,
-} from "react-icons/ai";
-import { HiOutlineShoppingBag } from "react-icons/hi2";
-import { BsCheckCircleFill, BsCreditCard } from "react-icons/bs";
+  Heart,
+  Eye,
+  X,
+  ShoppingBag,
+  CheckCircle,
+  CreditCard,
+} from "lucide-react";
 import { useShop } from "@/app/store/context";
-import { RiShoppingBag2Line } from "react-icons/ri";
 
 type Product = {
   id: string | number;
@@ -53,6 +52,7 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
   const favorited = isFavorite(productId);
 
   const [added, setAdded] = useAddedFlash(5000);
+  const [progress, setProgress] = useState(100);
 
   const normalizedProduct = {
     ...product,
@@ -67,6 +67,18 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
   const handleToggleFavorite = () => {
     toggleFavorite(normalizedProduct);
   };
+
+  // Handle the progress bar animation
+  useEffect(() => {
+    if (added) {
+      setProgress(100);
+      // Small timeout ensures the DOM paints the 100% width before starting the transition to 0%
+      const timer = setTimeout(() => setProgress(0), 50);
+      return () => clearTimeout(timer);
+    } else {
+      setProgress(100);
+    }
+  }, [added]);
 
   const formattedPrice = formatPrice(product.price ?? 0);
 
@@ -103,7 +115,7 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
               }}
               className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-600 shadow-sm hover:scale-110 hover:text-[rgb(60_28_84)] transition-all pointer-events-auto"
             >
-              <AiOutlineEye size={16} />
+              <Eye size={16} />
             </button>
 
             <button
@@ -115,9 +127,9 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
               className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm hover:scale-110 transition-all pointer-events-auto"
             >
               {favorited ? (
-                <AiFillHeart size={16} className="text-rose-500" />
+                <Heart size={16} className="text-rose-500 fill-rose-500" />
               ) : (
-                <AiOutlineHeart
+                <Heart
                   size={16}
                   className="text-gray-600 hover:text-[rgb(60_28_84)]"
                 />
@@ -153,7 +165,7 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
               }}
               className="relative z-20 w-full mt-4 flex items-center justify-center gap-1 py-2 rounded-sm text-sm font-semibold border transition-all duration-300 border-[rgb(60_28_84)] text-[rgb(60_28_84)] bg-white hover:bg-[rgb(60_28_84)] hover:text-white"
             >
-              <RiShoppingBag2Line size={16} />
+              <ShoppingBag size={16} />
               إضافـة إلـى السلّـة
             </button>
           </div>
@@ -162,21 +174,30 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
 
       {/* PREMIUM ADD TO CART TOAST */}
       {added && (
-        <div className="fixed top-4 start-1/2 -translate-x-1/2 md:start-auto md:-translate-x-0 md:end-4 z-[100] w-[calc(100vw-2rem)] md:w-[400px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300">
-          <div className="h-1.5 w-full bg-emerald-500" />
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100vw-2rem)] md:w-[400px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300">
+          {" "}
+          {/* PROGRESS BAR */}
+          <div
+            className="h-1.5 bg-emerald-500 ease-linear"
+            style={{
+              width: `${progress}%`,
+              transitionDuration: added ? "4950ms" : "0ms",
+              transitionProperty: "width",
+            }}
+          />
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
             <button
               onClick={() => setAdded(false)}
               className="text-gray-500 hover:text-gray-800 transition-colors"
               aria-label="Close"
             >
-              <AiOutlineClose size={20} />
+              <X size={20} />
             </button>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-gray-900">
                 تمت الإضافة إلى سلة التسوق
               </span>
-              <BsCheckCircleFill className="text-emerald-500" size={18} />
+              <CheckCircle className="text-emerald-500" size={18} />
             </div>
           </div>
           <div className="p-4 flex items-center justify-end gap-4">
@@ -205,7 +226,7 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
               }}
               className="flex-1 py-2.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
             >
-              <HiOutlineShoppingBag size={18} />
+              <ShoppingBag size={18} />
               عرض السلة
             </button>
             <button
@@ -215,7 +236,7 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
               }}
               className="flex-1 py-2.5 bg-[rgb(60_28_84)] rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
             >
-              <BsCreditCard size={18} />
+              <CreditCard size={18} />
               اتمام الطلب
             </button>
           </div>
