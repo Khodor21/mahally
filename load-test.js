@@ -21,7 +21,6 @@ export const options = {
 export default function () {
   const BASE_URL = "https://perfumes.mahally.app";
 
-  // 1. اختبار الصفحة الرئيسية (التي تعاني من البطء)
   group("الصفحة الرئيسية (HTML)", () => {
     const res = http.get(`${BASE_URL}`); // استبدل your-store-slug برابط متجر حقيقي
     check(res, {
@@ -29,7 +28,6 @@ export default function () {
     });
   });
 
-  // 2. اختبار الـ API الخاص بـ Hero (لنرى هل هو سريع أم بطيء)
   group("API Hero Section", () => {
     const res = http.get(
       `${BASE_URL}/api/hero?storeId=ade24f06-c292-471e-b766-a9200a3a9b45`,
