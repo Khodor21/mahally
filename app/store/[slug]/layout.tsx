@@ -19,7 +19,7 @@ export default async function StoreLayout({
   params: { slug: string };
 }) {
   const cookieStore = cookies();
-  // const lang = cookieStore.get("lang")?.value === "ar" ? "ar" : "en";
+  const lang = cookieStore.get("lang")?.value === "ar" ? "ar" : "en";
 
   const data = await getCachedStoreData(params.slug);
 
@@ -30,14 +30,14 @@ export default async function StoreLayout({
     <ShopProvider>
       <VisitorTracker storeId={store.id} />
       <ThemeClient primaryColor={settings?.primary_color} />
-      <LangDomSetter lang={"ar"} />
+      <LangDomSetter lang={lang} />
       <NotificationInitializer />
       <Navbar
         storeName={store.store_name}
         storeSlug={store.slug}
         logoUrl={settings?.logo_url}
         primaryColor={settings?.primary_color}
-        lang={"ar"}
+        lang={lang}
       />
       <div className="flex flex-col min-h-screen">
         <main className="flex-grow">{children}</main>
@@ -52,7 +52,7 @@ export default async function StoreLayout({
           instagramUrl={settings?.instagram_url}
           whatsappNumber={settings?.whatsapp_number}
           description={settings?.description}
-          lang={"ar"}
+          lang={lang}
         />
       </div>
     </ShopProvider>

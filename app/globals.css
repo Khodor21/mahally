@@ -31,30 +31,6 @@
   font-display: swap;
 }
 
-@font-face {
-  font-family: "IbmPlex";
-  src: url("/fonts/IBMPlexSansArabic-Regular.ttf") format("opentype");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "IbmPlex";
-  src: url("/fonts/IBMPlexSansArabic-Medium.ttf") format("opentype");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "IbmPlex";
-  src: url("/fonts/IBMPlexSansArabic-Bold.ttf") format("opentype");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
 /* --- Lalezar (Arabic Titles) --- */
 @font-face {
   font-family: "Lalezar";
@@ -68,11 +44,9 @@
    ROOT VARIABLES - DEFAULT (ENGLISH)
 ========================================================= */
 :root {
-  /* Fonts */
   --font-display: "Montserrat", sans-serif;
   --font-body: "Montserrat", sans-serif;
 
-  /* Colors */
   --color-dark: 60 28 84;
   --color-light: 207 195 223;
   --color-white: 255 255 255;
@@ -86,7 +60,7 @@
 html[lang="ar"],
 html[dir="rtl"] {
   --font-display: "Lalezar", cursive;
-  --font-body: "IbmPlex", sans-serif;
+  --font-body: "IBM Plex Sans Arabic", sans-serif;
 }
 
 /* =========================================================
@@ -104,7 +78,6 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Set direction based on lang attribute */
 html[lang="ar"],
 html[dir="rtl"] {
   direction: rtl;

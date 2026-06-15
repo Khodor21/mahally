@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 import { Providers } from "./providers";
-// TypeScript may complain about side-effect CSS imports if no declaration is present.
-// Ignore the next line to allow importing global CSS.
-// @ts-ignore
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="ar" className="scroll-smooth">
       <body className="bg-ink text-paper font-body antialiased">
         <Providers>{children}</Providers>
       </body>
