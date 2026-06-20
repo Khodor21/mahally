@@ -52,6 +52,9 @@
   --color-white: 255 255 255;
   --color-grey: 244 242 245;
   --color-black: 0 0 0;
+
+  /* Primary brand color - SET BY BACKEND in ThemeClient */
+  --color-brand-primary: 60 28 84;
 }
 
 /* =========================================================
@@ -91,7 +94,7 @@ html[dir="ltr"] {
 body {
   min-height: 100vh;
   background-color: rgb(var(--color-grey));
-  color: rgb(var(--color-dark));
+  color: rgb(var(--color-brand-primary));
   font-family: var(--font-body);
   font-weight: 600;
   text-rendering: optimizeLegibility;
@@ -133,8 +136,9 @@ body::before {
    SELECTION
 ========================================================= */
 ::selection {
-  background-color: rgb(var(--color-light));
-  color: rgb(var(--color-dark));
+  background-color: rgb(var(--color-brand-primary));
+  opacity: 0.3;
+  color: rgb(var(--color-black));
 }
 
 /* =========================================================
@@ -149,7 +153,7 @@ body::before {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgb(var(--color-light));
+  background: rgb(var(--color-brand-primary));
   border-radius: 999px;
 }
 

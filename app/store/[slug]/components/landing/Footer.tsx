@@ -1,9 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
-  Globe,
   Phone,
   Mail,
   Instagram,
@@ -15,7 +13,6 @@ import {
   Banknote,
   Wallet,
 } from "lucide-react";
-import { setLanguage } from "@/lib/setLanguage";
 
 interface FooterProps {
   lang?: "en" | "ar";
@@ -27,7 +24,7 @@ interface FooterProps {
   phone?: string | null;
   email?: string | null;
   description?: string | null;
-  whatsappNumber?: string | null; // ✅ NEW
+  whatsappNumber?: string | null;
   instagramUrl?: string | null;
   facebookUrl?: string | null;
   tiktokUrl?: string | null;
@@ -45,21 +42,21 @@ export default function Footer({
   phone,
   email,
   description,
-  whatsappNumber, // ✅ DESTRUCTURED
+  whatsappNumber,
   instagramUrl,
   facebookUrl,
   tiktokUrl,
   twitterUrl,
   snapchatUrl,
 }: FooterProps) {
-  const router = useRouter();
-  const dir = lang === "ar" ? "rtl" : "ltr";
+  // 🔍 DEBUG: Log the received language
+  console.log("Footer received lang prop:", lang);
 
-  const toggleLang = () => {
-    const newLang = lang === "ar" ? "en" : "ar";
-    setLanguage(newLang);
-    router.refresh();
-  };
+  const dir = lang === "ar" ? "rtl" : "ltr";
+  const isArabic = lang === "ar";
+
+  console.log("Footer calculated dir:", dir);
+  console.log("Footer isArabic:", isArabic);
 
   const buildUrl = (path: string) => {
     if (!storeSlug) return `${path}?lang=${lang}`;
@@ -72,8 +69,6 @@ export default function Footer({
 
   const content = {
     ar: {
-      // ✅ LOGIC: If description is empty/null, it falls back to the static text.
-      // Ensure your Parent Component passes 'description' correctly from the DB.
       description:
         description ||
         "علامة تجارية، تأسست في عام 2021. رسالتنا هي التصميم البسيط والجودة العالية، ونسعى دائماً لتطوير مهاراتنا في التصميم وتحسين جودة المنتجات. أولويتنا رضا العملاء وتقديم تجربة فريدة ومميزة لهم.",
@@ -113,6 +108,9 @@ export default function Footer({
 
   const t = content[lang];
 
+  // 🔍 DEBUG: Log the selected content object
+  console.log("Footer using content:", lang, t);
+
   return (
     <footer
       dir={dir}
@@ -123,24 +121,24 @@ export default function Footer({
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 mb-12">
           {/* BRAND SECTION */}
           <div className="flex flex-col gap-5">
-            <Link href={buildUrl("")} className="flex items-center gap-3 w-fit">
+            <Link
+              href={buildUrl("")}
+              className="flex items-center gap-3 w-fit group"
+            >
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt={storeName}
-                  className="w-12 h-12 rounded-xl object-cover bg-gray-50 border border-gray-100"
+                  className="h-10 sm:h-12 w-auto max-w-[140px] md:max-w-[180px] object-contain transition-opacity group-hover:opacity-90"
                 />
               ) : (
                 <div
-                  className="w-12 h-12 rounded-xl text-white flex items-center justify-center font-black text-xl"
+                  className="flex-shrink-0 w-12 h-12 rounded-xl text-white flex items-center justify-center font-black text-xl shadow-sm"
                   style={{ backgroundColor: primaryColor || "#111827" }}
                 >
                   {storeName?.[0]?.toUpperCase() || "S"}
                 </div>
               )}
-              <span className="text-xl font-bold text-brand-black tracking-tight">
-                {storeName}
-              </span>
             </Link>
             <p className="text-sm text-brand-black/60 leading-relaxed font-medium max-w-sm">
               {t.description}
@@ -192,7 +190,7 @@ export default function Footer({
                 </a>
               </div>
 
-              {/* ✅ FIXED: Dynamic social media icons including WhatsApp */}
+              {/* Social Media Icons */}
               <div className="flex items-center gap-2 pt-2 flex-wrap">
                 {whatsappNumber && (
                   <a
@@ -298,18 +296,11 @@ export default function Footer({
           </div>
         </div>
 
+        {/* FOOTER COPYRIGHT */}
         <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 pt-6 border-t border-brand-light text-sm font-medium text-brand-black/50">
           <p>
             {storeName} © {new Date().getFullYear()} {t.rights}.
           </p>
-
-          <button
-            onClick={toggleLang}
-            className="flex items-center gap-2 hover:text-brand-black transition-colors bg-brand-grey px-3 py-1.5 rounded-xl"
-          >
-            <Globe size={16} />
-            <span className="font-semibold">العربية | English</span>
-          </button>
         </div>
       </div>
     </footer>

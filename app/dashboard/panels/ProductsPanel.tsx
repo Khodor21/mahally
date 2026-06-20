@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Plus, RefreshCw } from "lucide-react";
+import { Search, Plus, RefreshCw, Package, Star } from "lucide-react";
 import type { Product, ProductFormData } from "@/types/api";
 import {
   useProducts,
@@ -13,6 +13,7 @@ import { useDashboard } from "../DashboardContext";
 import ProductCard from "../components/ProductCard";
 import ProductFormModal from "../components/ProductFormModal";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
+import FeaturedProductsModal from "../components/FeaturedProductsModal";
 import Toast from "../components/Toast";
 
 interface ToastState {
@@ -40,6 +41,8 @@ export default function ProductsPanel({ storeId }: { storeId: string }) {
   const [formTarget, setFormTarget] = useState<Product | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+
+  const [featuredModalOpen, setFeaturedModalOpen] = useState(false);
 
   const [toast, setToast] = useState<ToastState | null>(null);
 
@@ -140,8 +143,8 @@ export default function ProductsPanel({ storeId }: { storeId: string }) {
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
+        <div className="flex items-center justify-between md:justify-center gap-2">
           <div className="flex items-center gap-2 bg-[rgb(244_242_245)] rounded-xl px-3 py-2 w-56">
             <Search className="w-4 h-4 text-[rgb(60_28_84)]/40" />
             <input
@@ -152,33 +155,87 @@ export default function ProductsPanel({ storeId }: { storeId: string }) {
             />
           </div>
 
-          <button onClick={fetchProducts} disabled={loading}>
-            <RefreshCw className={loading ? "animate-spin" : ""} />
+          <button
+            onClick={fetchProducts}
+            disabled={loading}
+            className="p-2 text-gray-500 hover:text-gray-800 transition-colors"
+          >
+            <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
 
-        <button
-          onClick={openCreate}
-          className="bg-brand-dark text-white px-4 py-2 rounded-xl text-xs flex gap-2 items-center justify-center"
-        >
-          <Plus className="w-3 h-3" />
-          {safeTr.addNewProduct}
-        </button>
+        {/* Buttons Group */}
+        {productsSafe.length > 0 && (
+          <div className="flex gap-2 justify-between md:justify-center">
+            {/* Featured Products Button */}
+            <button
+              onClick={() => setFeaturedModalOpen(true)}
+              className="bg-amber-50 text-amber-700 px-4 py-2 rounded text-xs flex gap-2 items-center justify-center hover:bg-amber-100 transition-colors border border-amber-200"
+            >
+              <Star className="w-3 h-3" />
+              {lang === "ar" ? "المنتجات المميزة" : "Featured"}
+            </button>
+
+            {/* Add New Product Button */}
+            <button
+              onClick={openCreate}
+              className="bg-brand-dark text-white px-4 py-2 rounded text-xs flex gap-2 items-center justify-center hover:bg-[#333] transition-colors"
+            >
+              <Plus className="w-3 h-3" />
+              {safeTr.addNewProduct}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Products */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {filtered.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            tr={safeTr as any} // ✅ FINAL FIX HERE
-            lang={lang}
-            onEdit={openEdit}
-            onDelete={openDelete}
-          />
-        ))}
-      </div>
+      {/* Products Area */}
+      {productsSafe.length === 0 && !loading ? (
+        /* Empty State: No Products in Store */
+        <div className="flex flex-col items-center justify-center py-20 px-4 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 text-center">
+          <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-5 border border-gray-100">
+            <Package className="w-10 h-10 text-brand-dark opacity-60" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">
+            لا توجد بيانات
+          </h3>
+          <p className="text-gray-500 text-sm mb-8 max-w-md leading-relaxed">
+            متجرك يبدو فارغاً في الوقت الحالي. ابدأ بإضافة أول منتج لك لتبدأ
+            رحلتك في البيع واستقبال الطلبات.
+          </p>
+          <button
+            onClick={openCreate}
+            className="h-14 px-8 bg-brand-dark text-white rounded-2xl text-base font-bold flex gap-3 items-center justify-center hover:bg-[#333] transition-all hover:scale-105 shadow-lg shadow-brand-dark/20"
+          >
+            <Plus className="w-5 h-5" />
+            أضف منتجك الأول الآن
+          </button>
+        </div>
+      ) : filtered.length === 0 && !loading ? (
+        /* Empty State: Search yielded no results */
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+          <Package className="w-12 h-12 text-gray-300 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-700 mb-1">
+            لا توجد نتائج
+          </h3>
+          <p className="text-gray-500 text-sm">
+            لم نعثر على منتجات تطابق كلمة البحث "{search}"
+          </p>
+        </div>
+      ) : (
+        /* Products Grid */
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              tr={safeTr as any}
+              lang={lang}
+              onEdit={openEdit}
+              onDelete={openDelete}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Modals */}
       {formOpen && (
@@ -203,6 +260,17 @@ export default function ProductsPanel({ storeId }: { storeId: string }) {
           onConfirm={handleDelete}
           onCancel={() => !deleteLoading && setDeleteTarget(null)}
           lang={"ar"}
+        />
+      )}
+
+      {/* Featured Products Modal */}
+      {featuredModalOpen && (
+        <FeaturedProductsModal
+          isOpen={featuredModalOpen}
+          products={productsSafe}
+          tr={safeTr}
+          dir={dir}
+          onClose={() => setFeaturedModalOpen(false)}
         />
       )}
 

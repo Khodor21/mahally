@@ -1,90 +1,98 @@
-// Localization for checkout page - 100% EN or 100% AR based on store language
-export const checkoutTranslations = {
+export type Language = "ar" | "en";
+
+export const checkoutTranslations: Record<Language, Record<string, string>> = {
+  ar: {
+    // Empty Cart
+    emptyCartTitle: "عربتك فارغة",
+    emptyCartDesc: "ابدأ التسوق وأضف بعض المنتجات إلى عربتك",
+    continueShopping: "استكمل التسوق",
+
+    // Cart Page
+    cart: "عربة التسوق",
+    fillDetailsBelow: "املأ التفاصيل أدناه",
+    products: "المنتجات",
+
+    // Summary Labels
+    subtotal: "المجموع الفرعي",
+    shipping: "الشحن",
+    discount: "الخصم",
+    total: "الإجمالي",
+    orderSummary: "ملخص الطلب",
+
+    // Coupon
+    discountCode: "هل تمتلك رمز خصم؟",
+    apply: "تطبيق",
+    couponApplied: "تم تطبيق الكوبون",
+    couponSuccess: "تم تطبيق الكوبون بنجاح",
+    couponInvalid: "رمز الخصم غير صحيح",
+    couponValidationFailed: "فشل التحقق من الكوبون",
+    cartChanged: "تم تغيير المحتويات - تم إزالة الكوبون",
+
+    // Shipping Form
+    shippingInfo: "معلومات التوصيل",
+    customerInfoTitle: "بيانات العميل",
+    fullName: "الاسم الكامل",
+    phoneNumber: "رقم الهاتف",
+    city: "المدينة",
+    selectCity: "اختر المدينة",
+    fullAddress: "العنوان الكامل",
+    orderNotes: "ملاحظات الطلب",
+
+    // Button Text
+    processing: "جاري المعالجة...",
+    completeCheckout: "إتمام الشراء",
+    secureCheckout: "عملية شراء آمنة وموثوقة",
+
+    // Error Messages
+    storeNotFound: "المتجر غير موجود",
+    checkoutFailed: "فشلت عملية الشراء",
+    somethingWentWrong: "حدث خطأ ما",
+  },
   en: {
     // Empty Cart
     emptyCartTitle: "Your cart is empty",
-    emptyCartDesc: "Add products to continue checkout",
+    emptyCartDesc: "Start shopping and add some products to your cart",
     continueShopping: "Continue Shopping",
 
-    // Cart Items
-    itemQty: "Qty",
-    remove: "Remove",
-    price: "Price",
+    // Cart Page
+    cart: "Shopping Cart",
+    fillDetailsBelow: "Fill your details below",
+    products: "Products",
 
-    // Customer Info
+    // Summary Labels
+    subtotal: "Subtotal",
+    shipping: "Shipping",
+    discount: "Discount",
+    total: "Total",
+    orderSummary: "Order Summary",
+
+    // Coupon
+    discountCode: "Did you have a discount code?",
+    apply: "Apply",
+    couponApplied: "Coupon Applied",
+    couponSuccess: "Coupon applied successfully",
+    couponInvalid: "Invalid discount code",
+    couponValidationFailed: "Failed to validate coupon",
+    cartChanged: "Cart contents changed - coupon removed",
+
+    // Shipping Form
+    shippingInfo: "Shipping Information",
     customerInfoTitle: "Customer Information",
     fullName: "Full Name",
     phoneNumber: "Phone Number",
-    emailAddress: "Email Address",
     city: "City",
+    selectCity: "Select City",
     fullAddress: "Full Address",
-    orderNotes: "Order Notes (optional)",
+    orderNotes: "Order Notes",
 
-    // Order Summary
-    orderSummary: "Order Summary",
-    discountCode: "Discount code",
-    apply: "Apply",
-    couponApplied: "Coupon applied",
-    subtotal: "Subtotal",
-    discount: "Discount",
-    shipping: "Shipping",
-    total: "Total",
-    secureCheckout: "Secure checkout experience",
-    completeCheckout: "Complete Checkout",
+    // Button Text
     processing: "Processing...",
+    completeCheckout: "Complete Checkout",
+    secureCheckout: "Secure & trusted checkout",
 
-    // Messages
-    cartChanged: "Cart changed. Please re-apply your coupon.",
-    couponSuccess: "Coupon applied successfully!",
-    couponInvalid: "Invalid coupon",
-    couponValidationFailed: "Failed to validate coupon",
+    // Error Messages
     storeNotFound: "Store not found",
     checkoutFailed: "Checkout failed",
     somethingWentWrong: "Something went wrong",
   },
-
-  ar: {
-    // Empty Cart
-    emptyCartTitle: "سلتك فارغة",
-    emptyCartDesc: "أضف منتجات لمتابعة الدفع",
-    continueShopping: "متابعة التسوق",
-
-    // Cart Items
-    itemQty: "الكمية",
-    remove: "حذف",
-    price: "السعر",
-
-    // Customer Info
-    customerInfoTitle: "معلومات العميل",
-    fullName: "الاسم الكامل",
-    phoneNumber: "رقم الهاتف",
-    emailAddress: "عنوان البريد الإلكتروني",
-    city: "المدينة",
-    fullAddress: "العنوان الكامل",
-    orderNotes: "ملاحظات الطلب (اختياري)",
-
-    // Order Summary
-    orderSummary: "ملخص الطلب",
-    discountCode: "كود الخصم",
-    apply: "تطبيق",
-    couponApplied: "تم تطبيق القسيمة",
-    subtotal: "المجموع الفرعي",
-    discount: "الخصم",
-    shipping: "الشحن",
-    total: "الإجمالي",
-    secureCheckout: "تجربة دفع آمنة",
-    completeCheckout: "إتمام الدفع",
-    processing: "جاري المعالجة...",
-
-    // Messages
-    cartChanged: "تم تغيير السلة. يرجى إعادة تطبيق قسيمتك.",
-    couponSuccess: "تم تطبيق القسيمة بنجاح!",
-    couponInvalid: "قسيمة غير صالحة",
-    couponValidationFailed: "فشل التحقق من القسيمة",
-    storeNotFound: "المتجر غير موجود",
-    checkoutFailed: "فشل الدفع",
-    somethingWentWrong: "حدث خطأ ما",
-  },
 };
-
-export type Language = "en" | "ar";

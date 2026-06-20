@@ -14,6 +14,7 @@ import {
   Category,
   StoreData,
   HeroBanner,
+  Testimonial, TestimonialFormData
 } from "@/types/api";
 
 // ============================================
@@ -52,10 +53,14 @@ export async function getProducts(): Promise<Product[]> {
   return json.data || [];
 }
 
-export async function createProduct(form: ProductFormData): Promise<Product> {
+export async function createProduct(
+  form: ProductFormData,
+): Promise<Product> {
   const res = await fetch("/api/products", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       title: form.title.trim(),
       description: form.description.trim(),
@@ -63,8 +68,10 @@ export async function createProduct(form: ProductFormData): Promise<Product> {
       stock: parseInt(form.stock) || 0,
       images: form.images,
       category_id: form.category_id,
+      variants: form.variants,
     }),
   });
+
   return handleApiResponse(res);
 }
 
@@ -74,7 +81,9 @@ export async function updateProduct(
 ): Promise<Product> {
   const res = await fetch("/api/products", {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       id,
       title: form.title.trim(),
@@ -83,8 +92,10 @@ export async function updateProduct(
       stock: parseInt(form.stock) || 0,
       images: form.images,
       category_id: form.category_id,
+      variants: form.variants,
     }),
   });
+
   return handleApiResponse(res);
 }
 
@@ -425,6 +436,80 @@ export async function reorderHeroBanners(
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ banners }),
+  });
+
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
+}
+
+// Testimonial
+
+
+export async function getTestimonials(storeSlug?: string): Promise<Testimonial[]> {
+  const params = new URLSearchParams();
+  
+  if (storeSlug) {
+    params.append("store_slug", storeSlug);
+    params.append("public", "true");
+  } else {
+    // ARCHITECTURE FIX: Force browser to bypass local fetch cache on Admin Dashboard
+    params.append("_t", Date.now().toString());
+  }
+
+  const fetchOptions: RequestInit = storeSlug
+    ? { next: { revalidate: 60 } } // Cache public queries for 60 seconds at Edge
+    : { cache: "no-store" };       // Instruct Next.js server to skip cache
+
+  const res = await fetch(`/api/testimonials?${params.toString()}`, fetchOptions);
+  const data = await res.json();
+
+  if (!data.success) {
+    throw new Error(data.message || "Failed to fetch testimonials");
+  }
+
+  return data.data || [];
+}
+
+export async function createTestimonial(
+  form: TestimonialFormData,
+): Promise<Testimonial> {
+  const res = await fetch("/api/testimonials", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: form.name,
+      role: form.role,
+      content: form.content,
+      rating: Math.floor(form.rating), 
+    }),
+  });
+
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
+export async function updateTestimonial(
+  id: string,
+  form: Partial<TestimonialFormData> & { is_active?: boolean },
+): Promise<Testimonial> {
+  const res = await fetch("/api/testimonials", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id,
+      ...form,
+    }),
+  });
+
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
+  return data.data;
+}
+
+export async function deleteTestimonial(id: string): Promise<void> {
+  const res = await fetch(`/api/testimonials?id=${id}`, {
+    method: "DELETE",
   });
 
   const data = await res.json();

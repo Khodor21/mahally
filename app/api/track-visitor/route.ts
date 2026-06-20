@@ -1,54 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const { storeId } = await request.json();
+    const { searchParams } = new URL(request.url);
+    const storeId = searchParams.get("storeId");
 
     if (!storeId) {
-      return NextResponse.json({ error: "Missing storeId" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing storeId parameter", data: [] },
+        { status: 400 },
+      );
     }
 
-    const today = new Date().toISOString().split("T")[0];
-
-    // Try to increment existing counter
-    const { data: existing, error: fetchError } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from("visitor_counts")
-      .select("visitor_count")
+      .select("id, store_id, count_date, visitor_count, updated_at")
       .eq("store_id", storeId)
-      .eq("count_date", today)
-      .single();
+      .order("count_date", { ascending: false });
 
-    if (existing) {
-      // Increment counter
-      const { error: updateError } = await supabaseAdmin
-        .from("visitor_counts")
-        .update({
-          visitor_count: existing.visitor_count + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("store_id", storeId)
-        .eq("count_date", today);
+    if (error) {
+      console.error("Visitor API error:", error);
 
-      if (updateError) throw updateError;
-    } else {
-      // Create new counter for today
-      const { error: insertError } = await supabaseAdmin
-        .from("visitor_counts")
-        .insert({
-          store_id: storeId,
-          count_date: today,
-          visitor_count: 1,
-        });
-
-      if (insertError) throw insertError;
+      return NextResponse.json(
+        { error: "Failed to fetch visitor counts", data: [] },
+        { status: 500 },
+      );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      data: data ?? [],
+    });
   } catch (error) {
-    console.error("Visitor tracking error:", error);
+    console.error("API error:", error);
+
     return NextResponse.json(
-      { error: "Failed to track visitor" },
+      { error: "Internal server error", data: [] },
       { status: 500 },
     );
   }

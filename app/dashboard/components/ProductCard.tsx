@@ -1,4 +1,4 @@
-import { Edit2, Trash2, Package } from "lucide-react";
+import { Edit2, Trash2, Package, Layers } from "lucide-react";
 import type { Translations } from "../i18n";
 
 interface Product {
@@ -10,6 +10,7 @@ interface Product {
   stock: number;
   images: string[];
   created_at: string;
+  variants?: any[]; // Added optional variants array
 }
 
 interface Props {
@@ -28,9 +29,6 @@ export default function ProductCard({
   onDelete,
 }: Props) {
   const dir = lang === "ar" ? "rtl" : "ltr";
-
-  // ✅ FIX: do NOT do tr[lang]
-  // Translations already contains flat keys in your project structure
   const t = tr;
 
   const getStockStatus = (stock: number) => {
@@ -49,9 +47,11 @@ export default function ProductCard({
       ? `${product.price.toLocaleString("ar-SA")} ر.س`
       : `SAR ${product.price.toLocaleString("en-US")}`;
 
+  const hasVariants = product.variants && product.variants.length > 0;
+
   return (
     <div
-      className="border border-[rgb(244_242_245)] rounded-2xl p-4 hover:border-[rgb(207_195_223)] hover:shadow-md transition-all group"
+      className="border border-[rgb(244_242_245)] rounded-2xl p-4 hover:border-[rgb(207_195_223)] hover:shadow-md transition-all group relative bg-white"
       dir={dir}
     >
       {/* Product header */}
@@ -81,6 +81,17 @@ export default function ProductCard({
             <p className="text-xs text-[rgb(60_28_84)]/50 mt-0.5 line-clamp-1">
               {product.description}
             </p>
+          )}
+
+          {/* Variant Indicator */}
+          {hasVariants && (
+            <div className="flex items-center gap-1 mt-1.5">
+              <span className="flex items-center gap-1 bg-[rgb(244_242_245)] text-[rgb(60_28_84)]/70 text-[10px] px-2 py-0.5 rounded-md font-medium">
+                <Layers className="w-3 h-3" />
+                {product.variants!.length}{" "}
+                {lang === "ar" ? "خيارات" : "Variants"}
+              </span>
+            </div>
           )}
         </div>
 

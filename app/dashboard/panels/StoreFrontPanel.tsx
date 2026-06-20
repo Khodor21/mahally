@@ -217,9 +217,9 @@ export default function StorefrontPanel() {
             <LayoutTemplate className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">
+            <h3 className="text-xl font-bold text-gray-900">
               {tr.storefront || "واجهة المتجر"}
-            </h1>
+            </h3>
             <p className="text-sm text-gray-500 mt-1">
               إدارة أقسام واجهة العرض واللافتات الإعلانية
             </p>
@@ -248,9 +248,9 @@ export default function StorefrontPanel() {
 
       {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+        <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
           {tr.sections || "أقسام الصفحة الرئيسية"}
-        </h2>
+        </h3>
         <div className="flex items-center gap-2">
           <button
             onClick={fetchSections}

@@ -1,6 +1,7 @@
+// app/components/ProductClientUI.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,11 +13,39 @@ import {
   CreditCard,
   Minus,
   Plus,
-  ChevronLeft,
+  ChevronRight,
   X,
   CheckCircle,
 } from "lucide-react";
 import { useShop } from "@/app/store/context";
+
+// --- Types & Interfaces ---
+
+export interface Variant {
+  id: string;
+  name: string;
+  stock: number;
+  attributes?: Record<string, string>;
+  price_override?: string | number;
+}
+
+export interface Product {
+  id: string | number;
+  title: string;
+  description?: string;
+  price?: number | string;
+  stock?: number;
+  images?: string[];
+  categories?: { title: string };
+  variants?: string | Variant[];
+}
+
+export type ProductClientUIProps = {
+  product: Product;
+  storeSlug: string;
+  lang?: "ar" | "en";
+  children?: React.ReactNode;
+};
 
 // --- Utility Functions & Hooks ---
 
@@ -57,42 +86,118 @@ function useAddedFlash(duration = 5000): [boolean, (val: boolean) => void] {
 
 // --- Main Component ---
 
-type ProductClientUIProps = {
-  product: any;
-  storeSlug: string;
-};
-
 export default function ProductClientUI({
   product,
   storeSlug,
+  lang = "ar",
+  children,
 }: ProductClientUIProps) {
   const router = useRouter();
   const { addToCart, toggleFavorite, isFavorite } = useShop();
+  const dir = lang === "ar" ? "rtl" : "ltr";
+
+  const t = {
+    ar: {
+      home: "الرئيسية",
+      products: "جميع المنتجات",
+      category: "تصنيف المنتج",
+      stock: "متوفر في المخزون",
+      quantity: "الكمية",
+      total: "الإجمالي",
+      addToCart: "إضافة للسلة",
+      buyNow: "اشتري الآن",
+      details: "تفاصيل المنتج",
+      reviews: "تقييمات المنتج",
+      noDescription: "لا يوجد وصف متاح.",
+      noReviews: "لا توجد تقييمات حتى الآن.",
+      shareText: "تفقد هذا المنتج:",
+      copied: "تم نسخ رابط المنتج!",
+      addedToCart: "تمت الإضافة إلى سلة التسوق",
+      checkout: "اتمام الطلب",
+      cart: "عرض السلة",
+      variants: "الأنواع المتاحة",
+    },
+    en: {
+      home: "Home",
+      products: "Products",
+      category: "Product Category",
+      stock: "In Stock",
+      quantity: "Quantity",
+      total: "Total",
+      addToCart: "Add To Cart",
+      buyNow: "Buy Now",
+      details: "Product Details",
+      reviews: "Product Reviews",
+      noDescription: "No description available.",
+      noReviews: "No reviews yet.",
+      shareText: "Check out this product:",
+      copied: "Product URL copied!",
+      addedToCart: "Added to cart",
+      checkout: "Checkout",
+      cart: "View Cart",
+      variants: "Available Variants",
+    },
+  }[lang];
 
   const images = product.images?.length ? product.images : ["/placeholder.jpg"];
+  const hasMultipleImages = images.length > 1;
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
-
-  const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("details");
 
-  // Cart Toast States
+  // --- Variants Logic ---
+  const parsedVariants: Variant[] = useMemo(() => {
+    if (!product.variants) return [];
+    if (typeof product.variants === "string") {
+      try {
+        return JSON.parse(product.variants) as Variant[];
+      } catch (err) {
+        console.error("Failed to parse variants JSON", err);
+        return [];
+      }
+    }
+    return product.variants as Variant[];
+  }, [product.variants]);
+
+  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(
+    parsedVariants.length > 0 ? parsedVariants[0] : null,
+  );
+
+  const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useAddedFlash(5000);
   const [progress, setProgress] = useState(100);
 
   const productId = String(product.id);
   const favorited = isFavorite(productId);
 
+  // Derive active price and stock based on variant selection
+  const activePrice = selectedVariant?.price_override
+    ? Number(selectedVariant.price_override)
+    : Number(product.price || 0);
+
+  const activeStock = selectedVariant
+    ? selectedVariant.stock
+    : product.stock || 0;
+
   const normalizedProduct = {
     ...product,
     id: productId,
     quantity: quantity,
+    price: activePrice,
+    variant: selectedVariant || undefined,
   };
 
   // --- Handlers ---
 
   const increment = () =>
-    setQuantity((q) => Math.min(q + 1, product.stock || 99));
+    setQuantity((q) => Math.min(q + 1, activeStock || 99));
   const decrement = () => setQuantity((q) => Math.max(q - 1, 1));
+
+  // Reset quantity if variant changes to prevent exceeding new variant stock
+  useEffect(() => {
+    if (quantity > activeStock) {
+      setQuantity(Math.max(1, activeStock));
+    }
+  }, [selectedVariant, activeStock, quantity]);
 
   const handleAddToCart = () => {
     addToCart(normalizedProduct);
@@ -109,7 +214,7 @@ export default function ProductClientUI({
       try {
         await navigator.share({
           title: product.title,
-          text: `تفقد هذا المنتج: ${product.title}`,
+          text: `${t.shareText} ${product.title}`,
           url: url,
         });
       } catch (err) {
@@ -117,7 +222,6 @@ export default function ProductClientUI({
       }
     } else {
       navigator.clipboard.writeText(url);
-      alert("تم نسخ رابط المنتج!");
     }
   };
 
@@ -127,7 +231,6 @@ export default function ProductClientUI({
 
   // --- Effects ---
 
-  // Handle the Toast progress bar animation
   useEffect(() => {
     if (added) {
       setProgress(100);
@@ -138,38 +241,37 @@ export default function ProductClientUI({
     }
   }, [added]);
 
-  // Handle auto-rotating images every 3 seconds
   useEffect(() => {
+    if (!hasMultipleImages) return;
     const timer = setInterval(() => {
       setCurrentImgIndex((prev) => (prev + 1) % images.length);
     }, 3000);
     return () => clearInterval(timer);
-  }, [images.length]);
+  }, [images.length, hasMultipleImages]);
 
-  const formattedPrice = formatPrice(product.price ?? 0);
-  const totalPrice = formatPrice((product.price ?? 0) * quantity);
+  const formattedPrice = formatPrice(activePrice);
+  const totalPrice = formatPrice(activePrice * quantity);
 
   return (
     <>
-      <div dir="rtl" className="animate-in fade-in duration-500 relative">
-        {/* BREADCRUMBS */}
-        <nav className="flex items-center gap-1 text-sm text-gray-500 mb-8 font-medium">
+      <div dir={dir} className="animate-in fade-in duration-500 relative">
+        <nav className="flex items-center md:gap-2 text-sm text-gray-500 mb-8 font-medium">
           <Link
-            href={`/${storeSlug}`}
-            className="hover:text-[rgb(60_28_84)] transition-colors"
+            href={`/`}
+            className="hover:text-brand-primary transition-colors flex-shrink-0"
           >
-            الرئيسية
+            {t.home}
           </Link>
-          <ChevronLeft className="w-3 h-3" />
+          <ChevronRight className="w-3.5 h-3.5 rtl:rotate-180 flex-shrink-0" />
           <Link
-            href={`/${storeSlug}/products`}
-            className="hover:text-[rgb(60_28_84)] transition-colors"
+            href={`/products`}
+            className="hover:text-brand-primary transition-colors flex-shrink-0"
           >
-            جميع المنتجات
+            {t.products}
           </Link>
-          <ChevronLeft className="w-3 h-3" />
-          <span className="text-gray-900">
-            {product.categories?.title || "تصنيف المنتج"}
+          <ChevronRight className="w-3.5 h-3.5 rtl:rotate-180 flex-shrink-0" />
+          <span className="text-gray-900 truncate max-w-[150px] sm:max-w-xs md:max-w-sm">
+            {product.title}
           </span>
         </nav>
 
@@ -177,29 +279,30 @@ export default function ProductClientUI({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
           {/* RIGHT SIDE: IMAGE GALLERY */}
           <div className="flex flex-col-reverse md:flex-row gap-4 h-auto md:h-[600px]">
-            <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-y-auto hidden-scrollbar w-full md:w-24 shrink-0 pb-2 md:pb-0">
-              {images.map((img: string, idx: number) => (
-                <button
-                  key={idx}
-                  onClick={() => handleThumbnailClick(idx)}
-                  className={`relative aspect-square w-20 md:w-full rounded-xl overflow-hidden border-2 transition-all ${
-                    currentImgIndex === idx
-                      ? "border-[rgb(60_28_84)] shadow-md"
-                      : "border-gray-100 hover:border-gray-300 opacity-70"
-                  }`}
-                >
-                  <Image
-                    src={img}
-                    alt={`Thumbnail ${idx}`}
-                    fill
-                    className="object-cover"
-                  />
-                </button>
-              ))}
-            </div>
+            {hasMultipleImages && (
+              <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-y-auto hidden-scrollbar w-full md:w-24 shrink-0 pb-2 md:pb-0">
+                {images.map((img: string, idx: number) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleThumbnailClick(idx)}
+                    className={`relative aspect-square w-20 md:w-full rounded overflow-hidden border-2 transition-all ${
+                      currentImgIndex === idx
+                        ? "border-brand-primary shadow-md"
+                        : "border-gray-100 hover:border-gray-300 opacity-70"
+                    }`}
+                  >
+                    <Image
+                      src={img}
+                      alt={`Thumbnail ${idx}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
 
-            {/* 👉 Smooth Crossfade Container */}
-            <div className="relative flex-1 bg-[rgb(244_242_24 rounded-2xl overflow-hidden aspect-square md:aspect-auto">
+            <div className="relative flex-1 bg-[rgb(244_242_245)] rounded-2xl overflow-hidden aspect-square md:aspect-auto">
               {images.map((img: string, idx: number) => (
                 <div
                   key={idx}
@@ -244,46 +347,75 @@ export default function ProductClientUI({
               </button>
             </div>
 
-            <h3 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight mb-4">
+            <h3 className="text-xl md:text-2xl font-medium text-black leading-tight mb-4">
               {product.title}
             </h3>
 
-            <div className="flex flex-col gap-3 mb-8">
-              <div className="text-3xl font-bold text-[rgb(60_28_84)]">
+            {/* Price & Stock Row */}
+            <div className="flex justify-between items-end mb-6">
+              <div className="text-2xl font-bold text-brand-primary">
                 {formattedPrice}
               </div>
-              <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-sm">
-                <CheckCircle2 className="w-4 h-4" />
-                متوفر في المخزون
-              </div>
+              {activeStock > 0 && (
+                <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs px-3 py-1.5 rounded-md">
+                  <CheckCircle2 className="w-4 h-4" />
+                  {t.stock}
+                </div>
+              )}
             </div>
 
+            {/* Variants Selector */}
+            {parsedVariants.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-sm font-bold text-gray-900 mb-3">
+                  {t.variants}
+                </h4>
+                <div className="flex flex-wrap gap-3">
+                  {parsedVariants.map((variant) => (
+                    <button
+                      key={variant.id}
+                      onClick={() => setSelectedVariant(variant)}
+                      className={`px-4 py-2 border-2 rounded-xl text-sm font-medium transition-colors ${
+                        selectedVariant?.id === variant.id
+                          ? "border-brand-primary bg-[rgb(244_242_245)] text-brand-primary"
+                          : "border-gray-200 text-gray-600 hover:border-gray-300"
+                      }`}
+                    >
+                      {variant.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Quantity & Price Summary Row */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8 p-4 bg-gray-50 rounded-xl">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8 py-4">
               <div className="flex items-center justify-between sm:justify-start gap-4">
-                <span className="text-gray-900 font-bold">الكمية</span>
-                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden h-10 w-32 bg-white">
+                <span className="text-black font-medium">{t.quantity}</span>
+                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden h-12 w-36 bg-white">
                   <button
                     onClick={increment}
-                    className="w-10 h-full flex items-center justify-center hover:bg-gray-100 text-gray-600"
+                    disabled={quantity >= activeStock}
+                    className="w-10 h-full flex items-center justify-center hover:bg-gray-50 text-gray-600 disabled:opacity-50"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
-                  <div className="flex-1 h-full flex items-center justify-center font-bold text-gray-900 border-x border-gray-200">
+                  <div className="flex-1 text-sm h-full flex items-center justify-center font-bold text-gray-900 border-x border-gray-200">
                     {quantity}
                   </div>
                   <button
                     onClick={decrement}
-                    className="w-10 h-full flex items-center justify-center hover:bg-gray-100 text-gray-600"
+                    disabled={quantity <= 1}
+                    className="w-10 h-full flex items-center justify-center hover:bg-gray-50 text-gray-600 disabled:opacity-50"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between sm:justify-start gap-4">
-                <span className="text-gray-500 font-medium">الإجمالي</span>
-                <div className="text-[rgb(60_28_84)] font-bold text-xl">
+              <div className="flex items-start gap-2 justify-between sm:justify-start">
+                <span className="text-black/80 font-medium">{t.total}:</span>
+                <div className="text-brand-primary font-medium text-xl">
                   {totalPrice}
                 </div>
               </div>
@@ -293,20 +425,23 @@ export default function ProductClientUI({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-auto">
               <button
                 onClick={handleAddToCart}
-                className="flex items-center justify-center gap-2 bg-[rgb(60_28_84)] text-white py-4 rounded-xl font-medium hover:bg-[rgb(75_35_105)] transition-colors"
+                disabled={activeStock < 1}
+                className="flex items-center justify-center gap-2 bg-brand-primary text-white py-4 rounded-sm font-medium hover:bg-[rgb(244_242_245)] hover:text-brand-primary hover:border hover:border-brand-primary  transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShoppingBag className="w-5 h-5" />
-                إضافة للسلة
+                {t.addToCart}
               </button>
               <button
                 onClick={() => {
+                  if (activeStock < 1) return;
                   addToCart(normalizedProduct);
                   router.push("/checkout");
                 }}
-                className="flex items-center justify-center gap-2 bg-white border-2 border-[rgb(60_28_84)] text-[rgb(60_28_84)] py-4 rounded-xl font-medium hover:bg-[rgb(244_242_245)] transition-colors"
+                disabled={activeStock < 1}
+                className="flex items-center justify-center gap-2 bg-white border-2 border-brand-primary text-brand-primary py-4 rounded-sm font-medium hover:bg-[rgb(244_242_245)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CreditCard className="w-5 h-5" />
-                اشتري الآن
+                {t.buyNow}
               </button>
             </div>
           </div>
@@ -318,47 +453,48 @@ export default function ProductClientUI({
             <div className="w-full md:w-64 flex flex-row md:flex-col gap-2 shrink-0">
               <button
                 onClick={() => setActiveTab("details")}
-                className={`text-center md:text-right py-3 px-4 rounded-lg font-bold transition-colors ${
+                className={`text-center md:text-start py-3 px-4 rounded-lg font-regular transition-colors ${
                   activeTab === "details"
-                    ? "text-[rgb(60_28_84)] bg-[rgb(244_242_245)]"
+                    ? "text-brand-primary bg-[rgb(244_242_245)]"
                     : "text-gray-500"
                 }`}
               >
-                تفاصيل المنتج
+                {t.details}
               </button>
               <button
                 onClick={() => setActiveTab("reviews")}
-                className={`text-center md:text-right py-3 px-4 rounded-lg font-bold transition-colors ${
+                className={`text-center md:text-start py-3 px-4 rounded-lg font-regular transition-colors ${
                   activeTab === "reviews"
-                    ? "text-[rgb(60_28_84)] bg-[rgb(244_242_245)]"
+                    ? "text-brand-primary bg-[rgb(244_242_245)]"
                     : "text-gray-500"
                 }`}
               >
-                تقييمات المنتج
+                {t.reviews}
               </button>
             </div>
 
             <div className="flex-1">
               {activeTab === "details" ? (
-                <div className="prose prose-lg max-w-none text-gray-600">
-                  <p className="whitespace-pre-wrap">
-                    {product.description || "لا يوجد وصف متاح."}
+                <div className="prose prose-lg max-w-none text-black/90 font-regular">
+                  <p className="whitespace-pre-wrap leading-relaxed">
+                    {product.description || t.noDescription}
                   </p>
                 </div>
               ) : (
-                <div className="text-gray-500 py-10 text-center bg-gray-50 rounded-2xl">
-                  لا توجد تقييمات حتى الآن.
+                <div className="text-black/90 py-10 text-center ">
+                  {t.noReviews}
                 </div>
               )}
             </div>
           </div>
         </div>
+        {children}
       </div>
 
       {/* PREMIUM ADD TO CART TOAST */}
       {added && (
         <div
-          dir="rtl"
+          dir={dir}
           className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100vw-2rem)] md:w-[400px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
         >
           {/* PROGRESS BAR */}
@@ -380,7 +516,7 @@ export default function ProductClientUI({
             </button>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-gray-900">
-                تمت الإضافة إلى سلة التسوق
+                {t.addedToCart}{" "}
               </span>
               <CheckCircle className="text-emerald-500" size={18} />
             </div>
@@ -398,7 +534,7 @@ export default function ProductClientUI({
               <h4 className="text-sm font-bold text-gray-900 line-clamp-2">
                 {product.title}
               </h4>
-              <p className="text-sm font-bold text-[rgb(60_28_84)] mt-1.5">
+              <p className="text-sm font-bold text-brand-primary mt-1.5">
                 {formattedPrice}{" "}
                 {quantity > 1 && (
                   <span className="text-xs text-gray-500">({quantity}x)</span>
@@ -412,10 +548,10 @@ export default function ProductClientUI({
                 setAdded(false);
                 router.push("/checkout");
               }}
-              className="flex-1 py-2.5 bg-[rgb(60_28_84)] rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+              className="flex-1 py-2.5 bg-brand-primary rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
             >
               <CreditCard size={18} />
-              اتمام الطلب
+              {t.checkout}{" "}
             </button>
             <button
               onClick={() => {
@@ -425,7 +561,7 @@ export default function ProductClientUI({
               className="flex-1 py-2.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
             >
               <ShoppingBag size={18} />
-              عرض السلة
+              {t.cart}{" "}
             </button>
           </div>
         </div>

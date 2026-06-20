@@ -1,4 +1,3 @@
-// app/api/categories/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { getServerSession } from "next-auth";
@@ -42,19 +41,53 @@ export async function PUT(
 
     const { title, logo_url } = parsed.data;
 
+    // 1. PREVENT REPEATS: Check if another category already uses this title
+    if (title) {
+      const { data: existingCategory, error: checkError } = await supabaseAdmin
+        .from("categories")
+        .select("id")
+        .eq("store_id", storeId)
+        .eq("title", title)
+        .neq("id", categoryId) // Exclude the current category being updated
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (existingCategory) {
+        return NextResponse.json(
+          { error: "A category with this exact title already exists." },
+          { status: 409 }, // 409 Conflict
+        );
+      }
+    }
+
+    // 2. UPDATE: Apply changes securely
     const { data, error } = await supabaseAdmin
       .from("categories")
       .update({ title, logo_url })
       .eq("id", categoryId)
-      .eq("store_id", storeId) // Security check: Ensure it belongs to this store
+      .eq("store_id", storeId) // SECURITY: Ensure they own this category
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // Handle Supabase unique constraint violations gracefully
+      if (error.code === "23505") {
+        return NextResponse.json(
+          { error: "Title already exists." },
+          { status: 409 },
+        );
+      }
+      throw error;
+    }
+
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error("PUT Error:", error);
-    return NextResponse.json({ error: "Update failed" }, { status: 500 });
+    console.error("PUT /categories/[id] Error:", error);
+    return NextResponse.json(
+      { error: "Failed to update category. Please try again." },
+      { status: 500 },
+    );
   }
 }
 
@@ -77,12 +110,19 @@ export async function DELETE(
       .from("categories")
       .delete()
       .eq("id", categoryId)
-      .eq("store_id", storeId); // Security check: Ensure it belongs to this store
+      .eq("store_id", storeId); // SECURITY: Ensure they own this category
 
     if (error) throw error;
+
     return NextResponse.json({ success: true, message: "Category deleted" });
   } catch (error: any) {
-    console.error("DELETE Error:", error);
-    return NextResponse.json({ error: "Deletion failed" }, { status: 500 });
+    console.error("DELETE /categories/[id] Error:", error);
+    return NextResponse.json(
+      {
+        error:
+          "Failed to delete category. Ensure it contains no products before deleting.",
+      },
+      { status: 500 },
+    );
   }
 }

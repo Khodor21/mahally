@@ -41,6 +41,14 @@ import type {
   HeroBannerFormData,
 } from "@/types/api";
 
+export interface VisitorCount {
+  id: string;
+  store_id: string;
+  count_date: string;
+  visitor_count: number;
+  updated_at: string;
+}
+
 // ============================================
 // GENERIC FETCH HOOK
 // ============================================
@@ -505,45 +513,27 @@ export function useHeroBannerUpdate() {
 
 // Add this to your existing useApi.ts file
 
-export function useVisitors(storeId: string) {
-  const [data, setData] = useState<
-    Array<{
-      count_date: string;
-      visitor_count: number;
-    }>
-  >([]);
-  const [loading, setLoading] = useState(true);
+export function useVisitors(
+  storeId: string,
+  options: UseFetchOptions<VisitorCount[]> = {},
+) {
+  return useFetch(async () => {
+    if (!storeId) return [];
 
-  useEffect(() => {
-    if (!storeId) return;
+    const response = await fetch(`/api/track-visitor?storeId=${storeId}`, {
+      cache: "no-store",
+    });
 
-    const fetchVisitors = async () => {
-      try {
-        setLoading(true);
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    if (!response.ok) {
+      throw new Error("Failed to fetch visitors");
+    }
 
-        const { data: visitorData, error } = await supabase
-          .from("visitor_counts")
-          .select("count_date, visitor_count")
-          .eq("store_id", storeId)
-          .gte("count_date", thirtyDaysAgo.toISOString().split("T")[0])
-          .order("count_date", { ascending: true });
+    const result = await response.json();
 
-        if (error) throw error;
-        setData(visitorData || []);
-      } catch (error) {
-        console.error("Failed to fetch visitors:", error);
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    console.log("DEBUG Visitors API RESULT:", result);
 
-    fetchVisitors();
-  }, [storeId]);
-
-  return { data, loading };
+    return result.data || [];
+  }, options);
 }
 
 export function useHeroBannerDelete() {

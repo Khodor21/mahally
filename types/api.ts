@@ -1,21 +1,16 @@
-export interface BilingualText {
-  ar: string;
-  en: string;
-}
-
 export interface Testimonial {
   id: number;
-  name: BilingualText;
-  role: BilingualText;
-  content: BilingualText;
+  name: string;
+  role?: string | null;
+  content: string;
   rating: number; // 1-5
   avatar?: string; // Optional image URL
 }
 
 export interface TestimonialFormData {
-  name: BilingualText;
-  role: BilingualText;
-  content: BilingualText;
+  name: string;
+  role?: string | null;
+  content: string;
   rating: number;
   avatar?: string;
 }
@@ -27,6 +22,19 @@ export interface TestimonialsList {
 // ============================================
 // PRODUCTS
 // ============================================
+export interface VariantOption {
+  id: string;
+  name: string;
+  price?: number;
+  stock?: number;
+}
+
+export interface VariantGroup {
+  id: string;
+  title: string;
+  options: VariantOption[];
+}
+
 export interface Product {
   id: string;
   store_id: string;
@@ -35,6 +43,8 @@ export interface Product {
   price: number;
   stock: number;
   images: string[];
+  category_id?: string;
+  variants?: VariantGroup[];
   created_at: string;
 }
 
@@ -45,8 +55,8 @@ export interface ProductFormData {
   stock: string;
   images: string[];
   category_id: string;
+  variants?: VariantGroup[];
 }
-
 // ============================================
 // ORDERS
 // ============================================
@@ -127,6 +137,7 @@ export interface StoreData {
   id: string;
   admin_name: string;
   admin_email: string;
+  language: string;
   email?: string;
   store_name: string;
   slug: string;
@@ -138,6 +149,7 @@ export interface StoreData {
 
   // store_settings table fields - Branding
   primary_color?: string;
+  promo_text?: string;
   logo_url?: string;
   description?: string;
 
@@ -170,6 +182,45 @@ export interface HeroBanner {
   created_at?: string;
   updated_at?: string;
 }
+
+// Features
+export interface Feature {
+  id: number;
+  store_id: string;
+  title: string;
+  description: string;
+  icon_name: string;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateFeatureRequest {
+  title: string;
+  description: string;
+  icon_name: string;
+  display_order?: number;
+  is_active?: boolean;
+}
+
+export interface UpdateFeatureRequest {
+  title?: string;
+  description?: string;
+  icon_name?: string;
+  display_order?: number;
+  is_active?: boolean;
+}
+
+export interface FeatureResponse {
+  success: boolean;
+  data?: Feature | Feature[];
+  error?: string;
+}
+
+// ============================================
+// TESTIMONIALS
+// ============================================
 
 // ============================================
 // GENERAL TYPES

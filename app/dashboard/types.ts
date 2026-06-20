@@ -9,7 +9,7 @@ export type NavItem =
   | "settings"
   | "ai"
   | "categories"
-  | "storefront"
+  | "sections"
   | "coupons"
   | "partnerships"
   | "occasions";
@@ -20,11 +20,13 @@ export interface StoreData {
   admin_email: string;
   store_name: string;
   slug: string;
-  location: string;
+  location: string | null; // <-- FIXED: Allowed null to match API
   phone: string;
   store_type: string;
   created_at: string;
   is_active: boolean;
+  language?: Language;
+  
 }
 
 export interface Order {

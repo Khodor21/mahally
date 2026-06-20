@@ -5,11 +5,13 @@ import { getCachedSectionsAndProducts } from "@/lib/store-queries";
 interface StorefrontSectionsProps {
   storeId: string;
   storeSlug: string;
+  lang: "en" | "ar";
 }
 
 export default async function StorefrontSections({
   storeId,
   storeSlug,
+  lang,
 }: StorefrontSectionsProps) {
   // استدعاء البيانات من الكاش (يستغرق 1-2 ملي ثانية فقط!)
   const { sections, products } = await getCachedSectionsAndProducts(storeId);
@@ -37,6 +39,7 @@ export default async function StorefrontSections({
             bannerType="wide"
             products={sectionProducts}
             storeSlug={storeSlug}
+            lang={lang}
           />
         );
       })}

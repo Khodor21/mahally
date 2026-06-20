@@ -21,11 +21,16 @@ import {
   MessageCircle,
   Music,
   Camera,
+  ChevronDown,
 } from "lucide-react";
-
+import AppearanceTab from "../settings-tabs/AppearanceTab";
+import StoreTab from "../settings-tabs/StoreTab";
+import AccountTab from "../settings-tabs/AccountTab";
+import PoliciesTab from "../settings-tabs/PoliciesTab";
+import NotificationsTab from "../settings-tabs/NotificationsTab";
 import { useDashboard } from "../DashboardContext";
 import { STORE_TYPE_LABELS } from "../data";
-import { StoreData, HeroBanner } from "@/types/api";
+import { StoreData, HeroBanner, Feature } from "@/types/api";
 import {
   useStore,
   useStoreUpdate,
@@ -34,16 +39,15 @@ import {
   useHeroBannerDelete,
   useHeroBannerToggle,
 } from "@/hooks/useApi";
-
+import { useFeatures } from "@/hooks/useFeatures";
 export default function SettingsPanel() {
-  const { tr, lang, setLang } = useDashboard();
+  const { tr, lang } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   const [saved, setSaved] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
-  // Updated formData with new fields
   const [formData, setFormData] = useState({
     store_name: "",
     location: "",
@@ -51,12 +55,13 @@ export default function SettingsPanel() {
     store_type: "",
     admin_name: "",
     admin_email: "",
+    language: "ar",
     primary_color: "#3C1C54",
+    promo_text: "",
     privacy_policy: "",
     shipping_policy: "",
     return_policy: "",
     logo_url: "",
-    // New fields
     description: "",
     whatsapp_number: "",
     instagram_url: "",
@@ -66,7 +71,6 @@ export default function SettingsPanel() {
     snapchat_url: "",
   });
 
-  // ✅ WRAP onSuccess IN useCallback
   const handleStoreSuccess = useCallback((data: StoreData) => {
     setFormData({
       store_name: data.store_name || "",
@@ -75,12 +79,13 @@ export default function SettingsPanel() {
       store_type: data.store_type || "",
       admin_name: data.admin_name || "",
       admin_email: data.admin_email || "",
+      language: data.language || "ar",
       primary_color: data.primary_color || "#3C1C54",
       privacy_policy: data.privacy_policy || "",
       shipping_policy: data.shipping_policy || "",
       return_policy: data.return_policy || "",
       logo_url: data.logo_url || "",
-      // Mapping new fields
+      promo_text: data.promo_text || "",
       description: data.description || "",
       whatsapp_number: data.whatsapp_number || "",
       instagram_url: data.instagram_url || "",
@@ -101,12 +106,14 @@ export default function SettingsPanel() {
 
   const storeId = store?.id || "";
 
-  const { data: banners = [], retry: refetchBanners } = useHeroBanners(
-    storeId,
-    {
-      skip: !storeId,
-    },
-  );
+  const { data: bannersData, retry: refetchBanners } = useHeroBanners(storeId, {
+    skip: !storeId,
+  });
+  const banners = bannersData ?? [];
+
+  const { data: features = [], retry: refetchFeatures } = useFeatures(storeId, {
+    skip: !storeId,
+  });
 
   const { execute: updateStore, loading: isSaving } = useStoreUpdate();
   const { execute: createHeroBanner, loading: isSavingBanner } =
@@ -114,13 +121,15 @@ export default function SettingsPanel() {
   const { execute: toggleHeroBanner } = useHeroBannerToggle();
   const { execute: deleteHeroBanner } = useHeroBannerDelete();
 
-  // Toast State
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
   } | null>(null);
 
-  // Hero Banners State
+  const [appearanceActive, setAppearanceActive] = useState<
+    "promo" | "color" | "language" | "sections" | "banners" | "testimonials"
+  >("promo");
+
   const [isAddingBanner, setIsAddingBanner] = useState(false);
   const [newBanner, setNewBanner] = useState<Partial<HeroBanner>>({
     image: "",
@@ -128,7 +137,10 @@ export default function SettingsPanel() {
     order: 1,
   });
 
-  // Modal State for Confirming Banner Actions (Delete/Toggle)
+  const [isAddingFeature, setIsAddingFeature] = useState(false);
+  const [expandedBanner, setExpandedBanner] = useState<string | null>(null);
+  const [expandedSection, setExpandedSection] = useState<number | null>(null);
+
   const [bannerConfirm, setBannerConfirm] = useState<{
     isOpen: boolean;
     action: "delete" | "toggle";
@@ -142,90 +154,20 @@ export default function SettingsPanel() {
   });
 
   const [activeTab, setActiveTab] = useState<
-    "store" | "account" | "notifications" | "appearance" | "policies"
-  >("store");
+    "appearance" | "store" | "account" | "notifications" | "policies"
+  >("appearance");
 
   const [notificationTitle, setNotificationTitle] = useState("");
   const [notificationMessage, setNotificationMessage] = useState("");
   const [sendingNotification, setSendingNotification] = useState(false);
 
-  const handleSendNotification = async () => {
-    try {
-      if (!notificationTitle.trim() || !notificationMessage.trim()) {
-        return;
-      }
+  // ============================================
+  // HANDLERS
+  // ============================================
 
-      setSendingNotification(true);
-
-      const response = await fetch("/api/notifications/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: notificationTitle,
-          body: notificationMessage,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to send notification");
-      }
-
-      setNotificationTitle("");
-      setNotificationMessage("");
-
-      if (typeof window !== "undefined") {
-        alert(
-          lang === "ar"
-            ? `تم إرسال الإشعار بنجاح إلى ${result.sentCount ?? 0} عميل`
-            : `Notification sent successfully to ${result.sentCount ?? 0} customers`,
-        );
-      }
-    } catch (error) {
-      console.error(error);
-
-      if (typeof window !== "undefined") {
-        alert(
-          lang === "ar" ? "فشل إرسال الإشعار" : "Failed to send notification",
-        );
-      }
-    } finally {
-      setSendingNotification(false);
-    }
-  };
-
-  // Helper function to show toasts
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3000); // Auto dismiss after 3s
-  };
-
-  const handleSave = async () => {
-    if (!store) return;
-    setSaved(false);
-
-    try {
-      await updateStore({ ...formData, id: store.id });
-
-      setSaved(true);
-      showToast(
-        lang === "ar"
-          ? "تم حفظ التغييرات بنجاح!"
-          : "Settings saved successfully!",
-        "success",
-      );
-
-      // ✅ REFETCH data after successful save to display updated values
-      await refetchStore();
-
-      setTimeout(() => setSaved(false), 2500);
-    } catch (error: any) {
-      console.error(error);
-      showToast(error.message || "Failed to update store", "error");
-    }
+    setTimeout(() => setToast(null), 3000);
   };
 
   const handleImageUpload = async (file: File): Promise<string | null> => {
@@ -244,12 +186,31 @@ export default function SettingsPanel() {
     } catch (error) {
       console.error("Upload error:", error);
       showToast(
-        lang === "ar"
-          ? "فشل رفع الصورة (تأكد من وجود رابط الرفع في الخادم)"
-          : "Failed to upload image (Ensure /api/upload-image route exists)",
+        lang === "ar" ? "فشل رفع الصورة" : "Failed to upload image",
         "error",
       );
       return null;
+    }
+  };
+
+  const handleSave = async () => {
+    if (!store) return;
+    setSaved(false);
+
+    try {
+      await updateStore({ ...formData, id: store.id });
+      setSaved(true);
+      showToast(
+        lang === "ar"
+          ? "تم حفظ التغييرات بنجاح!"
+          : "Settings saved successfully!",
+        "success",
+      );
+      await refetchStore();
+      setTimeout(() => setSaved(false), 2500);
+    } catch (error: any) {
+      console.error(error);
+      showToast(error.message || "Failed to update store", "error");
     }
   };
 
@@ -323,7 +284,54 @@ export default function SettingsPanel() {
     }
   };
 
+  const handleSendNotification = async () => {
+    try {
+      if (!notificationTitle.trim() || !notificationMessage.trim()) return;
+
+      setSendingNotification(true);
+
+      const response = await fetch("/api/notifications/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: notificationTitle,
+          body: notificationMessage,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to send notification");
+      }
+
+      setNotificationTitle("");
+      setNotificationMessage("");
+
+      if (typeof window !== "undefined") {
+        alert(
+          lang === "ar"
+            ? `تم إرسال الإشعار بنجاح إلى ${result.sentCount ?? 0} عميل`
+            : `Notification sent successfully to ${result.sentCount ?? 0} customers`,
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      if (typeof window !== "undefined") {
+        alert(
+          lang === "ar" ? "فشل إرسال الإشعار" : "Failed to send notification",
+        );
+      }
+    } finally {
+      setSendingNotification(false);
+    }
+  };
+
+  // ============================================
+  // UI CONFIGURATION
+  // ============================================
+
   const tabs = [
+    { id: "appearance" as const, label: tr.appearance, icon: Globe },
     { id: "store" as const, label: tr.storeSettings, icon: Store },
     { id: "account" as const, label: tr.accountSettings, icon: User },
     {
@@ -331,12 +339,64 @@ export default function SettingsPanel() {
       label: tr.notificationSettings,
       icon: Bell,
     },
-    { id: "appearance" as const, label: tr.appearance, icon: Globe },
     {
       id: "policies" as const,
-      // Renamed Label as requested
       label: lang === "ar" ? "روابط هامة" : "Important Links",
       icon: ShieldCheck,
+    },
+  ];
+
+  const appearanceSections = [
+    {
+      id: "promo" as const,
+      label: lang === "ar" ? "الشريط الإعلاني" : "Promo Bar",
+    },
+    { id: "color" as const, label: lang === "ar" ? "الألوان" : "Colors" },
+    { id: "language" as const, label: lang === "ar" ? "اللغة" : "Language" },
+    {
+      id: "sections" as const,
+      label: lang === "ar" ? "أقسام الموقع" : "Site Sections",
+    },
+    {
+      id: "banners" as const,
+      label: lang === "ar" ? "اللافتات" : "Banners",
+    },
+    {
+      id: "testimonials" as const,
+      label: lang === "ar" ? "الشهادات" : "Testimonials",
+    },
+  ];
+
+  const socialMediaFields = [
+    {
+      label: lang === "ar" ? "واتساب" : "WhatsApp",
+      key: "whatsapp_number",
+      icon: <MessageCircle className="w-4 h-4" />,
+    },
+    {
+      label: lang === "ar" ? "إنستجرام" : "Instagram",
+      key: "instagram_url",
+      icon: <Instagram className="w-4 h-4" />,
+    },
+    {
+      label: lang === "ar" ? "فيسبوك" : "Facebook",
+      key: "facebook_url",
+      icon: <Facebook className="w-4 h-4" />,
+    },
+    {
+      label: lang === "ar" ? "تيك توك" : "TikTok",
+      key: "tiktok_url",
+      icon: <Music className="w-4 h-4" />,
+    },
+    {
+      label: lang === "ar" ? "تويتر (X)" : "Twitter (X)",
+      key: "twitter_url",
+      icon: <Twitter className="w-4 h-4" />,
+    },
+    {
+      label: lang === "ar" ? "سناب شات" : "Snapchat",
+      key: "snapchat_url",
+      icon: <Camera className="w-4 h-4" />,
     },
   ];
 
@@ -351,21 +411,25 @@ export default function SettingsPanel() {
       )
     : "";
 
+  // ============================================
+  // LOADING & ERROR STATES
+  // ============================================
+
   const SkeletonBox = ({ className }: { className: string }) => (
     <div
-      className={`animate-pulse bg-[rgb(244_242_245)] rounded-xl ${className}`}
+      className={`animate-pulse bg-[rgb(244_242_245)] rounded-sm ${className}`}
     />
   );
 
   if (loading) {
     return (
       <div className="space-y-6 w-full" dir={dir}>
-        <div className="flex gap-1 bg-[rgb(244_242_245)] rounded-xl p-1">
+        <div className="flex gap-1 bg-[rgb(244_242_245)] rounded-sm p-1">
           {Array.from({ length: 5 }).map((_, i) => (
             <SkeletonBox key={i} className="h-10 flex-1" />
           ))}
         </div>
-        <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm p-6 space-y-6">
+        <div className="bg-white rounded-sm border border-[rgb(244_242_245)] shadow-sm p-6 space-y-6">
           <SkeletonBox className="h-5 w-48" />
           <div className="grid md:grid-cols-2 gap-5">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -375,15 +439,6 @@ export default function SettingsPanel() {
               </div>
             ))}
           </div>
-          <div className="space-y-2">
-            <SkeletonBox className="h-3 w-24" />
-            <SkeletonBox className="h-10 w-full" />
-          </div>
-          <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-[rgb(244_242_245)]">
-            <SkeletonBox className="h-16 w-full" />
-            <SkeletonBox className="h-16 w-full" />
-          </div>
-          <SkeletonBox className="h-10 w-40" />
         </div>
       </div>
     );
@@ -392,7 +447,7 @@ export default function SettingsPanel() {
   if (!store) {
     return (
       <div
-        className="bg-white rounded-2xl border border-[rgb(244_242_245)] p-10 text-center text-sm text-red-500"
+        className="bg-white rounded-sm border border-[rgb(244_242_245)] p-10 text-center text-sm text-red-500"
         dir={dir}
       >
         Failed to load store data
@@ -400,12 +455,15 @@ export default function SettingsPanel() {
     );
   }
 
-  // Reusable Save Button Component for all tabs
+  // ============================================
+  // REUSABLE COMPONENTS
+  // ============================================
+
   const SaveButton = () => (
     <button
       onClick={handleSave}
       disabled={isSaving}
-      className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md disabled:opacity-50 ${
+      className={`flex items-center gap-2 px-6 py-2.5 rounded-sm text-sm font-semibold transition-all shadow-md disabled:opacity-50 ${
         saved
           ? "bg-emerald-500 text-white shadow-emerald-200"
           : "bg-[rgb(60_28_84)] text-white hover:bg-[rgb(60_28_84)]/90 shadow-[rgb(60_28_84)]/20"
@@ -430,11 +488,44 @@ export default function SettingsPanel() {
     </button>
   );
 
+  const TabButton = ({
+    id,
+    label,
+    icon: Icon,
+    isActive,
+    onClick,
+  }: {
+    id: string;
+    label: string;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+    isActive: boolean;
+    onClick: () => void;
+  }) => (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex-1 justify-center whitespace-nowrap ${
+        isActive
+          ? "bg-white text-[rgb(60_28_84)] shadow-sm"
+          : "text-[rgb(60_28_84)]/50 hover:text-[rgb(60_28_84)]"
+      }`}
+    >
+      <Icon className="w-4 h-4 shrink-0" />
+      <span className="hidden md:inline">{label}</span>
+    </button>
+  );
+
+  // ============================================
+  // MAIN RENDER
+  // ============================================
+
   return (
     <div className="space-y-6 w-full relative" dir={dir}>
+      {/* Toast Notifications */}
       {toast && (
         <div
-          className={`fixed top-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-sm font-bold text-white z-50 animate-fade-up flex items-center gap-2 ${
+          className={`fixed top-8 ${
+            dir === "rtl" ? "right-8" : "left-8"
+          } px-6 py-3 rounded-sm text-sm font-bold text-white z-50 animate-fade-up flex items-center gap-2 ${
             toast.type === "success" ? "bg-emerald-500" : "bg-red-500"
           }`}
         >
@@ -447,748 +538,231 @@ export default function SettingsPanel() {
         </div>
       )}
 
+      {/* Confirmation Modal */}
       {bannerConfirm.isOpen && bannerConfirm.banner && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl animate-scale-up space-y-6">
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                  bannerConfirm.action === "delete"
-                    ? "bg-red-50 text-red-500"
-                    : "bg-amber-50 text-amber-500"
-                }`}
-              >
-                {bannerConfirm.action === "delete" ? (
-                  <Trash2 className="w-6 h-6" />
-                ) : (
-                  <Power className="w-6 h-6" />
-                )}
-              </div>
-              <h3 className="font-bold text-[rgb(60_28_84)] text-lg">
-                {bannerConfirm.action === "delete"
-                  ? lang === "ar"
-                    ? "حذف اللافتة؟"
-                    : "Delete Banner?"
-                  : bannerConfirm.banner.active
-                    ? lang === "ar"
-                      ? "تعطيل اللافتة؟"
-                      : "Disable Banner?"
-                    : lang === "ar"
-                      ? "تفعيل اللافتة؟"
-                      : "Enable Banner?"}
-              </h3>
-              <p className="text-sm text-[rgb(60_28_84)]/60">
-                {bannerConfirm.action === "delete"
-                  ? lang === "ar"
-                    ? "هل أنت متأكد من حذف هذه اللافتة نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
-                    : "Are you sure you want to permanently delete this banner? This action cannot be undone."
-                  : bannerConfirm.banner.active
-                    ? lang === "ar"
-                      ? "هل أنت متأكد من تعطيل هذه اللافتة؟ سيتم إخفاؤها من واجهة المتجر."
-                      : "Are you sure you want to disable this banner? It will be hidden from the storefront."
-                    : lang === "ar"
-                      ? "هل أنت متأكد من تفعيل هذه اللافتة؟ ستظهر للعملاء في المتجر."
-                      : "Are you sure you want to enable this banner? It will be visible to customers."}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 w-full">
-              <button
-                onClick={() =>
-                  setBannerConfirm({ ...bannerConfirm, isOpen: false })
-                }
-                disabled={bannerConfirm.loading}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-[rgb(60_28_84)] bg-[rgb(244_242_245)] hover:bg-[rgb(207_195_223)] transition-colors disabled:opacity-50"
-              >
-                {lang === "ar" ? "إلغاء" : "Cancel"}
-              </button>
-              <button
-                onClick={executeBannerAction}
-                disabled={bannerConfirm.loading}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 ${
-                  bannerConfirm.action === "delete"
-                    ? "bg-red-500 hover:bg-red-600"
-                    : "bg-[rgb(60_28_84)] hover:bg-[rgb(60_28_84)]/90"
-                }`}
-              >
-                {bannerConfirm.loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : bannerConfirm.action === "delete" ? (
-                  lang === "ar" ? (
-                    "حذف"
-                  ) : (
-                    "Delete"
-                  )
-                ) : bannerConfirm.banner.active ? (
-                  lang === "ar" ? (
-                    "تعطيل"
-                  ) : (
-                    "Disable"
-                  )
-                ) : lang === "ar" ? (
-                  "تفعيل"
-                ) : (
-                  "Enable"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmationModal
+          action={bannerConfirm.action}
+          banner={bannerConfirm.banner}
+          loading={bannerConfirm.loading}
+          lang={lang}
+          onConfirm={executeBannerAction}
+          onCancel={() => setBannerConfirm({ ...bannerConfirm, isOpen: false })}
+        />
       )}
 
-      <div className="flex gap-1 bg-[rgb(244_242_245)] rounded-xl p-1 animate-fade-up overflow-x-auto no-scrollbar">
+      {/* Main Tabs */}
+      <div className="flex gap-1 bg-[rgb(244_242_245)] rounded-sm p-1 animate-fade-up overflow-x-auto no-scrollbar">
         {tabs.map((tab) => (
-          <button
+          <TabButton
             key={tab.id}
+            id={tab.id}
+            label={tab.label}
+            icon={tab.icon}
+            isActive={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex-1 justify-center whitespace-nowrap ${
-              activeTab === tab.id
-                ? "bg-white text-[rgb(60_28_84)] shadow-sm"
-                : "text-[rgb(60_28_84)]/50 hover:text-[rgb(60_28_84)]"
-            }`}
-          >
-            <tab.icon className="w-4 h-4 shrink-0" />
-            <span className="hidden md:inline">{tab.label}</span>
-          </button>
+          />
         ))}
       </div>
 
-      {activeTab === "store" && (
-        <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
-          <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
-            <h3 className="font-bold text-[rgb(60_28_84)] flex items-center gap-2">
-              <Store className="w-5 h-5" />
-              {tr.storeSettings}
-            </h3>
-          </div>
-
-          <div className="p-6 space-y-5">
-            <div className="grid md:grid-cols-2 gap-5">
-              {[
-                { label: tr.storeName, key: "store_name", type: "text" },
-                { label: tr.location, key: "location", type: "text" },
-                { label: tr.phone, key: "phone", type: "tel" },
-              ].map((field) => (
-                <div key={field.key}>
-                  <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
-                    {field.label}
-                  </label>
-                  <input
-                    type={field.type}
-                    value={formData[field.key as keyof typeof formData]}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        [field.key]: e.target.value,
-                      }))
-                    }
-                    className="w-full bg-[rgb(244_242_245)] rounded-xl px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
-                    dir={dir}
-                  />
-                </div>
-              ))}
-
-              <div>
-                <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
-                  {lang === "ar" ? "شعار المتجر (Logo)" : "Store Logo"}
-                </label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setIsUploadingLogo(true);
-                        const url = await handleImageUpload(file);
-                        if (url)
-                          setFormData((prev) => ({ ...prev, logo_url: url }));
-                        setIsUploadingLogo(false);
-                      }
-                    }}
-                    className="w-full bg-[rgb(244_242_245)] rounded-xl px-4 py-2 text-sm text-[rgb(60_28_84)] file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[rgb(60_28_84)] file:text-white hover:file:bg-[rgb(60_28_84)]/90 outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all cursor-pointer"
-                  />
-                  {isUploadingLogo && (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      Uploading...
-                    </div>
-                  )}
-                </div>
-                {formData.logo_url && (
-                  <div className="mt-3 p-2 bg-[rgb(244_242_245)] rounded-xl inline-block">
-                    <img
-                      src={formData.logo_url}
-                      alt="Logo"
-                      className="h-10 object-contain"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
-                  {tr.storeType}
-                </label>
-                <select
-                  value={formData.store_type}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      store_type: e.target.value,
-                    }))
-                  }
-                  className="w-full bg-[rgb(244_242_245)] rounded-xl px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
-                  dir={dir}
-                >
-                  {Object.entries(STORE_TYPE_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {lang === "ar" ? v.ar : v.en}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Description Field */}
-            <div className="grid md:grid-cols-1 gap-5 pt-2">
-              <div>
-                <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
-                  {lang === "ar" ? "وصف المتجر" : "Store Description"}
-                </label>
-                <textarea
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  placeholder={
-                    lang === "ar"
-                      ? "اكتب وصفاً مختصراً عن متجرك..."
-                      : "Write a brief description of your store..."
-                  }
-                  className="w-full bg-[rgb(244_242_245)] rounded-xl px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all resize-none"
-                  dir={dir}
-                />
-              </div>
-            </div>
-
-            {/* Social Media Fields */}
-            <div className="space-y-3 pt-4 border-t border-[rgb(244_242_245)]">
-              <h4 className="text-sm font-bold text-[rgb(60_28_84)]">
-                {lang === "ar" ? "وسائل التواصل الاجتماعي" : "Social Media"}
-              </h4>
-              <div className="grid md:grid-cols-2 gap-5">
-                {[
-                  {
-                    label: lang === "ar" ? "واتساب" : "WhatsApp",
-                    key: "whatsapp_number",
-                    icon: <MessageCircle className="w-4 h-4" />,
-                  },
-                  {
-                    label: lang === "ar" ? "إنستجرام" : "Instagram",
-                    key: "instagram_url",
-                    icon: <Instagram className="w-4 h-4" />,
-                  },
-                  {
-                    label: lang === "ar" ? "فيسبوك" : "Facebook",
-                    key: "facebook_url",
-                    icon: <Facebook className="w-4 h-4" />,
-                  },
-                  {
-                    label: lang === "ar" ? "تيك توك" : "TikTok",
-                    key: "tiktok_url",
-                    icon: <Music className="w-4 h-4" />,
-                  },
-                  {
-                    label: lang === "ar" ? "تويتر (X)" : "Twitter (X)",
-                    key: "twitter_url",
-                    icon: <Twitter className="w-4 h-4" />,
-                  },
-                  {
-                    label: lang === "ar" ? "سناب شات" : "Snapchat",
-                    key: "snapchat_url",
-                    icon: <Camera className="w-4 h-4" />,
-                  },
-                ].map((social) => (
-                  <div key={social.key}>
-                    <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2 flex items-center gap-2">
-                      {social.icon}
-                      {social.label}
-                    </label>
-                    <input
-                      type="text"
-                      value={formData[social.key as keyof typeof formData]}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          [social.key]: e.target.value,
-                        }))
-                      }
-                      placeholder={
-                        social.key === "whatsapp_number"
-                          ? lang === "ar"
-                            ? "رقم الهاتف..."
-                            : "Phone number..."
-                          : "https://..."
-                      }
-                      className="w-full bg-[rgb(244_242_245)] rounded-xl px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
-                      dir="ltr"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-[rgb(244_242_245)] grid md:grid-cols-2 gap-4">
-              <div className="bg-[rgb(244_242_245)] rounded-xl px-4 py-3">
-                <p className="text-xs text-[rgb(60_28_84)]/40 mb-1">
-                  {tr.storeId}
-                </p>
-                <p className="text-sm font-bold text-[rgb(60_28_84)] font-mono">
-                  #{store.id.slice(0, 8).toUpperCase()}
-                </p>
-              </div>
-
-              <div className="bg-[rgb(244_242_245)] rounded-xl px-4 py-3">
-                <p className="text-xs text-[rgb(60_28_84)]/40 mb-1">
-                  {tr.memberSince}
-                </p>
-                <p className="text-sm font-bold text-[rgb(60_28_84)]">
-                  {createdDate}
-                </p>
-              </div>
-            </div>
-
-            <SaveButton />
-          </div>
-        </div>
-      )}
-
-      {activeTab === "account" && (
-        <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
-          <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
-            <h3 className="font-bold text-[rgb(60_28_84)] flex items-center gap-2">
-              <User className="w-5 h-5" />
-              {tr.accountSettings}
-            </h3>
-          </div>
-          <div className="p-6 space-y-5">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-[rgb(60_28_84)] flex items-center justify-center text-white font-bold text-2xl">
-                {store.admin_name?.[0]}
-              </div>
-              <div>
-                <p className="font-bold text-[rgb(60_28_84)]">
-                  {store.admin_name}
-                </p>
-                <p className="text-sm text-[rgb(60_28_84)]/50">
-                  {store.admin_email}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-5">
-              {[
-                { label: tr.adminName, key: "admin_name" },
-                { label: tr.email, key: "admin_email" },
-              ].map((field) => (
-                <div key={field.key}>
-                  <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
-                    {field.label}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData[field.key as keyof typeof formData]}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        [field.key]: e.target.value,
-                      }))
-                    }
-                    className="w-full bg-[rgb(244_242_245)] rounded-xl px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
-                    dir={dir}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <SaveButton />
-          </div>
-        </div>
-      )}
-
-      {activeTab === "notifications" && (
-        <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
-          <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
-            <h3 className="font-bold text-[rgb(60_28_84)] flex items-center gap-2">
-              <Bell className="w-5 h-5" />
-              {tr.notificationSettings}
-            </h3>
-          </div>
-
-          <div className="p-6 space-y-6">
-            <div className="grid gap-5">
-              <div>
-                <label className="block text-sm font-medium text-[rgb(60_28_84)] mb-2">
-                  {lang === "ar" ? "عنوان الإشعار" : "Notification Title"}
-                </label>
-
-                <input
-                  type="text"
-                  value={notificationTitle}
-                  onChange={(e) => setNotificationTitle(e.target.value)}
-                  placeholder={
-                    lang === "ar"
-                      ? "مثال: خصم 20% على جميع المنتجات"
-                      : "Example: 20% Off All Products"
-                  }
-                  className="w-full h-12 px-4 rounded-xl border border-[rgb(244_242_245)] focus:outline-none focus:ring-2 focus:ring-[rgb(60_28_84)]/20"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[rgb(60_28_84)] mb-2">
-                  {lang === "ar" ? "محتوى الإشعار" : "Notification Message"}
-                </label>
-
-                <textarea
-                  rows={5}
-                  value={notificationMessage}
-                  onChange={(e) => setNotificationMessage(e.target.value)}
-                  placeholder={
-                    lang === "ar"
-                      ? "اكتب الرسالة التي ستصل لعملائك..."
-                      : "Write the message that will be sent to your customers..."
-                  }
-                  className="w-full px-4 py-3 rounded-xl border border-[rgb(244_242_245)] resize-none focus:outline-none focus:ring-2 focus:ring-[rgb(60_28_84)]/20"
-                />
-              </div>
-            </div>
-
-            <div className="bg-[rgb(244_242_245)]/50 rounded-xl p-4">
-              <p className="text-sm text-[rgb(60_28_84)]/70">
-                {lang === "ar"
-                  ? "سيتم إرسال هذا الإشعار فقط إلى العملاء المسجلين في متجرك والذين سمحوا باستقبال الإشعارات."
-                  : "This notification will only be sent to customers of your store who allowed push notifications."}
-              </p>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={handleSendNotification}
-                disabled={
-                  sendingNotification ||
-                  !notificationTitle.trim() ||
-                  !notificationMessage.trim()
-                }
-                className="h-12 px-6 rounded-xl bg-[rgb(60_28_84)] text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 flex items-center gap-2"
-              >
-                <Bell className="w-4 h-4" />
-
-                {sendingNotification
-                  ? lang === "ar"
-                    ? "جاري الإرسال..."
-                    : "Sending..."
-                  : lang === "ar"
-                    ? "إرسال الإشعار"
-                    : "Send Notification"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* APPEARANCE TAB */}
       {activeTab === "appearance" && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
-            <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
-              <h3 className="font-bold text-[rgb(60_28_84)] flex items-center gap-2">
-                <Globe className="w-5 h-5" />
-                {tr.appearance}
-              </h3>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <div>
-                <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
-                  {lang === "ar"
-                    ? "اللون الرئيسي (Hex Code)"
-                    : "Primary Brand Color (Hex)"}
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={formData.primary_color}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        primary_color: e.target.value,
-                      })
-                    }
-                    className="w-12 h-12 rounded-lg cursor-pointer border-0 p-0"
-                  />
-                  <input
-                    type="text"
-                    value={formData.primary_color}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        primary_color: e.target.value,
-                      })
-                    }
-                    className="w-full max-w-[200px] bg-[rgb(244_242_245)] rounded-xl px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] uppercase"
-                    dir="ltr"
-                  />
-                </div>
-              </div>
-
-              <SaveButton />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
-            <div className="px-6 py-5 border-b border-[rgb(244_242_245)] flex justify-between items-center">
-              <h3 className="font-bold text-[rgb(60_28_84)] flex items-center gap-2">
-                <ImageIcon className="w-5 h-5" />
-                {lang === "ar" ? "لافتات العرض (Hero Banners)" : "Hero Banners"}
-              </h3>
-              {!isAddingBanner && (
-                <button
-                  onClick={() => setIsAddingBanner(true)}
-                  className="flex items-center gap-1 text-sm bg-[rgb(244_242_245)] hover:bg-[rgb(207_195_223)] text-[rgb(60_28_84)] px-3 py-1.5 rounded-lg transition-colors font-semibold"
-                >
-                  <Plus className="w-4 h-4" />
-                  {lang === "ar" ? "إضافة لافتة" : "Add Banner"}
-                </button>
-              )}
-            </div>
-
-            <div className="p-6">
-              {isAddingBanner && (
-                <div className="bg-[rgb(244_242_245)] rounded-xl p-5 mb-6 space-y-4">
-                  <h4 className="font-bold text-sm text-[rgb(60_28_84)] border-b border-[rgb(207_195_223)] pb-2">
-                    {lang === "ar" ? "إضافة لافتة جديدة" : "Add New Banner"}
-                  </h4>
-
-                  <div className="w-full relative">
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="block text-xs font-semibold text-[rgb(60_28_84)]/60">
-                        {lang === "ar"
-                          ? "صورة اللافتة (Banner Image)"
-                          : "Banner Image"}
-                      </label>
-                      {isUploadingBanner && (
-                        <div className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                          {lang === "ar" ? "جاري الرفع..." : "Uploading..."}
-                        </div>
-                      )}
-                    </div>
-
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setIsUploadingBanner(true);
-                          const url = await handleImageUpload(file);
-                          if (url) setNewBanner({ ...newBanner, image: url });
-                          setIsUploadingBanner(false);
-                        }
-                      }}
-                      className="w-full bg-white rounded-lg px-4 py-2 text-sm text-[rgb(60_28_84)] file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[rgb(60_28_84)] file:text-white hover:file:bg-[rgb(60_28_84)]/90 cursor-pointer"
-                    />
-
-                    {newBanner.image && (
-                      <div className="mt-3 w-full h-32 rounded-lg overflow-hidden border border-gray-200">
-                        <img
-                          src={newBanner.image}
-                          alt="Banner preview"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-2">
-                    <button
-                      onClick={() => setIsAddingBanner(false)}
-                      className="px-4 py-2 text-sm font-semibold text-[rgb(60_28_84)]/60 hover:bg-[rgb(207_195_223)] rounded-lg transition-colors"
-                      disabled={isSavingBanner}
-                    >
-                      {lang === "ar" ? "إلغاء" : "Cancel"}
-                    </button>
-
-                    <button
-                      onClick={handleSaveBanner}
-                      disabled={
-                        isUploadingBanner || isSavingBanner || !newBanner.image
-                      }
-                      className="flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-[rgb(60_28_84)] text-white rounded-lg disabled:opacity-50 transition-all hover:bg-[rgb(60_28_84)]/90"
-                    >
-                      {isSavingBanner ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          {lang === "ar" ? "جاري النشر..." : "Publishing..."}
-                        </>
-                      ) : lang === "ar" ? (
-                        "نشر اللافتة"
-                      ) : (
-                        "Save Banner"
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                {!banners || (banners.length === 0 && !isAddingBanner) ? (
-                  <p className="text-sm text-[rgb(60_28_84)]/50 text-center py-4">
-                    {lang === "ar"
-                      ? "لا توجد لافتات مضافة بعد."
-                      : "No hero banners added yet."}
-                  </p>
-                ) : (
-                  banners?.map((banner, index) => (
-                    <div
-                      key={banner.id}
-                      className="flex items-center justify-between bg-[rgb(244_242_245)] p-3 rounded-xl"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div
-                          className="w-16 h-12 rounded-lg bg-cover bg-center border border-gray-200"
-                          style={{ backgroundImage: `url(${banner.image})` }}
-                        />
-                        <div>
-                          <p className="font-semibold text-sm text-[rgb(60_28_84)]">
-                            {lang === "ar"
-                              ? `لافتة ${index + 1}`
-                              : `Banner ${index + 1}`}
-                          </p>
-                          <p
-                            className={`text-xs ${
-                              banner.active
-                                ? "text-emerald-500"
-                                : "text-red-400"
-                            }`}
-                          >
-                            {banner.active
-                              ? lang === "ar"
-                                ? "نشط"
-                                : "Active"
-                              : lang === "ar"
-                                ? "معطل"
-                                : "Disabled"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() =>
-                            setBannerConfirm({
-                              isOpen: true,
-                              action: "toggle",
-                              banner,
-                              loading: false,
-                            })
-                          }
-                          className={`p-2 rounded-lg transition-colors ${
-                            banner.active
-                              ? "bg-emerald-100 text-emerald-600"
-                              : "bg-gray-200 text-gray-500 hover:bg-gray-300"
-                          }`}
-                          title={banner.active ? "Deactivate" : "Activate"}
-                        >
-                          <Power className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setBannerConfirm({
-                              isOpen: true,
-                              action: "delete",
-                              banner,
-                              loading: false,
-                            })
-                          }
-                          className="p-2 bg-red-100 text-red-500 hover:bg-red-200 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <AppearanceTab
+          lang={lang}
+          dir={dir}
+          appearanceActive={appearanceActive}
+          setAppearanceActive={setAppearanceActive}
+          appearanceSections={appearanceSections}
+          formData={formData}
+          setFormData={setFormData}
+          isAddingBanner={isAddingBanner}
+          setIsAddingBanner={setIsAddingBanner}
+          newBanner={newBanner}
+          setNewBanner={setNewBanner}
+          banners={banners}
+          expandedBanner={expandedBanner}
+          setExpandedBanner={setExpandedBanner}
+          isUploadingBanner={isUploadingBanner}
+          setIsUploadingBanner={setIsUploadingBanner}
+          isAddingFeature={isAddingFeature}
+          setIsAddingFeature={setIsAddingFeature}
+          features={features}
+          expandedSection={expandedSection}
+          setExpandedSection={setExpandedSection}
+          storeId={storeId}
+          refetchFeatures={refetchFeatures}
+          refetchBanners={refetchBanners}
+          handleImageUpload={handleImageUpload}
+          handleSaveBanner={handleSaveBanner}
+          isSavingBanner={isSavingBanner}
+          SaveButton={SaveButton}
+          showToast={showToast}
+          setBannerConfirm={setBannerConfirm}
+        />
       )}
 
+      {/* STORE TAB */}
+      {activeTab === "store" && (
+        <StoreTab
+          lang={lang}
+          dir={dir}
+          tr={tr}
+          formData={formData}
+          setFormData={setFormData}
+          store={store}
+          isUploadingLogo={isUploadingLogo}
+          setIsUploadingLogo={setIsUploadingLogo}
+          handleImageUpload={handleImageUpload}
+          socialMediaFields={socialMediaFields}
+          createdDate={createdDate}
+          SaveButton={SaveButton}
+        />
+      )}
+
+      {/* ACCOUNT TAB */}
+      {activeTab === "account" && (
+        <AccountTab
+          lang={lang}
+          dir={dir}
+          tr={tr}
+          store={store}
+          formData={formData}
+          setFormData={setFormData}
+          SaveButton={SaveButton}
+        />
+      )}
+
+      {/* NOTIFICATIONS TAB */}
+      {activeTab === "notifications" && (
+        <NotificationsTab
+          lang={lang}
+          notificationTitle={notificationTitle}
+          setNotificationTitle={setNotificationTitle}
+          notificationMessage={notificationMessage}
+          setNotificationMessage={setNotificationMessage}
+          sendingNotification={sendingNotification}
+          handleSendNotification={handleSendNotification}
+        />
+      )}
+
+      {/* POLICIES TAB */}
       {activeTab === "policies" && (
-        <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
-          <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
-            <h3 className="font-bold text-[rgb(60_28_84)] flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5" />
-              {lang === "ar"
-                ? "الروابط والسياسات"
-                : "Important Links & Policies"}
-            </h3>
-          </div>
-
-          <div className="p-6 space-y-6">
-            {[
-              {
-                label: lang === "ar" ? "معلومات الشحن" : "Shipping Policy",
-                key: "shipping_policy",
-                placeholder:
-                  lang === "ar"
-                    ? "أدخل تفاصيل الشحن والمدة المتوقعة..."
-                    : "Enter shipping details and timeframe...",
-              },
-              {
-                label:
-                  lang === "ar"
-                    ? "الاسترجاع والتبديل"
-                    : "Return & Exchange Policy",
-                key: "return_policy",
-                placeholder:
-                  lang === "ar"
-                    ? "شروط استرجاع أو استبدال المنتجات..."
-                    : "Conditions for returning products...",
-              },
-              {
-                label: lang === "ar" ? "سياسات الخصوصية" : "Privacy Policy",
-                key: "privacy_policy",
-                placeholder:
-                  lang === "ar"
-                    ? "كيفية تعاملك مع بيانات العملاء..."
-                    : "How you handle customer data...",
-              },
-            ].map((field) => (
-              <div key={field.key}>
-                <label className="block text-sm font-bold text-[rgb(60_28_84)] mb-2">
-                  {field.label}
-                </label>
-                <textarea
-                  value={formData[field.key as keyof typeof formData]}
-                  onChange={(e) =>
-                    setFormData({ ...formData, [field.key]: e.target.value })
-                  }
-                  placeholder={field.placeholder}
-                  rows={4}
-                  className="w-full bg-[rgb(244_242_245)] rounded-xl px-4 py-3 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all resize-y"
-                  dir={dir}
-                />
-              </div>
-            ))}
-
-            <SaveButton />
-          </div>
-        </div>
+        <PoliciesTab
+          lang={lang}
+          dir={dir}
+          formData={formData}
+          setFormData={setFormData}
+          SaveButton={SaveButton}
+        />
       )}
+    </div>
+  );
+}
+
+// ============================================
+// SUB-COMPONENTS (EXTRACTED FOR READABILITY)
+// ============================================
+
+interface ConfirmationModalProps {
+  action: "delete" | "toggle";
+  banner: HeroBanner;
+  loading: boolean;
+  lang: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function ConfirmationModal({
+  action,
+  banner,
+  loading,
+  lang,
+  onConfirm,
+  onCancel,
+}: ConfirmationModalProps) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
+      <div className="bg-white rounded-sm p-6 w-full max-w-sm shadow-xl animate-scale-up space-y-6">
+        <div className="flex flex-col items-center text-center space-y-3">
+          <div
+            className={`w-12 h-12 rounded-full flex items-center justify-center ${
+              action === "delete"
+                ? "bg-red-50 text-red-500"
+                : "bg-amber-50 text-amber-500"
+            }`}
+          >
+            {action === "delete" ? (
+              <Trash2 className="w-6 h-6" />
+            ) : (
+              <Power className="w-6 h-6" />
+            )}
+          </div>
+          <h3 className="font-bold text-[rgb(60_28_84)] text-lg">
+            {action === "delete"
+              ? lang === "ar"
+                ? "حذف اللافتة؟"
+                : "Delete Banner?"
+              : banner.active
+                ? lang === "ar"
+                  ? "تعطيل اللافتة؟"
+                  : "Disable Banner?"
+                : lang === "ar"
+                  ? "تفعيل اللافتة؟"
+                  : "Enable Banner?"}
+          </h3>
+          <p className="text-sm text-[rgb(60_28_84)]/60">
+            {action === "delete"
+              ? lang === "ar"
+                ? "هل أنت متأكد من حذف هذه اللافتة نهائياً؟"
+                : "Are you sure you want to delete this banner?"
+              : banner.active
+                ? lang === "ar"
+                  ? "سيتم إخفاؤها من واجهة المتجر."
+                  : "It will be hidden from the storefront."
+                : lang === "ar"
+                  ? "ستظهر للعملاء في المتجر."
+                  : "It will be visible to customers."}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 w-full">
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            className="flex-1 px-4 py-2.5 rounded-sm text-sm font-semibold text-[rgb(60_28_84)] bg-[rgb(244_242_245)] hover:bg-[rgb(207_195_223)] transition-colors disabled:opacity-50"
+          >
+            {lang === "ar" ? "إلغاء" : "Cancel"}
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-sm text-sm font-semibold text-white transition-all disabled:opacity-50 ${
+              action === "delete"
+                ? "bg-red-500 hover:bg-red-600"
+                : "bg-[rgb(60_28_84)] hover:bg-[rgb(60_28_84)]/90"
+            }`}
+          >
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : action === "delete" ? (
+              lang === "ar" ? (
+                "حذف"
+              ) : (
+                "Delete"
+              )
+            ) : banner.active ? (
+              lang === "ar" ? (
+                "تعطيل"
+              ) : (
+                "Disable"
+              )
+            ) : lang === "ar" ? (
+              "تفعيل"
+            ) : (
+              "Enable"
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

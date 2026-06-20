@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,17 +12,17 @@ interface Category {
 
 interface CategoriesSectionProps {
   storeId: string;
-  lang?: "en" | "ar";
+  lang: "en" | "ar"; // Removed the default fallback; force the parent to provide it
 }
 
 export default function CategoriesSection({
   storeId,
-  lang = "ar", // FIX 1: Matched the default lang with your Footer component
+  lang,
 }: CategoriesSectionProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const dir = lang === "ar" ? "rtl" : "ltr";
+  // Removed local 'dir' variable since LangDomSetter handles this globally
 
   const content = {
     ar: {
@@ -36,23 +35,19 @@ export default function CategoriesSection({
     },
   };
 
-  const t = content[lang];
+  const t = content[lang] || content.en; // Safe fallback just in case
 
   useEffect(() => {
     async function fetchCategories() {
       try {
-        // FIX 2: Added &lang=${lang} so your backend knows to send Arabic category titles
         const res = await fetch(
           `/api/categories?store_id=${storeId}&lang=${lang}`,
         );
-
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
-
         const data = await res.json();
         const list = data?.data || data?.categories || data || [];
-
         setCategories(Array.isArray(list) ? list : []);
       } catch (error) {
         console.error("Failed to fetch categories:", error);
@@ -61,9 +56,8 @@ export default function CategoriesSection({
         setLoading(false);
       }
     }
-
     fetchCategories();
-  }, [storeId, lang]); // Added lang to the dependency array so it refetches if language changes
+  }, [storeId, lang]);
 
   if (loading) {
     return (
@@ -85,8 +79,8 @@ export default function CategoriesSection({
   if (!categories.length) return null;
 
   return (
-    <section dir={dir} className="w-full bg-white px-2">
-      <div className="max-w-7xl mx-auto">
+    <section className="w-full bg-white px-2">
+      <div className="w-full px-8 mx-auto">
         {/* HEADER */}
         <div className="text-center mb-4">
           <p className="text-2xl md:text-4xl font-bold text-brand-black mb-2">
@@ -95,8 +89,8 @@ export default function CategoriesSection({
           <p className="text-sm md:text-base text-brand-black/90 font-medium">
             {t.subtitle}
           </p>
-
-          <div className="w-12 h-[3px] bg-[rgb(60_28_84)] mx-auto rounded-full mt-3" />
+          {/* UPDATED COLOR */}
+          <div className="w-12 h-[3px] bg-[rgb(var(--color-brand-primary))] mx-auto rounded-full mt-3" />
         </div>
 
         {/* GRID */}
@@ -104,7 +98,6 @@ export default function CategoriesSection({
           {categories.map((cat) => (
             <Link
               key={cat.id}
-              // FIX 3: Added ?lang=${lang} to maintain the language state on the next page
               href={`/category/${cat.id}?lang=${lang}`}
               className="group flex flex-col items-center gap-3"
             >
@@ -122,13 +115,11 @@ export default function CategoriesSection({
                     No Image
                   </div>
                 )}
-
-                {/* OVERLAY */}
                 <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors duration-300" />
               </div>
 
-              {/* TITLE */}
-              <p className="text-sm md:text-base font-medium text-brand-black group-hover:text-[rgb(60_28_84)] transition-colors text-center">
+              {/* TITLE - UPDATED COLOR */}
+              <p className="text-sm md:text-base font-medium text-brand-black group-hover:text-[rgb(var(--color-brand-primary))] transition-colors text-center">
                 {cat.title}
               </p>
             </Link>

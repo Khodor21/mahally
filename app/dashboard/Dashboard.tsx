@@ -16,6 +16,7 @@ import OccasionsPanel from "./panels/OccasionsPanel";
 import PartnershipsPanel from "./panels/PartnershipsPanel";
 import CategoriesPanel from "./panels/CategoriesPanel";
 import StoreFrontPanel from "./panels/StoreFrontPanel";
+
 import type { StoreData } from "./types";
 
 interface DashboardProps {
@@ -27,26 +28,27 @@ export default function Dashboard({ store }: DashboardProps) {
 
   const isRTL = lang === "ar";
 
-  // FIX: no type mutation, keep original store shape
   const renderPanel = () => {
     switch (activeNav) {
       case "home":
         return <HomePanel setActiveNav={setActiveNav} store={store} />;
       case "orders":
-        return <OrdersPanel store={store} />;
+        // FIX: Inject the client-side 'lang' into the store and cast as any
+        // to bypass the strict local/global type mismatch.
+        return <OrdersPanel store={{ ...store, language: lang } as any} />;
       case "products":
         return <ProductsPanel storeId={store.id} />;
       case "customers":
         return <CustomersPanel />;
       case "analytics":
-        return <AnalyticsPanel />;
+        return <AnalyticsPanel store={store} />;
       case "settings":
         return <SettingsPanel />;
       case "categories":
         return <CategoriesPanel storeId={store.id} />;
       case "ai":
         return <AIChatPanel />;
-      case "storefront":
+      case "sections":
         return <StoreFrontPanel />;
       case "coupons":
         return <CouponsPanel />;

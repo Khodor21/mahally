@@ -32,9 +32,11 @@ interface ShopContextType {
   removeFromCart: (productId: string) => void;
   updateCartQty: (productId: string, qty: number) => void;
   clearCart: () => void;
+
   favorites: Product[];
   favCount: number;
   toggleFavorite: (product: Product) => void;
+  removeFromFavorites: (productId: string) => void;
   isFavorite: (productId: string) => boolean;
   clearFavorites: () => void;
 }
@@ -147,7 +149,9 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const favCount = favorites.length;
-
+  const removeFromFavorites = useCallback((productId: string) => {
+    setFavorites((prev) => prev.filter((p) => p.id !== productId));
+  }, []);
   return (
     <ShopContext.Provider
       value={{
@@ -163,6 +167,8 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         toggleFavorite,
         isFavorite,
         clearFavorites,
+            removeFromFavorites,
+
       }}
     >
       {children}

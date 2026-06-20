@@ -26,9 +26,9 @@ export default function Topbar() {
       </button>
 
       {/* Title */}
-      <h1 className="font-bold text-[rgb(60_28_84)] text-lg flex-1">
+      <h3 className="font-bold text-[rgb(60_28_84)] text-lg flex-1">
         {String(title)}
-      </h1>
+      </h3>
 
       {/* Search */}
       <div className="hidden md:flex items-center gap-2 bg-[rgb(244_242_245)] rounded-xl px-3 py-2 w-56">

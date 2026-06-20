@@ -1,72 +1,92 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Star, ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import type { Testimonial } from "@/types/api";
 
 interface TestimonialsSectionProps {
   lang?: "ar" | "en";
-  storeSlug?: string; // For fetching store-specific testimonials
-  testimonials?: Testimonial[]; // Optional: passed from parent instead of fetching
+  storeSlug: string;
 }
 
 export default function TestimonialsSection({
   lang = "ar",
   storeSlug,
-  testimonials: passedTestimonials,
 }: TestimonialsSectionProps) {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [loading, setLoading] = useState(!passedTestimonials);
+  const [loading, setLoading] = useState(true);
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  // ✅ NEW: Fetch testimonials from API if not passed as prop
+  // Fetch testimonials on mount
   useEffect(() => {
-    if (passedTestimonials) {
-      setTestimonials(passedTestimonials);
-      setLoading(false);
-      return;
-    }
-
-    // Only fetch if we have a slug (we're on the storefront)
-    if (!storeSlug) {
-      setLoading(false);
-      return;
-    }
-
     const fetchTestimonials = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/stores`);
-        const data = await response.json();
+        const res = await fetch(
+          `/api/testimonials?store_slug=${storeSlug}&public=true`,
+          {
+            cache: "no-store",
+          },
+        );
+        const data = await res.json();
 
-        if (data.store?.testimonials?.testimonials) {
-          setTestimonials(data.store.testimonials.testimonials);
+        if (data.success) {
+          setTestimonials(data.data || []);
         }
       } catch (error) {
         console.error("Failed to fetch testimonials:", error);
-        setTestimonials([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchTestimonials();
-  }, [storeSlug, passedTestimonials]);
+  }, [storeSlug]);
 
-  // If no testimonials, don't render
+  // Helper to generate initials for avatar fallback
+  const getInitials = (name: string) => {
+    if (!name) return "";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .substring(0, 2);
+  };
+
   if (loading) {
     return (
-      <section className="py-16" dir={dir}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-brand-black/60">Loading testimonials...</p>
+      <section className="py-20 lg:py-24 bg-gray-50" dir={dir}>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <div className="h-8 w-48 bg-gray-200 rounded-full animate-pulse mx-auto mb-4" />
+            <div className="h-4 w-64 bg-gray-200 rounded-full animate-pulse mx-auto" />
+          </div>
+          <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+            <div className="flex flex-col items-center text-center">
+              <div className="flex gap-1 mb-6">
+                {[...Array(5)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-5 h-5 bg-gray-200 rounded animate-pulse"
+                  />
+                ))}
+              </div>
+              <div className="h-6 w-full bg-gray-200 rounded animate-pulse mb-3" />
+              <div className="h-6 w-3/4 bg-gray-200 rounded animate-pulse mb-10" />
+              <div className="w-16 h-16 bg-gray-200 rounded-full animate-pulse mb-4" />
+              <div className="h-5 w-32 bg-gray-200 rounded animate-pulse mb-2" />
+              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+            </div>
+          </div>
         </div>
       </section>
     );
   }
 
+  // Don't render if no testimonials
   if (!testimonials || testimonials.length === 0) {
-    return null; // Don't show empty testimonials section
+    return null;
   }
 
   const nextSlide = () => {
@@ -79,138 +99,156 @@ export default function TestimonialsSection({
 
   const activeTestimonial = testimonials[activeIndex];
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }).map((_, index) => (
-      <Star
-        key={index}
-        size={14}
-        className={
-          index < rating ? "text-[#94A3B8] fill-current" : "text-brand-light/50"
-        }
-      />
-    ));
-  };
-
-  // Translation object for static text
-  const content = {
-    ar: {
-      title: "ماذا يقول عملاؤنا؟",
-      prevLabel: "السابق",
-      nextLabel: "التالي",
-    },
-    en: {
-      title: "What our customers say",
-      prevLabel: "Previous",
-      nextLabel: "Next",
-    },
-  };
-  const t = content[lang];
-
   return (
-    <section className="py-16 overflow-hidden" dir={dir}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-8 lg:py-12 relative overflow-hidden" dir={dir}>
+      {/* Subtle Background Pattern/Shape for premium feel */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-purple-100/40 rounded-full blur-3xl opacity-50" />
+        <div className="absolute top-1/2 -right-24 w-72 h-72 bg-blue-100/40 rounded-full blur-3xl opacity-50" />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
+
         <div className="text-center mb-4">
-          <p className="text-2xl md:text-3xl font-bold text-brand-black">
-            {t.title}
+          <p className="text-2xl md:text-4xl font-bold text-brand-black mb-2">
+            {lang === "ar" ? "ماذا يقول عملاؤنا؟" : "What our customers say"}
           </p>
+          <p className="text-sm md:text-base text-brand-black/90 font-medium">
+            {lang === "ar"
+              ? "تجارب حقيقية من عملائنا الذين نعتز بثقتهم"
+              : "Real experiences from our valued customers"}
+          </p>
+          {/* UPDATED COLOR */}
+          <div className="w-12 h-[3px] bg-[rgb(var(--color-brand-primary))] mx-auto rounded-full mt-3" />
         </div>
 
         {/* Carousel Container */}
-        <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 lg:gap-8 w-full transition-all">
-          {/* VISUAL PREVIOUS CARD */}
-          <button
-            onClick={prevSlide}
-            aria-label={t.prevLabel}
-            className="hidden md:flex flex-col items-center justify-center w-40 lg:w-56 min-h-[280px] rounded-2xl border border-brand-light bg-brand-white/50 opacity-50 hover:opacity-100 transition-all duration-300 group cursor-pointer"
-          >
-            <div className="w-16 h-16 rounded-full bg-brand-light/40 flex items-center justify-center mb-6 relative overflow-hidden">
-              <div className="absolute inset-0 bg-[#94A3B8]/90 flex items-center justify-center text-white transition-opacity">
-                <ChevronLeft size={24} />
-              </div>
-            </div>
-            <div className="w-20 h-1.5 bg-brand-light rounded-full mb-3"></div>
-            <div className="w-12 h-1.5 bg-brand-light rounded-full"></div>
-          </button>
+        <div className="relative">
+          {/* Main Card */}
+          <div className=" relative overflow-hidden transition-all duration-300 ease-in-out">
+            {/* Decorative Quote Icon */}
+            <Quote className="absolute top-6 right-8 w-24 h-24 text-gray-50 opacity-50 transform -scale-x-100 rotate-180" />
 
-          {/* CENTER ACTIVE CARD */}
-          <div className="relative w-full max-w-2xl p-8 lg:p-12 min-h-[280px] flex flex-col transition-all duration-500 ease-in-out transform">
-            <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between flex-1">
-              {/* Avatar */}
-              {activeTestimonial.avatar && (
-                <div className="w-16 h-16 rounded-full flex-shrink-0 order-1 sm:order-2 bg-brand-grey overflow-hidden">
-                  <img
-                    src={activeTestimonial.avatar}
-                    alt={activeTestimonial.name[lang]}
-                    className="w-full h-full object-cover"
+            <div className="relative flex flex-col items-center text-center">
+              {/* Stars */}
+              <div className="flex items-center gap-1.5 mb-8">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${
+                      i < (activeTestimonial.rating || 5)
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "fill-gray-100 text-gray-200"
+                    }`}
                   />
-                </div>
-              )}
+                ))}
+              </div>
 
-              {/* Content Side */}
-              <div className="flex flex-col gap-4 flex-1 order-2 sm:order-1">
-                <p className="text-base sm:text-lg text-brand-black/90 font-medium leading-relaxed">
-                  &quot;{activeTestimonial.content[lang]}&quot;
+              {/* Quote Content */}
+              <blockquote className="text-lg sm:text-xl lg:text-2xl font-medium text-gray-800 leading-relaxed mb-10 min-h-[120px] flex items-center justify-center">
+                &quot;{activeTestimonial.content}&quot;
+              </blockquote>
+
+              {/* Author Info */}
+              <div className="flex flex-col items-center">
+                {/* Avatar */}
+                <div className="mb-4">
+                  {/* @ts-ignore - Handle possible missing avatar_url in types */}
+                  {activeTestimonial.avatar_url ? (
+                    <img
+                      // @ts-ignore
+                      src={activeTestimonial.avatar_url}
+                      alt={activeTestimonial.name}
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover shadow-sm ring-4 ring-gray-50"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center text-xl sm:text-2xl font-bold ring-4 ring-white shadow-sm">
+                      {getInitials(activeTestimonial.name)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Name & Role */}
+                <h3 className=" sm:text-lg font-bold text-gray-900">
+                  {activeTestimonial.name}
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">
+                  {activeTestimonial.role ||
+                    (lang === "ar" ? "عميل موثوق" : "Verified Customer")}
                 </p>
-                <div className="mt-auto pt-4 flex flex-col gap-1.5">
-                  <h4 className="font-semibold text-brand-black text-sm">
-                    {activeTestimonial.name[lang]}
-                  </h4>
-                  <p className="text-xs text-brand-black/60">
-                    {activeTestimonial.role[lang]}
-                  </p>
-                </div>
-                {/* Stars */}
-                <div className="flex items-center gap-1 mt-2">
-                  {renderStars(activeTestimonial.rating)}
-                </div>
               </div>
             </div>
           </div>
 
-          {/* VISUAL NEXT CARD */}
+          {/* Desktop Navigation Arrows (Absolute positioned outside the card) */}
           <button
-            onClick={nextSlide}
-            aria-label={t.nextLabel}
-            className="hidden md:flex flex-col items-center justify-center w-40 lg:w-56 min-h-[280px] rounded-2xl border border-brand-light bg-brand-white/50 opacity-50 hover:opacity-100 transition-all duration-300 group cursor-pointer"
+            onClick={lang === "ar" ? nextSlide : prevSlide}
+            className="hidden lg:flex absolute top-1/2 -translate-y-1/2 -left-6 xl:-left-12 w-14 h-14 rounded-full bg-white shadow-[0_4px_20px_rgb(0,0,0,0.08)] hover:shadow-[0_4px_25px_rgb(60,28,84,0.15)] text-gray-600 hover:text-brand-primary items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 z-10"
+            aria-label="Previous"
           >
-            <div className="w-16 h-16 rounded-full bg-brand-light/40 flex items-center justify-center mb-6 relative overflow-hidden">
-              <div className="absolute inset-0 bg-[#94A3B8]/90 flex items-center justify-center text-white transition-opacity">
-                <ChevronRight size={24} />
-              </div>
-            </div>
-            <div className="w-20 h-1.5 bg-brand-light rounded-full mb-3"></div>
-            <div className="w-12 h-1.5 bg-brand-light rounded-full"></div>
+            {lang === "ar" ? (
+              <ChevronRight className="w-6 h-6" />
+            ) : (
+              <ChevronLeft className="w-6 h-6" />
+            )}
+          </button>
+
+          <button
+            onClick={lang === "ar" ? prevSlide : nextSlide}
+            className="hidden lg:flex absolute top-1/2 -translate-y-1/2 -right-6 xl:-right-12 w-14 h-14 rounded-full bg-white shadow-[0_4px_20px_rgb(0,0,0,0.08)] hover:shadow-[0_4px_25px_rgb(60,28,84,0.15)] text-gray-600 hover:text-brand-primary items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 z-10"
+            aria-label="Next"
+          >
+            {lang === "ar" ? (
+              <ChevronLeft className="w-6 h-6" />
+            ) : (
+              <ChevronRight className="w-6 h-6" />
+            )}
           </button>
         </div>
 
-        {/* Mobile Navigation Controls */}
-        <div className="flex md:hidden items-center justify-center gap-4 mt-8">
+        {/* Mobile Controls & Desktop Dots */}
+        <div className="flex items-center justify-center mt-10 gap-6">
+          {/* Mobile Prev */}
           <button
-            onClick={prevSlide}
-            className="w-10 h-10 rounded-full bg-brand-grey text-brand-dark flex items-center justify-center hover:bg-brand-light transition-colors"
-            aria-label={t.prevLabel}
+            onClick={lang === "ar" ? nextSlide : prevSlide}
+            className="lg:hidden w-12 h-12 rounded-full bg-white shadow-sm text-gray-600 hover:text-brand-primary flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2"
+            aria-label="Previous"
           >
-            <ChevronLeft size={20} />
+            {lang === "ar" ? (
+              <ChevronRight className="w-5 h-5" />
+            ) : (
+              <ChevronLeft className="w-5 h-5" />
+            )}
           </button>
 
-          <div className="flex items-center gap-2">
+          {/* Dots Indicator */}
+          <div className="flex items-center gap-2.5">
             {testimonials.map((_, idx) => (
-              <span
+              <button
                 key={idx}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  activeIndex === idx ? "bg-brand-dark w-4" : "bg-brand-light"
+                onClick={() => setActiveIndex(idx)}
+                className={`h-2.5 rounded-full transition-all duration-300 ${
+                  activeIndex === idx
+                    ? "bg-brand-primary w-8"
+                    : "bg-gray-300 hover:bg-gray-400 w-2.5"
                 }`}
+                aria-label={`Go to testimonial ${idx + 1}`}
               />
             ))}
           </div>
 
+          {/* Mobile Next */}
           <button
-            onClick={nextSlide}
-            className="w-10 h-10 rounded-full bg-brand-grey text-brand-dark flex items-center justify-center hover:bg-brand-light transition-colors"
-            aria-label={t.nextLabel}
+            onClick={lang === "ar" ? prevSlide : nextSlide}
+            className="lg:hidden w-12 h-12 rounded-full bg-white shadow-sm text-gray-600 hover:text-brand-primary flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2"
+            aria-label="Next"
           >
-            <ChevronRight size={20} />
+            {lang === "ar" ? (
+              <ChevronLeft className="w-5 h-5" />
+            ) : (
+              <ChevronRight className="w-5 h-5" />
+            )}
           </button>
         </div>
       </div>

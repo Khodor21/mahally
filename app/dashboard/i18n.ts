@@ -11,7 +11,7 @@ export const t = {
     settings: "الإعدادات",
     ai: "الذكاء الاصطناعي",
     categories: "التصنيفات",
-    storefront: "واجهة المتجر",
+    sections: "الأقسام",
     marketing: "التسويق",
     coupons: "كوبونات الخصم",
     partnerships: "الشراكات",
@@ -42,8 +42,12 @@ export const t = {
     createCoupon: "إنشاء كوبون",
     viewOrders: "عرض الطلبات",
     manageStore: "إدارة المتجر",
+    premiumServices: "خدمات مخصصة لمتجرك",
+    marketingTitle: "احصل على تصميم احترافي لمتجرك!",
+    marketingDesc:
+      "هل تحتاج إلى تصميم موقع مخصص أو منشورات جذابة لوسائل التواصل الاجتماعي؟ خبراؤنا هنا لمساعدتك في بناء هوية بصرية مميزة تزيد من مبيعاتك وتألّق علامتك التجارية.", // Categories
+    contactWhatsapp: "تواصل معنا عبر واتساب",
 
-    // Categories
     totalCategories: "إجمالي التصنيفات",
     searchCategories: "ابحث عن تصنيف...",
     addCategory: "إضافة تصنيف",
@@ -53,7 +57,7 @@ export const t = {
     productsCount: "عدد المنتجات",
 
     // Storefront
-    sections: "أقسام الصفحة الرئيسية",
+    storefront: "أقسام الصفحة الرئيسية",
     addSection: "إضافة قسم",
 
     // Form / Modal
@@ -216,7 +220,7 @@ export const t = {
     settings: "Settings",
     ai: "Ai Assistant",
     categories: "Categories",
-    storefront: "Storefront",
+    storefront: "Sections",
     marketing: "Marketing",
     coupons: "Discount Coupons",
     partnerships: "Partnerships",
@@ -247,7 +251,11 @@ export const t = {
     createCoupon: "Create Coupon",
     viewOrders: "View Orders",
     manageStore: "Manage Store",
-
+    premiumServices: "Premium services for your store",
+    marketingTitle: "Get professional designs for your store!",
+    marketingDesc:
+      "Do you need a custom website design or engaging social media posts? Our experts are here to help you build a distinctive visual identity that boosts your sales and enhances your brand's appeal.",
+    contactWhatsapp: "Contact Us Via Whatsapp",
     // Categories
     totalCategories: "Total Categories",
     searchCategories: "Search categories...",
@@ -258,7 +266,7 @@ export const t = {
     productsCount: "Products Count",
 
     // Storefront
-    sections: "Home Sections",
+    sections: "Sections",
     addSection: "Add Section",
 
     // Form / Modal

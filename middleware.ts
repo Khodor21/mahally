@@ -1,3 +1,4 @@
+// middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
@@ -17,7 +18,7 @@ export async function middleware(req: NextRequest) {
     cleanHost === appDomain || cleanHost === `www.${appDomain}`;
   const isVercelPreview = cleanHost.includes("vercel.app");
 
-  // Detect subdomain (for BOTH localhost AND mahally.app) ← FIXED
+  // Detect subdomain (for BOTH localhost AND mahally.app)
   let subdomain: string | null = null;
 
   if (isLocalhost) {
@@ -68,20 +69,28 @@ export async function middleware(req: NextRequest) {
     url.pathname = `/`;
     return NextResponse.redirect(url);
   }
+
   // ─────────────────────────────────────────────
-  // 3. STORE ROUTING (CRITICAL PART)
+  // 4. API ROUTES (EARLY RETURN - CRITICAL!)
   // ─────────────────────────────────────────────
+  // ✅ IMPORTANT: This must come BEFORE subdomain rewriting
+  // so that /api/track-visitor doesn't become /store/slug/api/track-visitor
   if (url.pathname.startsWith("/api")) {
     return NextResponse.next();
   }
-  // If it's a store subdomain → rewrite to store route
+
+  // ─────────────────────────────────────────────
+  // 5. STORE ROUTING (SUBDOMAIN REWRITING)
+  // ─────────────────────────────────────────────
+  // Rewrite store subdomains to internal routes
+  // perfumes.mahally.app → /store/perfumes
   if (isStoreSubdomain) {
     url.pathname = `/store/${subdomain}${url.pathname}`;
     return NextResponse.rewrite(url);
   }
 
   // ─────────────────────────────────────────────
-  // 4. PROTECTED DASHBOARD
+  // 6. PROTECTED DASHBOARD
   // ─────────────────────────────────────────────
 
   const isDashboardRoute = url.pathname.startsWith("/dashboard");
@@ -91,7 +100,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // ─────────────────────────────────────────────
-  // 5. AUTH GUARD (LOGIN / ONBOARDING)
+  // 7. AUTH GUARD (LOGIN / ONBOARDING)
   // ─────────────────────────────────────────────
 
   const isAuthPage =
@@ -102,7 +111,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // ─────────────────────────────────────────────
-  // 6. DEFAULT
+  // 8. DEFAULT
   // ─────────────────────────────────────────────
 
   return NextResponse.next();

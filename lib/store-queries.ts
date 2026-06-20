@@ -7,7 +7,7 @@ export const getCachedStoreData = unstable_cache(
     // 1. جلب بيانات المتجر
     const { data: store, error: storeError } = await supabaseAdmin
       .from("stores")
-      .select("id, store_name, slug, phone, admin_email")
+      .select("id, store_name, slug, phone, admin_email, language")
       .eq("slug", slug)
       .maybeSingle();
 
@@ -17,7 +17,7 @@ export const getCachedStoreData = unstable_cache(
     const { data: settings } = await supabaseAdmin
       .from("store_settings")
       .select(
-        "logo_url, primary_color, description, whatsapp_number, instagram_url",
+        "logo_url, primary_color, promo_text, description, whatsapp_number, instagram_url",
       )
       .eq("store_id", store.id)
       .maybeSingle();

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link"; // 👉 Added Link for SEO-friendly navigation
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -26,11 +26,13 @@ type Product = {
 type ProductCardProps = {
   product: Product;
   storeSlug?: string;
+  lang: "en" | "ar"; // 👉 Added lang prop to comply with the backend-driven architecture
 };
 
+// 👉 Replaced hardcoded RGB with the new backend-driven CSS variable
 const BADGE_STYLES = {
-  New: "bg-[rgb(60_28_84)] text-white",
-  "Best Seller": "bg-[rgb(207_195_223)] text-[rgb(60_28_84)]",
+  New: "bg-[rgb(var(--color-brand-primary))] text-white",
+  "Best Seller": "bg-[rgb(207_195_223)] text-[rgb(var(--color-brand-primary))]",
   Hot: "bg-rose-100 text-rose-700",
   Sale: "bg-emerald-100 text-emerald-700",
 };
@@ -44,15 +46,37 @@ function formatPrice(value: number) {
   }).format(value);
 }
 
-export default function ProductCard({ product, storeSlug }: ProductCardProps) {
+export default function ProductCard({
+  product,
+  storeSlug,
+  lang,
+}: ProductCardProps) {
   const router = useRouter();
   const { addToCart, toggleFavorite, isFavorite, cartItems } = useShop();
-  const productUrl = `/product/${product.id}`;
+  const productUrl = `/product/${product.id}?lang=${lang}`; // 👉 Added lang to the URL
   const productId = String(product.id);
   const favorited = isFavorite(productId);
 
   const [added, setAdded] = useAddedFlash(5000);
   const [progress, setProgress] = useState(100);
+
+  // 👉 Language Dictionary
+  const content = {
+    en: {
+      addToCart: "Add to Cart",
+      toastTitle: "Added to cart",
+      viewCart: "View Cart",
+      checkout: "Checkout",
+    },
+    ar: {
+      addToCart: "إضافـة إلـى السلّـة",
+      toastTitle: "تمت الإضافة إلى سلة التسوق",
+      viewCart: "عرض السلة",
+      checkout: "اتمام الطلب",
+    },
+  };
+
+  const t = content[lang] || content.en;
 
   const normalizedProduct = {
     ...product,
@@ -68,11 +92,9 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
     toggleFavorite(normalizedProduct);
   };
 
-  // Handle the progress bar animation
   useEffect(() => {
     if (added) {
       setProgress(100);
-      // Small timeout ensures the DOM paints the 100% width before starting the transition to 0%
       const timer = setTimeout(() => setProgress(0), 50);
       return () => clearTimeout(timer);
     } else {
@@ -86,13 +108,10 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
 
   return (
     <>
-      {/* 👉 Make article relative so absolute children position themselves to it */}
       <article
         aria-label={product.title}
-        className="group flex flex-col w-full h-full relative"
+        className="flex flex-col w-full h-full relative"
       >
-        {/* 👉 1. THE INVISIBLE STRETCHED LINK */}
-        {/* It has z-10 so it covers the image and text, but sits under z-20 buttons */}
         <Link
           href={productUrl}
           className="absolute inset-0 z-10"
@@ -101,38 +120,30 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
 
         {/* IMAGE CONTAINER */}
         <div className="relative w-full aspect-[4/5] sm:h-64 overflow-hidden rounded-xl bg-[rgb(244_242_245)]/[0.7] transition-all duration-300">
-          {/* ICONS LAYER 👉 Strict w-full left-0 positioning to force them perfectly over the image edges on mobile */}
           <div
             className="absolute z-20 flex pointer-events-none
-             w-full top-6 px-3 left-0 justify-between items-start 
+             w-full top-7 px-3 left-0 justify-between items-start 
              md:top-auto md:bottom-4 md:px-0 md:justify-center md:gap-3"
           >
-            <button
-              onClick={(e) => {
-                e.preventDefault(); // Safety to prevent link navigation
-                e.stopPropagation();
-                // Add quick view logic here if needed
-              }}
-              // 👉 تم تغيير حجم الزر هنا (w-7 h-7 للموبايل، w-8 h-8 للشاشات الأكبر)
-              className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white flex items-center justify-center text-gray-600 shadow-sm hover:scale-110 hover:text-[rgb(60_28_84)] transition-all pointer-events-auto"
+            <a
+              href={productUrl}
+              className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white flex items-center justify-center text-gray-600 shadow-sm hover:scale-110 hover:text-[rgb(var(--color-brand-primary))] transition-all pointer-events-auto"
             >
-              {/* 👉 استبدال size=16 بفئات Tailwind لتتجاوب مع الشاشة */}
               <Eye className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            </button>
+            </a>
 
             <button
               onClick={(e) => {
-                e.preventDefault(); // Safety to prevent link navigation
+                e.preventDefault();
                 e.stopPropagation();
                 handleToggleFavorite();
               }}
-              // 👉 تم تغيير حجم الزر هنا أيضاً
               className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white flex items-center justify-center shadow-sm hover:scale-110 transition-all pointer-events-auto"
             >
               {favorited ? (
                 <Heart className="w-3.5 h-3.5 md:w-4 md:h-4 text-rose-500 fill-rose-500" />
               ) : (
-                <Heart className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-600 hover:text-[rgb(60_28_84)]" />
+                <Heart className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-600 hover:text-[rgb(var(--color-brand-primary))]" />
               )}
             </button>
           </div>
@@ -151,21 +162,20 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
           </h3>
 
           <div className="mt-auto flex flex-col items-center w-full">
-            <p className="text-base md:text-lg font-bold text-[rgb(60_28_84)] text-center mt-1.5">
+            <p className="text-base md:text-lg font-bold text-[rgb(var(--color-brand-primary))] text-center mt-1.5">
               {formattedPrice}
             </p>
 
-            {/* 👉 Added relative and z-20 so it sits ABOVE the stretched link */}
             <button
               onClick={(e) => {
-                e.preventDefault(); // Safety to prevent link navigation
+                e.preventDefault();
                 e.stopPropagation();
                 handleAddToCart();
               }}
-              className="relative z-20 w-full mt-4 flex items-center justify-center gap-1 py-2 rounded-sm text-sm font-semibold border transition-all duration-300 border-[rgb(60_28_84)] text-[rgb(60_28_84)] bg-white hover:bg-[rgb(60_28_84)] hover:text-white"
+              className="relative z-20 w-full mt-4 flex items-center justify-center gap-1 py-2 rounded-sm text-sm font-semibold border transition-all duration-300 border-[rgb(var(--color-brand-primary))] text-[rgb(var(--color-brand-primary))] bg-white hover:bg-[rgb(var(--color-brand-primary))] hover:text-white"
             >
               <ShoppingBag size={16} />
-              إضافـة إلـى السلّـة
+              {t.addToCart}
             </button>
           </div>
         </div>
@@ -174,7 +184,6 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
       {/* PREMIUM ADD TO CART TOAST */}
       {added && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100vw-2rem)] md:w-[400px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300">
-          {" "}
           {/* PROGRESS BAR */}
           <div
             className="h-1.5 bg-emerald-500 ease-linear"
@@ -194,7 +203,7 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
             </button>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-gray-900">
-                تمت الإضافة إلى سلة التسوق
+                {t.toastTitle}
               </span>
               <CheckCircle className="text-emerald-500" size={18} />
             </div>
@@ -204,7 +213,7 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
               <h4 className="text-sm font-bold text-gray-900 line-clamp-2 text-end">
                 {product.title}
               </h4>
-              <p className="text-sm font-bold text-[rgb(60_28_84)] mt-1.5 text-end">
+              <p className="text-sm font-bold text-[rgb(var(--color-brand-primary))] mt-1.5 text-end">
                 {formattedPrice}
               </p>
             </div>
@@ -221,22 +230,22 @@ export default function ProductCard({ product, storeSlug }: ProductCardProps) {
             <button
               onClick={() => {
                 setAdded(false);
-                router.push("/cart");
+                router.push(`/cart?lang=${lang}`);
               }}
               className="flex-1 py-2.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
             >
               <ShoppingBag size={18} />
-              عرض السلة
+              {t.viewCart}
             </button>
             <button
               onClick={() => {
                 setAdded(false);
-                router.push("/checkout");
+                router.push(`/checkout?lang=${lang}`);
               }}
-              className="flex-1 py-2.5 bg-[rgb(60_28_84)] rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+              className="flex-1 py-2.5 bg-[rgb(var(--color-brand-primary))] rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
             >
               <CreditCard size={18} />
-              اتمام الطلب
+              {t.checkout}
             </button>
           </div>
         </div>

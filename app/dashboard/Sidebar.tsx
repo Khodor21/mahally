@@ -44,11 +44,11 @@ const navGroups: NavGroup[] = [
     items: [
       { id: "home", icon: LayoutDashboard, labelKey: "home" },
       { id: "orders", icon: ShoppingCart, labelKey: "orders" },
-      { id: "products", icon: Package, labelKey: "products" },
       { id: "categories", icon: Tags, labelKey: "categories" },
+      { id: "products", icon: Package, labelKey: "products" },
+      { id: "sections", icon: LayoutTemplate, labelKey: "sections" },
       { id: "customers", icon: Users, labelKey: "customers" },
       { id: "analytics", icon: BarChart2, labelKey: "analytics" },
-      { id: "storefront", icon: LayoutTemplate, labelKey: "storefront" },
       { id: "settings", icon: Settings, labelKey: "settings" },
       { id: "ai", icon: Bot, labelKey: "ai" },
     ],

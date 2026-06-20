@@ -18,27 +18,34 @@ export default async function StoreLayout({
   children: React.ReactNode;
   params: { slug: string };
 }) {
-  const cookieStore = cookies();
-  const lang = cookieStore.get("lang")?.value === "ar" ? "ar" : "en";
-
   const data = await getCachedStoreData(params.slug);
 
   if (!data) return notFound();
   const { store, settings } = data;
 
+  const lang = (store as { language?: "en" | "ar" }).language || "en";
+
+  const primaryColor = settings?.primary_color;
   return (
     <ShopProvider>
       <VisitorTracker storeId={store.id} />
-      <ThemeClient primaryColor={settings?.primary_color} />
+      {/* ✅ PRIMARY COLOR from backend */}
+      <ThemeClient primaryColor={primaryColor} />
+      {/* ✅ LANGUAGE from backend (READ-ONLY) */}
       <LangDomSetter lang={lang} />
-      <NotificationInitializer />
+      {/* <NotificationInitializer /> */}
+
+      {/* FIX: Injected storeId so the Navbar can successfully fetch categories */}
       <Navbar
+        storeId={store.id}
         storeName={store.store_name}
         storeSlug={store.slug}
         logoUrl={settings?.logo_url}
-        primaryColor={settings?.primary_color}
+        primaryColor={primaryColor}
         lang={lang}
+        promoText={settings?.promo_text}
       />
+
       <div className="flex flex-col min-h-screen">
         <main className="flex-grow">{children}</main>
         <Footer
@@ -46,7 +53,7 @@ export default async function StoreLayout({
           storeSlug={store.slug}
           storeId={store.id.substring(0, 8).toUpperCase()}
           logoUrl={settings?.logo_url}
-          primaryColor={settings?.primary_color}
+          primaryColor={primaryColor}
           phone={settings?.whatsapp_number || store.phone}
           email={store.admin_email}
           instagramUrl={settings?.instagram_url}

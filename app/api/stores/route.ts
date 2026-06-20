@@ -17,7 +17,7 @@ export async function GET() {
 
   const userId = (session.user as any).id;
 
-  // 1. Get store
+  // 1. Get store (includes language field)
   const { data: store, error: storeError } = await supabaseAdmin
     .from("stores")
     .select("*")
@@ -42,6 +42,8 @@ export async function GET() {
   // 3. MERGE settings into store object for frontend consistency
   const mergedStore = {
     ...store,
+    language: store.language || "en",
+
     // Contact info
     email: store.admin_email,
 
@@ -49,8 +51,8 @@ export async function GET() {
     primary_color: settings?.primary_color || null,
     logo_url: settings?.logo_url || null,
     description: settings?.description || null,
-
-    // Policies
+    promo_text: settings?.promo_text || "",
+    // Policiest
     privacy_policy: settings?.privacy_policy || null,
     shipping_policy: settings?.shipping_policy || null,
     return_policy: settings?.return_policy || null,
@@ -83,7 +85,7 @@ const BilingualTextSchema = z.object({
 });
 
 const TestimonialSchema = z.object({
-  id: z.number().optional(), // Will be auto-generated if not provided
+  id: z.number().optional(),
   name: BilingualTextSchema,
   role: BilingualTextSchema,
   content: BilingualTextSchema,
@@ -361,6 +363,7 @@ export async function POST(request: NextRequest) {
       store_type: storeType || null,
       slug,
       password_hash: passwordHash,
+      language: "en", // ✅ Default language is English
       is_active: true,
       created_at: new Date().toISOString(),
     })
@@ -424,6 +427,7 @@ export async function PUT(request: NextRequest) {
       store_type,
       admin_name,
       admin_email,
+      language, // ✅ ACCEPT LANGUAGE UPDATES
       primary_color,
       privacy_policy,
       shipping_policy,
@@ -436,9 +440,8 @@ export async function PUT(request: NextRequest) {
       twitter_url,
       snapchat_url,
       whatsapp_number,
-
-      // ✅ NEW: Testimonials
       testimonials,
+      promo_text,
     } = body;
 
     /* ─────────────────────────────
@@ -451,6 +454,18 @@ export async function PUT(request: NextRequest) {
     if (store_type !== undefined) storeUpdate.store_type = store_type;
     if (admin_name !== undefined) storeUpdate.admin_name = admin_name;
     if (admin_email !== undefined) storeUpdate.admin_email = admin_email;
+    if (language !== undefined) {
+      if (!["en", "ar"].includes(language)) {
+        return NextResponse.json(
+          {
+            error: "اللغة يجب أن تكون 'en' أو 'ar'",
+            field: "language",
+          },
+          { status: 422 },
+        );
+      }
+      storeUpdate.language = language;
+    }
 
     if (Object.keys(storeUpdate).length > 0) {
       const { error: storeError } = await supabaseAdmin
@@ -478,6 +493,7 @@ export async function PUT(request: NextRequest) {
     // Only add fields that are explicitly provided
     if (primary_color !== undefined)
       settingsUpdate.primary_color = primary_color;
+    if (promo_text !== undefined) settingsUpdate.promo_text = promo_text;
     if (privacy_policy !== undefined)
       settingsUpdate.privacy_policy = privacy_policy;
     if (shipping_policy !== undefined)

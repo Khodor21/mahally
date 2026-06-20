@@ -15,17 +15,10 @@ import {
   Eye,
   Ticket,
   Store,
-  Loader2,
+  MessageCircle,
+  Sparkles,
+  Palette,
 } from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 import { useDashboard } from "../DashboardContext";
 import {
   useOrders,
@@ -34,6 +27,7 @@ import {
   useVisitors,
 } from "@/hooks/useApi";
 import type { NavItem, StoreData } from "../types";
+import { Emoji } from "emoji-picker-react";
 
 const statusColors: Record<string, string> = {
   completed: "bg-emerald-100 text-emerald-700",
@@ -41,12 +35,6 @@ const statusColors: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
   cancelled: "bg-red-100 text-red-700",
 };
-
-interface ChartDataPoint {
-  month: string;
-  monthEn: string;
-  sales: number;
-}
 
 interface HomePanelProps {
   setActiveNav: (n: NavItem) => void;
@@ -57,7 +45,7 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
   const { tr, lang } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
   const [copied, setCopied] = useState(false);
-  const storeUrl = `${store.slug}.mysaas.com`;
+  const storeUrl = `${store.slug}.mahally.app`;
 
   const { data: ordersData, loading: ordersLoading } = useOrders(store.id);
   const { data: productsData, loading: productsLoading } = useProducts();
@@ -73,71 +61,6 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
 
   const loading =
     ordersLoading || productsLoading || customersLoading || visitorsLoading;
-
-  // Generate chart data dynamically
-  const chartData = useMemo(() => {
-    const monthsAr = [
-      "يناير",
-      "فبراير",
-      "مارس",
-      "أبريل",
-      "مايو",
-      "يونيو",
-      "يوليو",
-      "أغسطس",
-      "سبتمبر",
-      "أكتوبر",
-      "نوفمبر",
-      "ديسمبر",
-    ];
-    const monthsEn = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    const now = new Date();
-    const months: Array<{ key: string; ar: string; date: Date }> = [];
-
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({
-        key: monthsEn[date.getMonth()],
-        ar: monthsAr[date.getMonth()],
-        date,
-      });
-    }
-
-    const monthlyData: Record<string, number> = Object.fromEntries(
-      months.map((m) => [m.key, 0]),
-    );
-
-    orders.forEach((order) => {
-      if (order.status !== "cancelled") {
-        const orderDate = new Date(order.created_at);
-        const monthKey = monthsEn[orderDate.getMonth()];
-        if (monthlyData.hasOwnProperty(monthKey)) {
-          monthlyData[monthKey] += Number(order.total || 0);
-        }
-      }
-    });
-
-    return months.map((m) => ({
-      month: m.ar,
-      monthEn: m.key,
-      sales: monthlyData[m.key],
-    }));
-  }, [orders]);
-
-  const chartKey = lang === "ar" ? "month" : "monthEn";
 
   const copyLink = () => {
     navigator.clipboard.writeText(storeUrl);
@@ -182,12 +105,15 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
     },
   ];
 
+  console.log("DEBUG - Visitors Data from Hook:", visitorsData);
+  console.log(
+    "DEBUG - Current 'Today' string:",
+    new Date().toISOString().split("T")[0],
+  );
+  console.log("DEBUG - Current Store ID:", store.id);
+
   const stats = useMemo(() => {
     const now = new Date();
-    const today = now.toISOString().split("T")[0];
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0];
 
     const isCurrentMonth = (d: string) =>
       new Date(d).getMonth() === now.getMonth() &&
@@ -202,13 +128,6 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
           ? 100
           : 0
         : Number((((cur - prev) / prev) * 100).toFixed(1));
-
-    // Visitors data
-    const todayVisitors =
-      visitors.find((v) => v.count_date === today)?.visitor_count || 0;
-    const yesterdayVisitors =
-      visitors.find((v) => v.count_date === yesterday)?.visitor_count || 0;
-    const visitorGrowth = calculateGrowth(todayVisitors, yesterdayVisitors);
 
     let curRev = 0,
       lastRev = 0,
@@ -262,26 +181,8 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
         color: "bg-[rgb(244_242_245)]",
         iconColor: "text-[rgb(60_28_84)]",
       },
-      {
-        label: tr.totalProducts || "إجمالي المنتجات",
-        value: products.length.toString(),
-        unit: tr.piece || "قطعة",
-        change: 0,
-        icon: Package,
-        color: "bg-[rgb(244_242_245)]",
-        iconColor: "text-[rgb(60_28_84)]",
-      },
-      {
-        label: tr.visits || "الزوار",
-        value: todayVisitors.toString(),
-        unit: "زائر",
-        change: visitorGrowth,
-        icon: Eye,
-        color: "bg-[rgb(244_242_245)]",
-        iconColor: "text-[rgb(60_28_84)]",
-      },
     ];
-  }, [orders, products, customers, visitors, tr]);
+  }, [orders, customers, tr]);
 
   const recentOrders = useMemo(
     () =>
@@ -298,177 +199,135 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
     <div className="space-y-6" dir={dir}>
       {/* Welcome */}
       <div className="animate-fade-up">
-        <h2 className="text-2xl font-bold text-[rgb(60_28_84)]">
-          {tr.welcomeBack || "مرحبا"}{" "}
-          {store.admin_name?.split(" ")[0] || "المالك"} 👋
-        </h2>
+        <div className="flex items-center gap-1">
+          <h3 className="text-2xl font-bold text-[rgb(60_28_84)]">
+            {tr.welcomeBack || "مرحبا"}{" "}
+            {store.admin_name?.split(" ")[0] || "المالك"}
+          </h3>{" "}
+          <Emoji unified="1f44b" size={24} />
+        </div>
         <p className="text-[rgb(60_28_84)]/50 text-sm mt-0.5">
           {tr.overviewDesc || "إليك ملخص نشاط متجرك اليوم"}
         </p>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 animate-fade-up delay-100">
-        {stats.map((stat, i) => {
-          const isPositive = stat.change >= 0;
-          return (
-            <div
-              key={i}
-              className={`rounded-2xl p-5 ${stat.color} transition-all hover:scale-[1.02] cursor-default`}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    stat.color === "bg-[rgb(60_28_84)]"
-                      ? "bg-white/20"
-                      : "bg-[rgb(60_28_84)]/10"
-                  }`}
-                >
-                  <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+      {/* Main 3 Stats grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-up delay-100">
+        {loading ? (
+          /* Stats Skeleton Loaders */
+          <>
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="rounded-2xl p-5 bg-[rgb(244_242_245)] animate-pulse h-[132px] flex flex-col justify-between"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="w-10 h-10 rounded-xl bg-[rgb(60_28_84)]/10" />
+                  <div className="w-12 h-4 rounded bg-[rgb(60_28_84)]/10" />
                 </div>
-                <span
-                  className={`flex items-center gap-0.5 text-xs font-semibold ${
-                    isPositive
-                      ? stat.color === "bg-[rgb(60_28_84)]"
-                        ? "text-emerald-300"
-                        : "text-emerald-600"
-                      : stat.color === "bg-[rgb(60_28_84)]"
-                        ? "text-red-300"
-                        : "text-red-500"
+                <div>
+                  <div className="w-24 h-8 rounded-lg bg-[rgb(60_28_84)]/10 mb-2" />
+                  <div className="w-16 h-3 rounded bg-[rgb(60_28_84)]/10" />
+                </div>
+              </div>
+            ))}
+          </>
+        ) : (
+          /* Actual Stats */
+          stats.map((stat, i) => {
+            const isPositive = stat.change >= 0;
+            return (
+              <div
+                key={i}
+                className={`rounded-2xl p-5 ${stat.color} transition-all hover:scale-[1.02] cursor-default`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      stat.color === "bg-[rgb(60_28_84)]"
+                        ? "bg-white/20"
+                        : "bg-[rgb(60_28_84)]/10"
+                    }`}
+                  >
+                    <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+                  </div>
+                  <span
+                    className={`flex items-center gap-0.5 text-xs font-semibold ${
+                      isPositive
+                        ? stat.color === "bg-[rgb(60_28_84)]"
+                          ? "text-emerald-300"
+                          : "text-emerald-600"
+                        : stat.color === "bg-[rgb(60_28_84)]"
+                          ? "text-red-300"
+                          : "text-red-500"
+                    }`}
+                  >
+                    {isPositive ? (
+                      <ArrowUpRight className="w-3 h-3" />
+                    ) : (
+                      <ArrowDownRight className="w-3 h-3" />
+                    )}
+                    {Math.abs(stat.change)}%
+                  </span>
+                </div>
+                <p
+                  className={`text-2xl font-bold ${
+                    stat.color === "bg-[rgb(60_28_84)]"
+                      ? "text-white"
+                      : "text-[rgb(60_28_84)]"
                   }`}
                 >
-                  {isPositive ? (
-                    <ArrowUpRight className="w-3 h-3" />
-                  ) : (
-                    <ArrowDownRight className="w-3 h-3" />
+                  {stat.value}
+                  {stat.unit && (
+                    <span className="text-sm font-normal ms-1">
+                      {stat.unit}
+                    </span>
                   )}
-                  {Math.abs(stat.change)}%
-                </span>
+                </p>
+                <p
+                  className={`text-xs mt-1 ${
+                    stat.color === "bg-[rgb(60_28_84)]"
+                      ? "text-white/60"
+                      : "text-[rgb(60_28_84)]/50"
+                  }`}
+                >
+                  {stat.label}
+                </p>
               </div>
-              <p
-                className={`text-2xl font-bold ${
-                  stat.color === "bg-[rgb(60_28_84)]"
-                    ? "text-white"
-                    : "text-[rgb(60_28_84)]"
-                }`}
-              >
-                {stat.value}
-                {stat.unit && (
-                  <span className="text-sm font-normal ms-1">{stat.unit}</span>
-                )}
-              </p>
-              <p
-                className={`text-xs mt-1 ${
-                  stat.color === "bg-[rgb(60_28_84)]"
-                    ? "text-white/60"
-                    : "text-[rgb(60_28_84)]/50"
-                }`}
-              >
-                {stat.label}
-              </p>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
-      {/* Chart + Quick Actions */}
+      {/* Marketing Panel + Quick Actions */}
       <div className="grid lg:grid-cols-3 gap-6 animate-fade-up delay-200">
-        {/* Revenue chart */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-[rgb(244_242_245)] p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h3 className="font-bold text-[rgb(60_28_84)] text-base">
-                {tr.revenueChart || "مخطط الإيرادات"}
-              </h3>
-              <p className="text-xs text-[rgb(60_28_84)]/40 mt-0.5">
-                {tr.last7Months || "آخر 7 أشهر"}
-              </p>
-            </div>
-            <span className="text-xs bg-[rgb(244_242_245)] text-[rgb(60_28_84)]/60 px-3 py-1.5 rounded-lg font-medium">
-              $
+        {/* Marketing Banner */}
+        <div className="lg:col-span-2 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[rgb(60_28_84)] to-[rgb(85_40_120)] text-white p-6 md:p-8 flex flex-col justify-center shadow-sm">
+          <Palette className="absolute -bottom-6 -end-6 w-32 h-32 text-white opacity-5 pointer-events-none" />
+          <Sparkles className="absolute top-6 -start-6 w-24 h-24 text-white opacity-10 pointer-events-none" />
+
+          <div className="relative z-10 max-w-lg">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-medium mb-4 border border-white/20">
+              <Sparkles className="w-3.5 h-3.5" />
+              {tr.premiumServices || "خدمات مخصصة لمتجرك"}
             </span>
+            <h3 className="text-xl md:text-2xl font-bold mb-3 leading-tight">
+              {tr.marketingTitle || "احصل على تصميم احترافي لمتجرك!"}
+            </h3>
+            <p className="text-white/80 text-sm md:text-base mb-6 leading-relaxed">
+              {tr.marketingDesc ||
+                "هل تحتاج إلى تصميم موقع مخصص أو منشورات جذابة لوسائل التواصل الاجتماعي؟ خبراؤنا هنا لمساعدتك في بناء هوية بصرية مميزة تزيد من مبيعاتك وتألّق علامتك التجارية."}
+            </p>
+            <a
+              href="https://wa.me/96171708103"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-white text-[rgb(60_28_84)] px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-105 hover:bg-gray-50 w-max shadow-sm"
+            >
+              <MessageCircle className="w-4 h-4" />
+              {tr.contactWhatsapp || "تواصل معنا عبر واتساب"}
+            </a>
           </div>
-          {loading ? (
-            <div className="flex items-center justify-center h-[200px]">
-              <Loader2 className="w-8 h-8 text-[rgb(60_28_84)]/40 animate-spin" />
-            </div>
-          ) : chartData.length > 0 && chartData.some((d) => d.sales > 0) ? (
-            <ResponsiveContainer width="100%" height={200}>
-              <AreaChart
-                data={chartData}
-                margin={{ top: 5, right: 5, bottom: 0, left: -20 }}
-              >
-                <defs>
-                  <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="rgb(60,28,84)"
-                      stopOpacity={0.15}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="rgb(60,28,84)"
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgb(244,242,245)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey={chartKey}
-                  tick={{
-                    fontSize: 11,
-                    fill: "rgba(60,28,84,0.5)",
-                    fontFamily: "Cairo, sans-serif",
-                  }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{
-                    fontSize: 11,
-                    fill: "rgba(60,28,84,0.5)",
-                    fontFamily: "Cairo, sans-serif",
-                  }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "white",
-                    border: "1px solid rgb(244,242,245)",
-                    borderRadius: "12px",
-                    fontSize: "12px",
-                    fontFamily: "Cairo, sans-serif",
-                    color: "rgb(60,28,84)",
-                    boxShadow: "0 4px 24px rgba(60,28,84,0.08)",
-                  }}
-                  labelStyle={{ fontWeight: 700, color: "rgb(60,28,84)" }}
-                  formatter={(value: any) =>
-                    `$${Number(value ?? 0).toLocaleString("en-US", {
-                      maximumFractionDigits: 2,
-                    })}`
-                  }
-                />
-                <Area
-                  type="monotone"
-                  dataKey="sales"
-                  stroke="rgb(60,28,84)"
-                  strokeWidth={2.5}
-                  fill="url(#colorSales)"
-                  dot={{ fill: "rgb(60,28,84)", strokeWidth: 0, r: 4 }}
-                  activeDot={{ r: 6, strokeWidth: 0 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[200px] text-[rgb(60_28_84)]/40">
-              <p>{tr.noData || "لا توجد بيانات"}</p>
-            </div>
-          )}
         </div>
 
         {/* Quick Actions */}
@@ -512,7 +371,6 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
                 {copied ? tr.copied || "تم النسخ" : tr.copyLink || "نسخ الرابط"}
               </button>
 
-              {/* FIXED: Added missing 'a' tag here */}
               <a
                 href={`https://${storeUrl}`}
                 target="_blank"
@@ -540,15 +398,51 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
             <ExternalLink className="w-3.5 h-3.5" />
           </button>
         </div>
+
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-[rgb(60_28_84)]/40 animate-spin" />
+          /* Table Skeleton Loader */
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" dir={dir}>
+              <thead>
+                <tr className="border-b border-[rgb(244_242_245)]">
+                  {[1, 2, 3, 4, 5].map((h) => (
+                    <th key={h} className="px-5 py-3 text-start">
+                      <div className="h-4 w-16 bg-[rgb(244_242_245)] rounded animate-pulse" />
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[1, 2, 3, 4, 5].map((row) => (
+                  <tr key={row} className="border-b border-[rgb(244_242_245)]">
+                    <td className="px-5 py-3.5">
+                      <div className="h-4 w-16 bg-[rgb(244_242_245)] rounded animate-pulse" />
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="h-4 w-32 bg-[rgb(244_242_245)] rounded animate-pulse" />
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="h-4 w-16 bg-[rgb(244_242_245)] rounded animate-pulse" />
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="h-6 w-20 bg-[rgb(244_242_245)] rounded-full animate-pulse" />
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="h-4 w-24 bg-[rgb(244_242_245)] rounded animate-pulse" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : recentOrders.length === 0 ? (
-          <div className="flex items-center justify-center py-12 text-[rgb(60_28_84)]/40">
-            <p>{tr.noData || "لا توجد طلبات"}</p>
+          /* Empty State */
+          <div className="flex flex-col gap-1 items-center justify-center h-[200px] text-[rgb(60_28_84)]/40">
+            <Package className="w-8 md:w-10 h-8 md:h-10 text-gray-300" />
+            <p className="text-gray-500">{tr.noData || "لا توجد بيانات"}</p>
           </div>
         ) : (
+          /* Actual Table */
           <div className="overflow-x-auto">
             <table className="w-full text-sm" dir={dir}>
               <thead>

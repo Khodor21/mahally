@@ -16,25 +16,25 @@ export default async function StorePage({
   if (!data) return notFound();
   const { store } = data;
 
+  const lang = (store as { language?: "en" | "ar" }).language || "ar";
+
   return (
     <main className="min-h-screen bg-brand-white flex flex-col gap-10 pb-16">
       <div className="px-2 md:px-10 pt-3 mx-auto w-full">
-        <HeroSection storeId={store.id} lang="en" />
+        <HeroSection storeId={store.id} lang={lang} />
       </div>
 
-      <CategorySection storeId={store.id} />
+      <CategorySection storeId={store.id} lang={lang} />
 
       <div className="px-2 md:px-10 mx-auto w-full flex flex-col gap-10">
-        {/* هنا يكمن السحر: سنقوم ببث الأقسام لاحقاً */}
         <Suspense
           fallback={
             <div className="h-64 w-full animate-pulse bg-gray-100 rounded-lg" />
           }
         >
-          <Sections storeId={store.id} storeSlug={params.slug} />
+          <Sections storeId={store.id} storeSlug={params.slug} lang={lang} />
         </Suspense>
-
-        <Testimonial />
+        <Testimonial lang={lang} storeSlug={params.slug} />{" "}
       </div>
     </main>
   );

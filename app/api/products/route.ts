@@ -1,16 +1,39 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { requireStoreSession } from "@/lib/store";
+function isValidVariants(variants: any): boolean {
+  if (!Array.isArray(variants)) return false;
 
+  return variants.every((group) => {
+    return (
+      typeof group === "object" &&
+      typeof group.id === "string" &&
+      typeof group.title === "string" &&
+      Array.isArray(group.options) &&
+      group.options.every(
+        (option: any) =>
+          typeof option === "object" &&
+          typeof option.id === "string" &&
+          typeof option.name === "string" &&
+          (option.price === undefined ||
+            typeof option.price === "number") &&
+          (option.stock === undefined ||
+            typeof option.stock === "number")
+      )
+    );
+  });
+}
 export async function GET() {
   try {
     // 1. Get the authenticated store admin session securely
     const user = await requireStoreSession();
 
-    // 2. Fetch products only for this specific store
+    // 2. Fetch products only for this specific store (Replaced select("*") with explicit fields)
     const { data, error } = await supabaseAdmin
       .from("products")
-      .select("*")
+      .select(
+        "id, store_id, title, description, price, stock, images, is_active, created_at, updated_at, category_id, variants",
+      )
       .eq("store_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -46,8 +69,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // Added category_id to destructuring
-    const { title, description, price, stock, images, category_id } = body;
+    // Added variants to destructuring
+    const { title, description, price, stock, images, category_id, variants } =
+      body;
 
     // Validation
     if (!title || title.trim() === "") {
@@ -82,9 +106,20 @@ export async function POST(req: Request) {
       );
     }
 
-    // Ensure images is an array
-    const imageArray = Array.isArray(images) ? images : [];
+    // Ensure images and variants are arrays, defaulting to empty arrays if missing
+   const imageArray = Array.isArray(images) ? images : [];
 
+if (variants !== undefined && !isValidVariants(variants)) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Invalid variants structure",
+    },
+    { status: 400 },
+  );
+}
+
+const variantsArray = Array.isArray(variants) ? variants : [];
     const { data, error } = await supabaseAdmin
       .from("products")
       .insert({
@@ -94,9 +129,12 @@ export async function POST(req: Request) {
         price: parsedPrice,
         stock: parsedStock,
         images: imageArray,
-        category_id: category_id || null, // Handle the category_id inclusion
+        category_id: category_id || null,
+        variants: variantsArray, // Handled dynamically
       })
-      .select()
+      .select(
+        "id, title, description, price, stock, images, category_id, variants",
+      ) // Explicit select
       .single();
 
     if (error) {
@@ -134,8 +172,17 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // Added category_id to destructuring
-    const { id, title, description, price, stock, images, category_id } = body;
+    // Added variants to destructuring
+    const {
+      id,
+      title,
+      description,
+      price,
+      stock,
+      images,
+      category_id,
+      variants,
+    } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -187,7 +234,20 @@ export async function PATCH(req: Request) {
       updates.images = Array.isArray(images) ? images : [];
     }
 
-    // Add category_id update logic
+   if (variants !== undefined) {
+  if (!isValidVariants(variants)) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Invalid variants structure",
+      },
+      { status: 400 },
+    );
+  }
+
+  updates.variants = variants;
+}
+
     if (category_id !== undefined) {
       // Allows clearing the category by passing an empty string or null
       updates.category_id = category_id === "" ? null : category_id;
@@ -206,7 +266,9 @@ export async function PATCH(req: Request) {
       .update(updates)
       .eq("id", id)
       .eq("store_id", user.id) // Security: ensure product belongs to this store
-      .select()
+      .select(
+        "id, title, description, price, stock, images, category_id, variants",
+      ) // Explicit select
       .single();
 
     if (error) {

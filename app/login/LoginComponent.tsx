@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2, AlertCircle, ArrowLeft } from "lucide-react";
+import { Emoji } from "emoji-picker-react"; // استيراد مكون الإيموجي
 
 export default function LoginComponent() {
   const router = useRouter();
@@ -37,21 +38,17 @@ export default function LoginComponent() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-brand-grey flex flex-col">
+    <div dir="rtl" className="min-h-screen bg-white flex flex-col">
       <div className="flex-1 flex items-center justify-center py-10 md:py-16">
         <div className="w-full px-3 md:px-12 mx-auto">
-          <div className="bg-white border border-[#E8E0D5] rounded-[32px] px-3 py-6 md:p-8 shadow-[0_10px_40px_rgba(0,0,0,0.06)]">
-            {/* Top badge */}
-            <div className="text-center w-fit mx-auto inline-flex items-center justify-center px-4 py-2 rounded-full bg-brand-light text-brand-dark text-sm font-semibold mb-6">
-              تسجيل الدخول
-            </div>
-
+          <div className="px-3 py-6 md:p-8">
             {/* Title */}
             <h1
-              className="text-[34px] md:text-[42px] leading-[1.15] text-brand-dark text-center mb-3"
+              className="text-[34px] md:text-[42px] leading-[1.15] text-brand-dark flex items-center justify-center gap-3 mb-3"
               style={{ fontFamily: "Lalezar, cursive" }}
             >
-              أهلاً بعودتك 👋
+              أهلاً بعودتك
+              <Emoji unified="1f44b" size={38} /> {/* استخدام الإيموجي هنا */}
             </h1>
 
             <p className="text-[#6B6B6B] text-center text-[15px] md:text-[16px] leading-[1.9] mb-8">
@@ -72,7 +69,7 @@ export default function LoginComponent() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  className="w-full h-[52px] md:h-[58px] rounded md:rounded-xl border border-[#E8E0D5] bg-[#FAF7F2] px-5 text-[#1E1E1E] placeholder:text-[#A1A1A1] text-sm outline-none focus:border-[#C8392B] focus:bg-white"
+                  className="w-full h-[52px] md:h-[58px] rounded border border-[#f3ede5] bg-gray-50 px-5 text-[#1E1E1E] placeholder:text-[#A1A1A1] text-sm outline-none focus:border-[#C8392B] focus:bg-white"
                 />
               </div>
 
@@ -98,7 +95,7 @@ export default function LoginComponent() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="أدخل كلمة المرور"
                     required
-                    className="w-full h-[52px] md:h-[58px] rounded md:rounded-xl border border-[#E8E0D5] bg-[#FAF7F2] px-5 pl-14 text-[#1E1E1E] placeholder:text-[#A1A1A1] outline-none focus:border-[#C8392B] focus:bg-white"
+                    className="w-full h-[52px] md:h-[58px] rounded border border-[#f3ede5] bg-gray-50 px-5 pl-14 text-[#1E1E1E] placeholder:text-[#A1A1A1] outline-none focus:border-[#C8392B] focus:bg-white"
                   />
 
                   <button
@@ -127,7 +124,7 @@ export default function LoginComponent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-[60px] rounded-2xl bg-brand-dark text-white font-bold flex items-center justify-center gap-3"
+                className="w-full h-[60px] rounded bg-brand-dark text-white font-bold flex items-center justify-center gap-3"
               >
                 {loading ? (
                   <>
@@ -154,8 +151,8 @@ export default function LoginComponent() {
             </div>
 
             {/* Create account */}
-            <div className="bg-[#FAF7F2] border border-[#E8E0D5] rounded-2xl p-5 text-center">
-              <h3 className="text-[#1E1E1E] font-bold mb-2">
+            <div className="bg-gray-50 border border-[#E8E0D5] rounded-2xl p-5 text-center">
+              <h3 className="text-[#1E1E1E] font-bold mb">
                 بعدك ما عندك متجر؟
               </h3>
 
@@ -165,7 +162,7 @@ export default function LoginComponent() {
 
               <Link
                 href="/onboarding"
-                className="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl border-2 border-brand-dark text-brand-dark font-bold hover:bg-brand-dark hover:text-white"
+                className="text-sm inline-flex items-center underline justify-center text-brand-dark font-bold"
               >
                 أنشئ متجرك مجاناً
               </Link>
