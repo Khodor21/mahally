@@ -34,8 +34,9 @@ const STORE_TYPES = [
 const STEPS = [
   { id: 1, label: "البريد" },
   { id: 2, label: "معلوماتك" },
-  { id: 3, label: "كلمة المرور" },
-  { id: 4, label: "رابطك" },
+    { id: 3, label: "عن المتجر" },
+ { id: 4, label: "كلمة المرور" },
+  { id: 5, label: "رابطك" },
 ];
 
 const INPUT_BASE =
@@ -356,18 +357,18 @@ function NavRow({
   onNext: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between pt-4 border-t border-[#f0ede8] mt-2">
+    <div className="flex items-center justify-between pt-4 border-t border-[#e3ceff] mt-2">
       <button
         type="button"
         onClick={onBack}
-        className="flex items-center gap-1.5 px-7 h-12 rounded-lg md:rounded-2xl text-sm bg-[#f0ede8] text-[#1e1e1e] hover:text-brand-dark transition-colors"
+        className="flex items-center gap-1.5 px-6 h-10 rounded-lg md:rounded-2xl text-sm bg-[#e3ceff] text-[#1e1e1e] hover:text-brand-dark transition-colors"
       >
         <ArrowRight className="w-4 h-4" /> رجوع
       </button>
       <button
         type="button"
         onClick={onNext}
-        className="h-12 px-7 rounded-lg md:rounded-2xl bg-brand-dark text-white text-sm font-bold flex items-center gap-2 hover:bg-[#333] transition-all duration-200"
+        className="h-10 px-6 rounded-lg md:rounded-2xl bg-brand-dark text-white text-sm font-bold flex items-center gap-2 hover:bg-[#333] transition-all duration-200"
       >
         التالي <ArrowLeft className="w-4 h-4" />
       </button>
@@ -628,7 +629,7 @@ export default function OnboardingPage() {
       <ProgressBar current={step} total={STEPS.length} />
 
       {/* ── Static Header (logo + CTA) ──────────────────────────────────── */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-sm border-b border-[#f0ede8]">
+      <header className="fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-sm border-b border-[#e3ceff]">
         {/* Progress bar sits at very top */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-[#e8e3db]">
           <div
@@ -721,16 +722,16 @@ export default function OnboardingPage() {
           {/* ── Step 2: Personal Info ── */}
           {step === 2 && (
             <StepWrapper stepKey={2}>
-              <div className="space-y-5">
+              <div className="space-y-5 mt-12 md:mt-0">
                 <div className="mb-6">
                   <h2
                     className="text-[28px] text-brand-dark mb-2 leading-tight"
                     style={{ fontFamily: "Lalezar, sans-serif" }}
                   >
-                    أهلاً، من تكون؟
+                    من تكون؟
                   </h2>
                   <p className="text-sm text-[#888] leading-relaxed">
-                    معلوماتك الشخصية تساعدنا نحضّر تجربة مخصصة لك.
+                    معلوماتك الشخصية تساعدنا نحضّر تجربة مخصصة لك
                   </p>
                 </div>
 
@@ -757,7 +758,7 @@ export default function OnboardingPage() {
 
                 <Field label="رقم الهاتف" error={errors.phone}>
                   <div className="flex gap-2">
-                    <div className="flex items-center gap-1.5 h-12 md:h-14 px-3 rounded-lg md:rounded-2xl border border-[#e8e3db] bg-[#faf8f5] text-sm text-brand-dark font-medium whitespace-nowrap select-none">
+                    <div className="flex items-center gap-1.5 h-12 md:h-14 px-3 rounded-lg md:rounded-2xl border border-[#e8e3db] bg-[#e3ceff] text-sm text-brand-dark font-medium whitespace-nowrap select-none">
                       🇱🇧 <span dir="ltr">+961</span>
                     </div>
                     <input
@@ -788,7 +789,7 @@ export default function OnboardingPage() {
           {/* ── Step 3: Store Info ── */}
           {step === 3 && (
             <StepWrapper stepKey={3}>
-              <div className="space-y-5">
+              <div className="space-y-5 mt-20 md:mt-0">
                 <div className="mb-6">
                   <h2
                     className="text-[28px] text-brand-dark mb-2 leading-tight"
@@ -797,7 +798,7 @@ export default function OnboardingPage() {
                     أخبرنا عن متجرك
                   </h2>
                   <p className="text-sm text-[#888] leading-relaxed">
-                    كل تفصيل تكتبه يُقرّب زبائنك منك أكثر.
+                    كل تفصيل تكتبه يُقرّب زبائنك منك أكثر
                   </p>
                 </div>
 
@@ -828,7 +829,7 @@ export default function OnboardingPage() {
                             "group relative flex items-center gap-1 px-4 py-3.5 rounded text-right transition-all duration-200 overflow-hidden",
                             active
                               ? "border-brand-dark bg-brand-dark text-white shadow-md scale-[1.02]"
-                              : " border border-[#f3ede5] bg-gray-50 text-[#555] hover:border-brand-dark/20 hover:bg-[#f5f0e8]",
+                              : " border border-[#f3ede5] bg-gray-50 text-[#555] hover:border-brand-dark/20 hover:bg-white",
                           ].join(" ")}
                         >
                           <span
@@ -938,11 +939,11 @@ export default function OnboardingPage() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-4 border-t border-[#f0ede8] mt-6">
+                <div className="flex items-center justify-between pt-4 border-t border-[#e3ceff] mt-6">
                   <button
                     type="button"
                     onClick={() => setStep(3)}
-                    className="flex items-center gap-1.5 px-7 h-12 rounded-2xl text-sm bg-[#f0ede8] text-[#1a1a1a] hover:bg-[#e8e4de] transition-colors"
+                    className="flex items-center gap-1.5 px-7 h-12 rounded-2xl text-sm bg-[#e3ceff] text-[#1a1a1a] hover:bg-[#e8e4de] transition-colors"
                   >
                     <ArrowRight className="w-4 h-4" /> رجوع
                   </button>
@@ -990,14 +991,14 @@ export default function OnboardingPage() {
                 >
                   <div
                     className={[
-                      "flex items-center h-12 md:h-14 rounded-2xl border bg-[#faf8f5] overflow-hidden transition-all duration-200",
+                      "flex items-center h-12 md:h-14 rounded-2xl border bg-[#e3ceff] overflow-hidden transition-all duration-200",
                       errors.slug
                         ? "border-red-300 focus-within:ring-4 focus-within:ring-red-100"
                         : "border-[#e8e3db] focus-within:border-brand-dark focus-within:ring-4 focus-within:ring-brand-dark/5 focus-within:bg-white",
                     ].join(" ")}
                   >
                     {/* Domain suffix — shown on LEFT in RTL, so visually leads */}
-                    <div className="h-full flex items-center px-3 border-l border-[#e8e3db] bg-[#f0ede8] text-[#999] text-xs font-medium whitespace-nowrap">
+                    <div className="h-full flex items-center px-3 border-l border-[#e8e3db] bg-[#e3ceff] text-[#999] text-xs font-medium whitespace-nowrap">
                       .{domain}
                     </div>
                     <input
@@ -1078,11 +1079,11 @@ export default function OnboardingPage() {
                 )}
 
                 {/* Final Nav */}
-                <div className="flex items-center justify-between pt-4 border-t border-[#f0ede8] mt-6">
+                <div className="flex items-center justify-between pt-4 border-t border-[#e3ceff] mt-6">
                   <button
                     type="button"
                     onClick={() => setStep(4)}
-                    className="flex items-center gap-1.5 px-7 h-12 rounded-lg md:rounded-2xl text-sm bg-[#f0ede8] text-brand-dark hover:bg-[#e8e4de] transition-colors"
+                    className="flex items-center gap-1.5 px-7 h-12 rounded-lg md:rounded-2xl text-sm bg-[#e3ceff] text-brand-dark hover:bg-[#e8e4de] transition-colors"
                   >
                     <ArrowRight className="w-4 h-4" /> رجوع
                   </button>

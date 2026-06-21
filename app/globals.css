@@ -121,7 +121,7 @@ body {
   background-color: rgb(var(--color-grey));
   color: rgb(var(--color-brand-primary));
   font-family: var(--font-body);
-  font-weight: 600;
+  font-weight: 400; /* Fixed from 600 to map properly to your loaded 400/500/700 weights */
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -129,19 +129,53 @@ body {
 /* =========================================================
    TYPOGRAPHY
 ========================================================= */
-h1,
-h2,
-h4,
-h5,
-h6 {
-  font-family: var(--font-display);
-  font-weight: 400;
-  line-height: 1.2;
+@layer base {
+  h1,
+  h2,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.2;
+  }
+
+  /* English Defaults (Maps to Montserrat via var(--font-body)) */
+  h3 {
+    font-family: var(--font-body);
+    font-weight: 700;
+  }
+
+  p {
+    font-family: var(--font-body);
+    font-weight: 400;
+  }
+
+  /* Specific Arabic Overrides (Maps to IBM Plex via var(--font-body)) */
+  html[lang="ar"] h3,
+  html[dir="rtl"] h3 {
+    font-weight: 700; /* Forces IBM Plex Bold */
+  }
+
+  html[lang="ar"] p,
+  html[dir="rtl"] p {
+    font-weight: 500; /* Forces IBM Plex Medium */
+  }
 }
 
-h3 {
-  font-family: var(--font-body);
-  font-weight: 700;
+/* =========================================================
+   UTILITIES FOR FONT WEIGHTS
+========================================================= */
+@layer utilities {
+  .font-regular {
+    font-weight: 400 !important;
+  }
+  .font-medium {
+    font-weight: 500 !important;
+  }
+  .font-bold {
+    font-weight: 700 !important;
+  }
 }
 
 /* =========================================================
