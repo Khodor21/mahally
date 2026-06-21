@@ -142,27 +142,25 @@ export default function LoginComponent() {
 
             {/* Divider */}
             <div className="relative my-8">
-              <div className="h-px bg-[#E8E0D5]" />
+              <div className="" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="bg-white px-4 text-[13px] text-[#8B8B8B]">
-                  أو
-                </span>
+                <span className="bg-white px-4 text-sm text-[#8B8B8B]">أو</span>
               </div>
             </div>
 
             {/* Create account */}
-            <div className="bg-gray-50 border border-[#E8E0D5] rounded-2xl p-5 text-center">
-              <h3 className="text-[#1E1E1E] font-bold mb">
+            <div className="p-5 text-center">
+              <h3 className="text-[#1E1E1E] font-bold text-lg">
                 بعدك ما عندك متجر؟
               </h3>
 
-              <p className="text-[14px] text-[#6B6B6B] mb-4">
+              <p className="text-[#6B6B6B] mb-4">
                 افتح متجرك خلال دقائق وابدأ البيع مباشرة.
               </p>
 
               <Link
                 href="/onboarding"
-                className="text-sm inline-flex items-center underline justify-center text-brand-dark font-bold"
+                className="text-base inline-flex items-center underline justify-center text-brand-dark font-bold"
               >
                 أنشئ متجرك مجاناً
               </Link>

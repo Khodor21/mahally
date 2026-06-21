@@ -36,7 +36,6 @@ const STEPS = [
   { id: 2, label: "معلوماتك" },
   { id: 3, label: "كلمة المرور" },
   { id: 4, label: "رابطك" },
-  { id: 5, label: "" },
 ];
 
 const INPUT_BASE =
@@ -145,7 +144,7 @@ function StepPills({ current }: { current: number }) {
                   isDone
                     ? "bg-brand-dark text-white"
                     : isActive
-                      ? "bg-[#f5f0e8] text-brand-dark"
+                      ? "bg-[#e3ceff] text-brand-dark"
                       : "bg-transparent text-[#ccc]",
                 ].join(" ")}
               >
@@ -443,6 +442,7 @@ export default function OnboardingPage() {
 
   // Load from localStorage only after hydration to avoid SSR mismatch
   useEffect(() => {
+    console.log("Hydration effect fired");
     const saved = loadFromStorage();
     setForm(saved.form);
     setStep(saved.step);
@@ -620,7 +620,7 @@ export default function OnboardingPage() {
     );
   }
 
-  const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mahalli.lb";
+  const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mahally.app";
 
   return (
     <div dir="rtl" className="min-h-screen bg-white flex flex-col">
@@ -657,22 +657,22 @@ export default function OnboardingPage() {
         We use pt to offset the fixed header, then flex-1 + flex to center content.
       */}
       <main className="flex-1 flex flex-col items-center justify-center px-5 pt-[100px] pb-16 min-h-screen">
-        <div className="w-full max-w-sm">
+        <div className="w-full px-3 md:px-12 mx-auto">
           {/* ── Step 1: Email ── */}
           {step === 1 && (
             <StepWrapper stepKey={1}>
-              <div className="space-y-6">
+              <div className="space-y-3">
                 <div className="mb-8">
                   <h1
-                    className="text-[32px] leading-[1.25] text-brand-dark mb-3"
-                    style={{ fontFamily: "Lalezar, sans-serif" }}
+                    className="text-[34px] md:text-[42px] leading-[1.15] text-brand-dark flex items-center justify-center gap-3 "
+                    style={{ fontFamily: "Lalezar, cursive" }}
                   >
                     ابدأ متجرك اليوم
+                    <Emoji unified="1f440" size={38} />{" "}
+                    {/* استخدام الإيموجي هنا */}
                   </h1>
-                  <p className="text-[#777] text-sm leading-[1.9]">
+                  <p className="text-[#777] text-center font-regular text-sm leading-[1.9]">
                     مع محلي، حوّل فكرتك إلى متجر إلكتروني ناجح بسهولة وثقة.
-                    <br />
-                    خطوتك الأولى لبناء ونمو متجرك تبدأ هنا.
                   </p>
                 </div>
 
