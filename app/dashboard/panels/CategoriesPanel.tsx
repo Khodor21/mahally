@@ -162,16 +162,16 @@ export default function CategoriesPanel({ storeId }: { storeId: string }) {
       <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute hidden md:block left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
-              className="bg-gray-50 border rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(60_28_84)]"
+              className="bg-gray-50 w-[70%] md:w-full border rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(60_28_84)]"
               placeholder={tr.searchCategories}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <button
             onClick={fetchCategories}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 hidden md:block hover:bg-gray-100 rounded-lg transition"
             title="Refresh"
           >
             <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
@@ -179,7 +179,7 @@ export default function CategoriesPanel({ storeId }: { storeId: string }) {
         </div>
         <button
           onClick={openCreate}
-          className="bg-[rgb(60_28_84)] hover:bg-[rgb(75_35_105)] transition text-white px-5 py-2.5 rounded-lg text-sm font-semibold"
+          className="bg-[rgb(60_28_84)] hover:bg-[rgb(75_35_105)] transition text-white px-6 md:px-5 py-2.5 rounded-lg text-xs font-semibold"
         >
           {tr.addCategory}
         </button>

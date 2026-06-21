@@ -50,7 +50,7 @@ export const t = {
 
     totalCategories: "إجمالي التصنيفات",
     searchCategories: "ابحث عن تصنيف...",
-    addCategory: "إضافة تصنيف",
+    addCategory: "إضافة ",
     editCategory: "تعديل التصنيف",
     logo: "الشعار",
     logoUrl: "رابط الشعار (اختياري)",
