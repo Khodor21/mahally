@@ -44,7 +44,7 @@ function SearchBar({
   dir: "rtl" | "ltr";
 }) {
   return (
-    <div className="relative flex-grow max-w-md">
+    <div className="relative flex-grow w-full">
       <div
         className={`absolute inset-y-0 ${dir === "rtl" ? "right-0 pr-3" : "left-0 pl-3"} flex items-center pointer-events-none`}
       >
@@ -52,7 +52,7 @@ function SearchBar({
       </div>
       <input
         type="text"
-        className={`block w-full rounded-lg border border-gray-100 bg-[#fdfdfd] py-2.5 ${
+        className={`block w-full rounded-lg border border-gray-100 bg-[#fdfdfd] py-1.5 md:py-2.5 ${
           dir === "rtl" ? "pr-10 pl-3" : "pl-10 pr-3"
         } text-sm focus:border-brand-black focus:ring-brand-black outline-none transition-colors`}
         placeholder={placeholder}
@@ -78,12 +78,7 @@ function FilterPanel({
   t: any;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-4">
-      <div className="flex items-center gap-2">
-        <SlidersHorizontal className="h-4 w-4 text-gray-500" />
-        <span className="text-sm font-medium text-gray-700">{t.filters}:</span>
-      </div>
-
+    <div className="w-full flex justify-between gap-0 md:justify-center flex-wrap items-center md:gap-4">
       {/* Sort Dropdown */}
       <select
         value={sortOption}
@@ -138,7 +133,7 @@ export default function CategoryPage() {
       emptyState: "لا توجد منتجات في هذا القسم حالياً.",
       searchPlaceholder: "ابحث عن منتج في هذا القسم...",
       filters: "تصفية وترتيب",
-      sortDefault: "الترتيب الافتراضي",
+      sortDefault: "تصفية وترتيب",
       sortPriceAsc: "السعر: من الأقل للأعلى",
       sortPriceDesc: "السعر: من الأعلى للأقل",
       inStockOnly: "متوفر في المخزون فقط",
@@ -150,7 +145,7 @@ export default function CategoryPage() {
       emptyState: "No products available in this category yet.",
       searchPlaceholder: "Search products in this category...",
       filters: "Filter & Sort",
-      sortDefault: "Default Sorting",
+      sortDefault: "Filter & Sort",
       sortPriceAsc: "Price: Low to High",
       sortPriceDesc: "Price: High to Low",
       inStockOnly: "In Stock Only",
@@ -254,9 +249,9 @@ export default function CategoryPage() {
   return (
     <div dir={dir} className="min-h-screen bg-white pb-16">
       {/* Header & Breadcrumbs */}
-      <div className="py-8 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto flex flex-col items-start gap-4">
-          <p className="text font-medium text-gray-500 flex items-center flex-wrap">
+      <div className="py-4 px-4 md:px-8">
+        <div className="max-w-7xl mx-auto flex flex-col items-start gap-2">
+          <p className="text-sm font-medium text-gray-400 flex items-center flex-wrap">
             <Link
               href={`/?lang=${lang}`}
               className="hover:text-brand-black transition-colors"
@@ -264,15 +259,17 @@ export default function CategoryPage() {
               {t.home}
             </Link>
             <BreadcrumbIcon className="w-4 h-4 mx-2" />
-            <span className="text-brand-black">{categoryData.title}</span>
+            <span className="text-brand-black text-sm">
+              {categoryData.title}
+            </span>
           </p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 mt-2 mb-2">
+      <div className="max-w-7xl mx-auto px-4 mt-1 mb-2">
         {/* Search & Filter Section */}
         {categoryData.products.length > 0 && (
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
+          <div className="flex flex-col w-full lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
             <SearchBar
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
@@ -299,9 +296,9 @@ export default function CategoryPage() {
             <p className="text-lg font-medium">{t.emptyState}</p>
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
             <Search className="w-12 h-12 mb-4 text-gray-300" />
-            <p className="text-lg font-medium">{t.noSearchResults}</p>
+            <p className="md:text-lg font-medium">{t.noSearchResults}</p>
             <button
               onClick={() => {
                 setSearchQuery("");

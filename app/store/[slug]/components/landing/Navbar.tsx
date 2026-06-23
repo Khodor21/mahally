@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Heart, ShoppingBag, Menu, X, User } from "lucide-react";
-
+import { Search, Heart, ShoppingBag, X, User } from "lucide-react";
 import { useShop } from "@/app/store/context";
 
 interface Category {
@@ -34,24 +33,23 @@ export default function Navbar({
   popularSearches = [],
   promoText = "",
 }: NavbarProps) {
-  // 🔍 DEBUG: Log the received language
-  console.log("Navbar received lang prop:", lang);
-
   const [searchOpen, setSearchOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
-
   const { cartCount, favCount } = useShop();
   const router = useRouter();
 
   const dir = lang === "ar" ? "rtl" : "ltr";
   const isRTL = lang === "ar";
 
-  console.log("Navbar calculated dir:", dir);
-  console.log("Navbar isRTL:", isRTL);
+  // Listen for the custom event emitted by BottomNavbar to open the search modal
+  useEffect(() => {
+    const handleOpenSearch = () => setSearchOpen(true);
+    window.addEventListener("open-search-modal", handleOpenSearch);
+    return () =>
+      window.removeEventListener("open-search-modal", handleOpenSearch);
+  }, []);
 
   // Fetch Categories
   useEffect(() => {
@@ -60,19 +58,15 @@ export default function Navbar({
         setLoadingCategories(false);
         return;
       }
-
       try {
         const res = await fetch(
           `/api/categories?store_id=${storeId}&lang=${lang}`,
         );
-
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
-
         const data = await res.json();
         const list = data?.data || data?.categories || data || [];
-
         setCategories(Array.isArray(list) ? list : []);
       } catch (error) {
         console.error("Failed to fetch categories for navbar:", error);
@@ -87,23 +81,19 @@ export default function Navbar({
 
   // Prevent scroll when modals open
   useEffect(() => {
-    document.body.style.overflow = searchOpen || mobileMenuOpen ? "hidden" : "";
+    document.body.style.overflow = searchOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
-  }, [searchOpen, mobileMenuOpen]);
+  }, [searchOpen]);
 
   const t = {
     search: isRTL ? "ابحث عن المنتجات..." : "Search products...",
     noResults: isRTL ? "لا توجد نتائج" : "No results",
     favorites: isRTL ? "المفضلة" : "Favorites",
     cart: isRTL ? "السلة" : "Cart",
-    allCategories: isRTL ? "كل التصنيفات" : "All Categories",
     shopAll: isRTL ? "تسوق الكل" : "Shop All",
     profile: isRTL ? "الحساب" : "Profile",
-    promoText: isRTL
-      ? "توصيل مجاني للطلبات أكثر من 300 ريال"
-      : "Free delivery for orders over 300 SAR",
   };
 
   return (
@@ -112,56 +102,54 @@ export default function Navbar({
       {promoText && promoText.trim() !== "" && (
         <div
           dir={dir}
-          className="w-full bg-brand-primary text-white text-center py-3 text-sm tracking-wide font-medium"
+          className="w-full bg-brand-primary text-white text-center py-2.5 px-4 text-[13px] sm:text-sm tracking-wide font-medium"
         >
           {promoText}
         </div>
       )}
 
-      {/* HEADER */}
+      {/* HEADER - Relative on Mobile (scrolls away), Sticky on Desktop */}
       <header
         dir={dir}
-        className="sticky top-0 z-50 w-full bg-white backdrop-blur-md border-b border-gray-100 transition-all duration-200"
+        className="relative md:sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 transition-all duration-200"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            {/* 1. START (Logo & Mobile Menu Toggle) */}
-            <div className="flex items-center gap-3 flex-1 md:flex-none">
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setMobileMenuOpen(true)}
-                className="md:hidden p-2 -ms-2 rounded-full hover:bg-gray-100 transition-colors text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200"
-                aria-label="Open menu"
-              >
-                <Menu className="w-5 h-5 stroke-[1.5]" />
-              </button>
+          <div className="flex items-center justify-between h-16 md:h-20 gap-3 md:gap-8">
+            {/* 1. START (Logo) */}
+            <Link
+              href={"/"}
+              className="flex items-center gap-2 group transition-opacity hover:opacity-90 flex-shrink-0"
+            >
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt={storeName}
+                  className="h-8 md:h-10 w-auto max-w-[100px] md:max-w-[160px] object-contain"
+                />
+              ) : (
+                <div
+                  className="flex-shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm"
+                  style={{ backgroundColor: primaryColor || "#111827" }}
+                >
+                  {storeName.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </Link>
 
-              {/* Logo */}
-              <Link
-                href={"/"}
-                className="flex items-center gap-2 group transition-opacity hover:opacity-90"
-              >
-                {logoUrl ? (
-                  <img
-                    src={logoUrl}
-                    alt={storeName}
-                    className="h-8 md:h-10 w-auto max-w-[120px] md:max-w-[160px] object-contain"
-                  />
-                ) : (
-                  <div
-                    className="flex-shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm"
-                    style={{ backgroundColor: primaryColor || "#000" }}
-                  >
-                    {storeName.charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </Link>
-            </div>
+            {/* 2. MOBILE CENTER (Search Bar - Fake Input to open Modal) */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="flex-1 md:hidden flex items-center gap-2.5 bg-gray-100/80 hover:bg-gray-100 transition-colors px-3.5 py-2.5 rounded-full text-gray-500 text-sm overflow-hidden"
+            >
+              <Search className="w-4 h-4 stroke-[2] flex-shrink-0 text-gray-400" />
+              <span className="truncate whitespace-nowrap opacity-90">
+                {t.search}
+              </span>
+            </button>
 
-            {/* 2. CENTER (Desktop Categories) */}
+            {/* 3. DESKTOP CENTER (Categories) */}
             <nav className="hidden md:flex items-center justify-center gap-6 lg:gap-8 flex-1 px-4">
               {loadingCategories ? (
-                // Skeletons for desktop links
                 Array.from({ length: 3 }).map((_, i) => (
                   <div
                     key={i}
@@ -170,22 +158,20 @@ export default function Navbar({
                 ))
               ) : (
                 <>
-                  {/* Display up to 6 categories directly in the header */}
                   {categories.slice(0, 6).map((cat) => (
                     <Link
                       key={cat.id}
                       href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
-                      className="font-medium text-black/90 hover:text-brand-primary transition-colors whitespace-nowrap"
+                      className="text-[15px] font-medium text-gray-800 hover:text-brand-primary transition-colors whitespace-nowrap"
                     >
                       {cat.title}
                     </Link>
                   ))}
 
-                  {/* If more than 6, add a generic shop link */}
                   {categories.length > 6 && (
                     <Link
                       href={"/categories"}
-                      className="text-sm font-medium text-gray-600 hover:text-black transition-colors whitespace-nowrap"
+                      className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors whitespace-nowrap"
                     >
                       {t.shopAll}
                     </Link>
@@ -194,41 +180,50 @@ export default function Navbar({
               )}
             </nav>
 
-            {/* 3. END (Icons - Search, Profile, Fav, Cart) */}
-            <div className="flex items-center justify-end gap-1 sm:gap-2 flex-1 md:flex-none">
-              {/* Profile (Desktop mainly) */}
+            {/* 4. END (Icons) */}
+            <div className="flex items-center justify-end gap-3 sm:gap-4 flex-shrink-0">
+              {/* Desktop Search Icon */}
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="hidden md:flex transition-colors text-gray-700 hover:text-brand-primary"
+                aria-label={t.search}
+              >
+                <Search className="w-[24px] h-[24px] stroke-[1.5]" />
+              </button>
+
+              {/* Profile (Desktop Only) */}
               <Link
                 href={"/profile"}
-                className="hidden sm:flex transition-colors text-brand-black"
+                className="hidden md:flex transition-colors text-gray-700 hover:text-brand-primary"
                 aria-label={t.profile}
               >
-                <User className="w-[26px] h-[26px] stroke-[1.5]" />
+                <User className="w-[24px] h-[24px] stroke-[1.5]" />
               </Link>
 
-              {/* Favorites */}
+              {/* Favorites (Mobile & Desktop) */}
               <Link
                 href={"/favorites"}
-                className="relative transition-colors text-brand-black"
+                className="relative transition-colors text-gray-700 hover:text-brand-primary"
                 aria-label={t.favorites}
               >
-                <Heart className="w-[26px] h-[26px] stroke-[1.5]" />
+                <Heart className="w-[24px] h-[24px] stroke-[1.5]" />
                 {favCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center text-[9px] font-bold bg-black text-white rounded-full ring-2 ring-white">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center text-[9px] font-bold bg-brand-primary text-white rounded-full ring-2 ring-white">
                     {favCount > 99 ? "99+" : favCount}
                   </span>
                 )}
               </Link>
 
-              {/* Cart */}
+              {/* Cart (Desktop Only) */}
               <Link
                 href={"/cart"}
-                className="relative transition-colors text-brand-black"
+                className="hidden md:flex relative transition-colors text-gray-700 hover:text-brand-primary"
                 aria-label={t.cart}
               >
-                <ShoppingBag className="w-[26px] h-[26px] stroke-[1.5]" />
+                <ShoppingBag className="w-[24px] h-[24px] stroke-[1.5]" />
                 {cartCount > 0 && (
                   <span
-                    className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center text-[9px] font-bold text-white rounded-full ring-2 ring-white"
+                    className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center text-[9px] font-bold text-white rounded-full ring-2 ring-white"
                     style={{ backgroundColor: primaryColor || "#000" }}
                   >
                     {cartCount > 99 ? "99+" : cartCount}
@@ -244,56 +239,56 @@ export default function Navbar({
       {searchOpen && (
         <div
           dir={dir}
-          className="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] px-4 bg-zinc-900/40 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 z-[100] flex items-start justify-center pt-[5vh] md:pt-[10vh] px-4 bg-zinc-900/60 backdrop-blur-sm transition-opacity"
         >
           {/* Overlay click to close */}
           <div
             className="absolute inset-0"
             onClick={() => setSearchOpen(false)}
           />
-
           <div className="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center px-4 py-3 border-b border-gray-100">
-              <Search className="w-5 h-5 text-gray-400 stroke-[1.5]" />
+              <Search className="w-5 h-5 text-gray-400 stroke-[2]" />
               <input
                 autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t.search}
-                className="flex-1 bg-transparent px-4 py-2 text-base md:text-lg outline-none placeholder:text-gray-400 text-gray-900"
+                className="flex-1 bg-transparent px-4 py-2.5 text-base md:text-lg outline-none placeholder:text-gray-400 text-gray-900"
               />
               <button
                 onClick={() => setSearchOpen(false)}
-                className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 transition-colors"
+                className="p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-500 transition-colors"
               >
                 <X className="w-5 h-5 stroke-[1.5]" />
               </button>
             </div>
 
             {/* Quick Links / Empty State Area */}
-            <div className="p-4 bg-gray-50/50 min-h-[150px]">
+            <div className="p-4 bg-gray-50/50 min-h-[200px]">
               {searchQuery.trim() === "" ? (
                 <div className="text-sm text-gray-500">
                   {popularSearches.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 mt-2">
                       {popularSearches.map((term, i) => (
                         <button
                           key={i}
                           onClick={() => setSearchQuery(term)}
-                          className="px-3 py-1.5 bg-white border border-gray-200 rounded-full text-xs hover:border-black transition-colors shadow-sm"
+                          className="px-3.5 py-1.5 bg-white border border-gray-200 rounded-full text-[13px] hover:border-gray-400 text-gray-700 transition-colors shadow-sm"
                         >
                           {term}
                         </button>
                       ))}
                     </div>
                   ) : (
-                    <span className="flex items-center justify-center h-full pt-8">
-                      {t.search}
-                    </span>
+                    <div className="flex flex-col items-center justify-center h-[120px] gap-2 opacity-60">
+                      <Search className="w-8 h-8 text-gray-300 stroke-[1.5]" />
+                      <span>{t.search}</span>
+                    </div>
                   )}
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-full pt-8 text-sm text-gray-500">
+                <div className="flex items-center justify-center h-[120px] text-sm text-gray-500">
                   {t.noResults}
                 </div>
               )}
@@ -301,87 +296,6 @@ export default function Navbar({
           </div>
         </div>
       )}
-
-      {/* MOBILE MENU - Animated Drawer */}
-      <div
-        dir={dir}
-        className={`fixed inset-0 z-[120] lg:hidden transition-opacity duration-300 ease-in-out ${
-          mobileMenuOpen
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
-        }`}
-      >
-        {/* Clickable Overlay */}
-        <div
-          className="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-
-        {/* Sliding Panel */}
-        <div
-          className={`absolute top-0 ${isRTL ? "right-0" : "left-0"} h-full w-[85%] max-w-sm bg-white shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col ${
-            mobileMenuOpen
-              ? "translate-x-0"
-              : isRTL
-                ? "translate-x-full"
-                : "-translate-x-full"
-          }`}
-        >
-          {/* Drawer Header */}
-          <div className="flex items-center justify-between p-5 border-b border-gray-100">
-            <span className="font-semibold text-lg">{storeName}</span>
-            <button
-              onClick={() => setMobileMenuOpen(false)}
-              className="p-2 -me-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500"
-            >
-              <X className="w-5 h-5 stroke-[1.5]" />
-            </button>
-          </div>
-
-          {/* Drawer Links */}
-          <div className="flex-1 overflow-y-auto py-4 px-5 flex flex-col gap-1">
-            {/* Dynamic Categories in Mobile */}
-            <div className="py-2">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 mt-4">
-                {t.allCategories}
-              </p>
-              <div className="flex flex-col">
-                {loadingCategories
-                  ? // Mobile Skeletons
-                    Array.from({ length: 4 }).map((_, i) => (
-                      <div key={i} className="py-3">
-                        <div className="w-24 h-4 bg-gray-100 animate-pulse rounded-md" />
-                      </div>
-                    ))
-                  : categories.map((cat) => (
-                      <Link
-                        key={cat.id}
-                        href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
-                        className="py-3 text-base font-medium text-gray-600 hover:text-black transition-colors"
-                      >
-                        {cat.title}
-                      </Link>
-                    ))}
-              </div>
-            </div>
-
-            <Link
-              href={"/profile"}
-              className="flex items-center gap-3 py-3 mt-4 text-base font-medium text-gray-800 hover:text-black transition-colors border-t border-gray-50"
-            >
-              <User className="w-5 h-5 stroke-[1.5]" />
-              {t.profile}
-            </Link>
-          </div>
-
-          {/* Drawer Footer - Language Info (Read-Only) */}
-          <div className="p-5 border-t border-gray-100 bg-gray-50">
-            <div className="text-xs text-gray-500 text-center">
-              {lang === "ar" ? "اللغة: العربية" : "Language: English"}
-            </div>
-          </div>
-        </div>
-      </div>
     </>
   );
 }

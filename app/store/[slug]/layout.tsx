@@ -3,7 +3,8 @@ export const revalidate = 3600;
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { ShopProvider } from "@/app/store/context";
-import Navbar from "./components/landing/Navbar";
+// ❌ Navbar import removed from here
+import BottomNavbar from "./components/landing/BottomNavbar";
 import Footer from "./components/landing/Footer";
 import LangDomSetter from "./LangSetter";
 import ThemeClient from "./components/ThemeClient";
@@ -24,8 +25,8 @@ export default async function StoreLayout({
   const { store, settings } = data;
 
   const lang = (store as { language?: "en" | "ar" }).language || "en";
-
   const primaryColor = settings?.primary_color;
+
   return (
     <ShopProvider>
       <VisitorTracker storeId={store.id} />
@@ -35,16 +36,9 @@ export default async function StoreLayout({
       <LangDomSetter lang={lang} />
       {/* <NotificationInitializer /> */}
 
-      {/* FIX: Injected storeId so the Navbar can successfully fetch categories */}
-      <Navbar
-        storeId={store.id}
-        storeName={store.store_name}
-        storeSlug={store.slug}
-        logoUrl={settings?.logo_url}
-        primaryColor={primaryColor}
-        lang={lang}
-        promoText={settings?.promo_text}
-      />
+      {/* ❌ Navbar component removed from here */}
+
+      <BottomNavbar lang={lang} storeSlug={store.slug} />
 
       <div className="flex flex-col min-h-screen">
         <main className="flex-grow">{children}</main>
@@ -60,6 +54,7 @@ export default async function StoreLayout({
           whatsappNumber={settings?.whatsapp_number}
           description={settings?.description}
           lang={lang}
+          payment_methods={store.payment_methods}
         />
       </div>
     </ShopProvider>

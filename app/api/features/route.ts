@@ -18,35 +18,45 @@ function isValidFeature(feature: any): boolean {
   );
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    // 1. Get the authenticated store admin session securely
-    const user = await requireStoreSession();
+    const { searchParams } = new URL(req.url);
+    const storeSlug = searchParams.get("store_slug");
+    const isPublic = searchParams.get("public") === "true";
 
-    // 2. Fetch features only for this specific store (Replaced select("*") with explicit fields)
+    let storeId: string;
+
+    if (isPublic && storeSlug) {
+      // Fetch store_id using the slug publicly
+      const { data: store, error: storeError } = await supabaseAdmin
+        .from("stores")
+        .select("id")
+        .eq("slug", storeSlug)
+        .single();
+
+      if (storeError || !store) throw new Error("Store not found");
+      storeId = store.id;
+    } else {
+      // Original protected behavior
+      const user = await requireStoreSession();
+      storeId = user.id;
+    }
+
+    // Fetch features
     const { data, error } = await supabaseAdmin
       .from("features")
-      .select(
-        "id, store_id, title, description, icon_name, display_order, is_active, created_at, updated_at",
-      )
-      .eq("store_id", user.id)
+      .select("id, title, description, icon_name, display_order, is_active")
+      .eq("store_id", storeId)
+      .eq("is_active", true) // Only show active features to public
       .order("display_order", { ascending: true });
 
-    if (error) {
-      console.error("GET features error:", error);
-      return NextResponse.json(
-        { success: false, message: error.message },
-        { status: 500 },
-      );
-    }
+    if (error) throw error;
 
     return NextResponse.json({ success: true, data: data || [] });
   } catch (err: any) {
-    console.error("GET features catch error:", err);
-    const isAuth = err.message === "Unauthorized";
     return NextResponse.json(
       { success: false, message: err.message },
-      { status: isAuth ? 401 : 500 },
+      { status: 500 },
     );
   }
 }

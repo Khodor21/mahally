@@ -26,7 +26,6 @@ export interface StoreData {
   created_at: string;
   is_active: boolean;
   language?: Language;
-  
 }
 
 export interface Order {
@@ -73,8 +72,10 @@ export interface Product {
   title: string;
   description: string;
   price: number;
+  discount_price?: number;
   stock: number;
   images: string[];
+  pin?: boolean;
   created_at: string;
 }
 
@@ -82,6 +83,8 @@ export interface ProductFormData {
   title: string;
   description: string;
   price: string;
+  discount_price?: string;
+  pin?: boolean;
   stock: string;
   images: string[];
   category_id: string;

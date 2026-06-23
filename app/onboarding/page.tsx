@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -14,10 +13,9 @@ import {
   Copy,
   ChevronDown,
 } from "lucide-react";
-import { Emoji } from "emoji-picker-react"; // استيراد مكون الإيموجي
+import { Emoji } from "emoji-picker-react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
 const STORE_TYPES = [
   { value: "fashion", label: "ملابس وأزياء", unified: "1f457" },
   { value: "electronics", label: "إلكترونيات", unified: "1f4f1" },
@@ -31,11 +29,35 @@ const STORE_TYPES = [
   { value: "other", label: "متجر متنوع", unified: "1f3ea" },
 ];
 
+const PAYMENT_METHODS = [
+  {
+    value: "cash_on_delivery",
+    label: "الدفع عند الاستلام",
+    description: "الزبون يدفع عند استلام الطلب",
+    icon: "1f682", // truck emoji
+    default: true,
+  },
+  {
+    value: "whish_money",
+    label: "محفظة وش",
+    description: "تحويل أموال عبر تطبيق وش",
+    icon: "1f4b3", // wallet emoji
+    default: false,
+  },
+  {
+    value: "bob_finance",
+    label: "OMT ",
+    description: "الدفع عبر خدمة بوب فاينينس - OMT -",
+    icon: "1f4b5", // money emoji
+    default: false,
+  },
+];
+
 const STEPS = [
   { id: 1, label: "البريد" },
   { id: 2, label: "معلوماتك" },
-    { id: 3, label: "عن المتجر" },
- { id: 4, label: "كلمة المرور" },
+  { id: 3, label: "عن المتجر" },
+  { id: 4, label: "كلمة المرور" },
   { id: 5, label: "رابطك" },
 ];
 
@@ -46,11 +68,9 @@ const INPUT_BASE =
   "focus:ring-4 focus:ring-brand-dark/5";
 
 const LABEL_BASE = "text-sm font-semibold text-brand-dark tracking-wide";
-
 const STORAGE_KEY = "mahalli_onboarding";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function generateSlug(name: string) {
   return name
     .toLowerCase()
@@ -69,6 +89,7 @@ type FormState = {
   location: string;
   storeName: string;
   storeType: string;
+  paymentMethods: string[]; // ✅ NEW: Array of selected payment methods
   slug: string;
   password: string;
   confirmPassword: string;
@@ -82,6 +103,7 @@ const DEFAULT_FORM: FormState = {
   location: "",
   storeName: "",
   storeType: "",
+  paymentMethods: ["cash_on_delivery"], // ✅ NEW: Default to cash on delivery
   slug: "",
   password: "",
   confirmPassword: "",
@@ -115,7 +137,6 @@ function clearStorage() {
 }
 
 // ─── Progress Bar (fixed top) ─────────────────────────────────────────────────
-
 function ProgressBar({ current, total }: { current: number; total: number }) {
   const pct = ((current - 1) / (total - 1)) * 100;
   return (
@@ -129,7 +150,6 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
 }
 
 // ─── Step Pills ───────────────────────────────────────────────────────────────
-
 function StepPills({ current }: { current: number }) {
   return (
     <div className="flex justify-center pt-3 pb-2">
@@ -169,7 +189,6 @@ function StepPills({ current }: { current: number }) {
 }
 
 // ─── Field ────────────────────────────────────────────────────────────────────
-
 function Field({
   label,
   hint,
@@ -203,7 +222,6 @@ function Field({
 }
 
 // ─── Animated Step Wrapper ────────────────────────────────────────────────────
-
 function StepWrapper({
   children,
   stepKey,
@@ -212,13 +230,10 @@ function StepWrapper({
   stepKey: number;
 }) {
   const [visible, setVisible] = useState(false);
-
   useEffect(() => {
-    // Trigger entrance animation on mount
     const t = setTimeout(() => setVisible(true), 10);
     return () => clearTimeout(t);
   }, []);
-
   return (
     <div
       style={{
@@ -233,18 +248,15 @@ function StepWrapper({
 }
 
 // ─── Success Screen ───────────────────────────────────────────────────────────
-
 function SuccessScreen({ slug }: { slug: string }) {
   const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mahalli.lb";
   const storeUrl = `${slug}.${domain}`;
   const [copied, setCopied] = useState(false);
-
   const handleCopy = () => {
     navigator.clipboard.writeText(storeUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
   return (
     <div
       dir="rtl"
@@ -255,19 +267,16 @@ function SuccessScreen({ slug }: { slug: string }) {
         <div className="flex justify-center mb-12">
           <Image src="/Logo.svg" alt="محلي" width={140} height={48} />
         </div>
-
         <div className="text-center">
           {/* Title */}
           <h1 className="text-3xl md:text-4xl text-green-400 mb-4 flex items-center justify-center gap-3 leading-tight">
             متجرك صار جاهز للعمل
             <Emoji unified="1f389" size={36} />
           </h1>
-
           <p className="text-gray-600 text-base leading-relaxed mb-8 px-2">
             مبروك! خطوتك الأولى في التجارة الإلكترونية تمت بنجاح. عشان تبدأ صح
             وبدون لخبطة، جهّزنا لك الخطوات الجاية بكل بساطة:
           </p>
-
           {/* Step-by-Step Baby UX */}
           <div className="text-right space-y-4 mb-8">
             {/* Step 1 */}
@@ -283,7 +292,6 @@ function SuccessScreen({ slug }: { slug: string }) {
                   هذا هو عنوانك على الإنترنت، انسخه وخلّيه عندك عشان تشاركه مع
                   زبائنك ويبدأوا يطلبوا.
                 </p>
-
                 {/* URL Card Integrated */}
                 <div className="bg-white border border-gray-200 rounded p-3 flex items-center justify-between gap-4">
                   <p
@@ -315,7 +323,6 @@ function SuccessScreen({ slug }: { slug: string }) {
                 </div>
               </div>
             </div>
-
             {/* Step 2 */}
             <div className="flex items-start gap-3 bg-gray-50 p-4 border border-gray-200 rounded transition-colors hover:bg-gray-100">
               <div className="flex-shrink-0 w-6 h-6 rounded bg-white border border-gray-200 flex items-center justify-center text-sm font-bold text-brand-dark mt-0.5">
@@ -332,7 +339,6 @@ function SuccessScreen({ slug }: { slug: string }) {
               </div>
             </div>
           </div>
-
           {/* Main Call to Action */}
           <Link
             href="/login"
@@ -348,7 +354,6 @@ function SuccessScreen({ slug }: { slug: string }) {
 }
 
 // ─── Shared Nav Row (back + next) ─────────────────────────────────────────────
-
 function NavRow({
   onBack,
   onNext,
@@ -382,13 +387,10 @@ function PasswordStrength({ password }: { password: string }) {
     { label: "حرف كبير", pass: /[A-Z]/.test(password) },
     { label: "رقم", pass: /[0-9]/.test(password) },
   ];
-
   const score = checks.filter((c) => c.pass).length;
   const colors = ["bg-red-400", "bg-yellow-400", "bg-emerald-400"];
   const labels = ["ضعيفة", "متوسطة", "قوية"];
-
   if (!password) return null;
-
   return (
     <div className="space-y-2">
       {/* Bar */}
@@ -433,15 +435,13 @@ function PasswordStrength({ password }: { password: string }) {
     </div>
   );
 }
-// ─── Main Page ────────────────────────────────────────────────────────────────
 
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function OnboardingPage() {
-  // ── Hydration-safe localStorage init ──────────────────────────────────────
   const [hydrated, setHydrated] = useState(false);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
 
-  // Load from localStorage only after hydration to avoid SSR mismatch
   useEffect(() => {
     console.log("Hydration effect fired");
     const saved = loadFromStorage();
@@ -450,7 +450,6 @@ export default function OnboardingPage() {
     setHydrated(true);
   }, []);
 
-  // Persist to localStorage whenever form or step changes (after hydration)
   useEffect(() => {
     if (!hydrated) return;
     saveToStorage(form, step);
@@ -464,10 +463,8 @@ export default function OnboardingPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Track whether slug was manually edited so auto-gen doesn't override it
   const slugManuallyEdited = useRef(false);
 
-  // Auto-generate slug from storeName ONLY if not manually edited
   useEffect(() => {
     if (!hydrated) return;
     if (slugManuallyEdited.current) return;
@@ -477,7 +474,6 @@ export default function OnboardingPage() {
     }
   }, [form.storeName, hydrated]);
 
-  // Slug availability check — debounced
   useEffect(() => {
     if (!form.slug || form.slug.length < 2) {
       setSlugAvailable(null);
@@ -501,15 +497,32 @@ export default function OnboardingPage() {
     };
   }, [form.slug]);
 
-  const set = useCallback((key: string, value: string) => {
+  const set = useCallback((key: string, value: string | string[]) => {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => ({ ...e, [key]: "" }));
+  }, []);
+
+  // ✅ NEW: Toggle payment method
+  const togglePaymentMethod = useCallback((method: string) => {
+    setForm((f) => {
+      const current = f.paymentMethods;
+      if (current.includes(method)) {
+        // Remove only if at least one will remain
+        if (current.length > 1) {
+          return { ...f, paymentMethods: current.filter((m) => m !== method) };
+        }
+      } else {
+        // Add method
+        return { ...f, paymentMethods: [...current, method] };
+      }
+      return f;
+    });
+    setErrors((e) => ({ ...e, paymentMethods: "" }));
   }, []);
 
   const validate = useCallback(
     (targetStep: number): boolean => {
       const errs: Record<string, string> = {};
-
       if (targetStep === 1) {
         if (!/\S+@\S+\.\S+/.test(form.email))
           errs.email = "بريد إلكتروني غير صالح";
@@ -523,8 +536,11 @@ export default function OnboardingPage() {
       if (targetStep === 3) {
         if (!form.storeName.trim()) errs.storeName = "اسم المتجر مطلوب";
         if (!form.storeType) errs.storeType = "اختر نوع المتجر";
+        // ✅ NEW: Validate payment methods
+        if (form.paymentMethods.length === 0) {
+          errs.paymentMethods = "اختر طريقة دفع واحدة على الأقل";
+        }
       }
-
       if (targetStep === 4) {
         if (!form.password) {
           errs.password = "كلمة المرور مطلوبة";
@@ -574,9 +590,7 @@ export default function OnboardingPage() {
 
   const handleSubmit = async () => {
     if (!validate(4)) return;
-    // Extra guard
     if (slugAvailable === false || slugChecking || !form.slug) return;
-
     setLoading(true);
     try {
       const res = await fetch("/api/stores", {
@@ -589,6 +603,7 @@ export default function OnboardingPage() {
           location: form.location,
           storeName: form.storeName,
           storeType: form.storeType,
+          paymentMethods: form.paymentMethods, // ✅ NEW: Send payment methods
           slug: form.slug,
           password: form.password,
         }),
@@ -598,7 +613,6 @@ export default function OnboardingPage() {
         setErrors({ global: data.error || "حدث خطأ غير متوقع" });
         return;
       }
-      // Clear persisted data on success
       clearStorage();
       setSuccess(true);
     } catch {
@@ -612,7 +626,6 @@ export default function OnboardingPage() {
 
   if (success) return <SuccessScreen slug={form.slug} />;
 
-  // Don't render form content until hydrated (avoids flicker)
   if (!hydrated) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -621,23 +634,20 @@ export default function OnboardingPage() {
     );
   }
 
-  const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mahally.app";
+  const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mahalli.app";
 
   return (
     <div dir="rtl" className="min-h-screen bg-white flex flex-col">
       {/* Fixed progress bar */}
       <ProgressBar current={step} total={STEPS.length} />
-
-      {/* ── Static Header (logo + CTA) ──────────────────────────────────── */}
+      {/* ── Static Header ──────────────────────────────────────────────────── */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-sm border-b border-[#e3ceff]">
-        {/* Progress bar sits at very top */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-[#e8e3db]">
           <div
             className="h-full bg-brand-dark transition-all duration-700"
             style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
           />
         </div>
-
         <div className="flex items-center justify-between px-5 pt-3 pb-2">
           <Image src="/Logo.svg" alt="محلي" width={86} height={86} />
           <a
@@ -647,16 +657,10 @@ export default function OnboardingPage() {
             تصفّح المتجر التجريبي
           </a>
         </div>
-
-        {/* Step pills below logo row */}
         <StepPills current={step} />
       </header>
 
-      {/* ── Body: vertically centered ───────────────────────────────────── */}
-      {/* 
-        The header is ~88px tall (progress 4px + logo row ~44px + pills ~40px).
-        We use pt to offset the fixed header, then flex-1 + flex to center content.
-      */}
+      {/* ── Body ──────────────────────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col items-center justify-center px-5 pt-[100px] pb-16 min-h-screen">
         <div className="w-full px-3 md:px-12 mx-auto">
           {/* ── Step 1: Email ── */}
@@ -669,14 +673,12 @@ export default function OnboardingPage() {
                     style={{ fontFamily: "Lalezar, cursive" }}
                   >
                     ابدأ متجرك اليوم
-                    <Emoji unified="1f440" size={38} />{" "}
-                    {/* استخدام الإيموجي هنا */}
+                    <Emoji unified="1f440" size={38} />
                   </h1>
                   <p className="text-[#777] text-center font-regular text-sm leading-[1.9]">
                     مع محلي، حوّل فكرتك إلى متجر إلكتروني ناجح بسهولة وثقة.
                   </p>
                 </div>
-
                 <Field label="بريدك الإلكتروني" error={errors.email}>
                   <input
                     type="email"
@@ -689,7 +691,6 @@ export default function OnboardingPage() {
                     autoFocus
                   />
                 </Field>
-
                 <button
                   type="button"
                   onClick={handleStep1Next}
@@ -706,7 +707,6 @@ export default function OnboardingPage() {
                     </>
                   )}
                 </button>
-
                 <p className="text-center text-base text-brand-dark/70 mt-2">
                   عندك حساب سابق؟{" "}
                   <Link
@@ -719,10 +719,11 @@ export default function OnboardingPage() {
               </div>
             </StepWrapper>
           )}
+
           {/* ── Step 2: Personal Info ── */}
           {step === 2 && (
             <StepWrapper stepKey={2}>
-              <div className="space-y-5 mt-12 md:mt-0">
+              <div className="space-y-5 mt-12">
                 <div className="mb-6">
                   <h2
                     className="text-[28px] text-brand-dark mb-2 leading-tight"
@@ -734,7 +735,6 @@ export default function OnboardingPage() {
                     معلوماتك الشخصية تساعدنا نحضّر تجربة مخصصة لك
                   </p>
                 </div>
-
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="الاسم الأول" error={errors.firstName}>
                     <input
@@ -755,7 +755,6 @@ export default function OnboardingPage() {
                     />
                   </Field>
                 </div>
-
                 <Field label="رقم الهاتف" error={errors.phone}>
                   <div className="flex gap-2">
                     <div className="flex items-center gap-1.5 h-12 md:h-14 px-3 rounded-lg md:rounded-2xl border border-[#e8e3db] bg-[#e3ceff] text-sm text-brand-dark font-medium whitespace-nowrap select-none">
@@ -771,7 +770,6 @@ export default function OnboardingPage() {
                     />
                   </div>
                 </Field>
-
                 <Field label="المدينة / المنطقة" error={errors.location}>
                   <input
                     type="text"
@@ -781,15 +779,15 @@ export default function OnboardingPage() {
                     className={INPUT_BASE}
                   />
                 </Field>
-
                 <NavRow onBack={() => setStep(1)} onNext={handleNext} />
               </div>
             </StepWrapper>
           )}
-          {/* ── Step 3: Store Info ── */}
+
+          {/* ── Step 3: Store Info + Payment Methods ── */}
           {step === 3 && (
             <StepWrapper stepKey={3}>
-              <div className="space-y-5 mt-20 md:mt-0">
+              <div className="space-y-5 mt-20">
                 <div className="mb-6">
                   <h2
                     className="text-[28px] text-brand-dark mb-2 leading-tight"
@@ -802,6 +800,7 @@ export default function OnboardingPage() {
                   </p>
                 </div>
 
+                {/* Store Name */}
                 <Field
                   label="اسم المتجر"
                   hint="يظهر للزبائن"
@@ -816,6 +815,7 @@ export default function OnboardingPage() {
                   />
                 </Field>
 
+                {/* Store Type */}
                 <Field label="ما الذي تبيعه؟" error={errors.storeType}>
                   <div className="grid grid-cols-2 gap-2.5 mt-1">
                     {STORE_TYPES.map((t) => {
@@ -829,13 +829,12 @@ export default function OnboardingPage() {
                             "group relative flex items-center gap-1 px-4 py-3.5 rounded text-right transition-all duration-200 overflow-hidden",
                             active
                               ? "border-brand-dark bg-brand-dark text-white shadow-md scale-[1.02]"
-                              : " border border-[#f3ede5] bg-gray-50 text-[#555] hover:border-brand-dark/20 hover:bg-white",
+                              : "border border-[#f3ede5] bg-gray-50 text-[#555] hover:border-brand-dark/20 hover:bg-white",
                           ].join(" ")}
                         >
                           <span
                             className={[
                               "flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-lg transition-all duration-200",
-                              active ? "" : "",
                             ].join(" ")}
                           >
                             <Emoji unified={t.unified} size={20} />
@@ -857,10 +856,75 @@ export default function OnboardingPage() {
                   </div>
                 </Field>
 
+                {/* ✅ NEW: Payment Methods */}
+                <Field
+                  label="طرق الدفع المتاحة"
+                  hint="اختر واحدة أو أكثر"
+                  error={errors.paymentMethods}
+                >
+                  <div className="space-y-2.5">
+                    {PAYMENT_METHODS.map((pm) => {
+                      const isSelected = form.paymentMethods.includes(pm.value);
+                      const isDisabled =
+                        isSelected && form.paymentMethods.length === 1;
+
+                      return (
+                        <button
+                          key={pm.value}
+                          type="button"
+                          onClick={() => togglePaymentMethod(pm.value)}
+                          disabled={isDisabled}
+                          className={[
+                            "w-full flex items-start gap-3 px-4 py-3.5 rounded-lg text-right transition-all duration-200 border",
+                            isSelected
+                              ? "border-brand-dark bg-brand-dark/5 shadow-sm"
+                              : "border-[#e8e3db] bg-white hover:border-brand-dark/20 hover:bg-[#f5f0e8]",
+                            isDisabled ? "opacity-50 cursor-not-allowed" : "",
+                          ].join(" ")}
+                        >
+                          {/* Checkbox */}
+                          <div
+                            className={[
+                              "flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center mt-0.5 transition-all duration-200",
+                              isSelected
+                                ? "border-brand-dark bg-brand-dark"
+                                : "border-[#ddd] bg-white",
+                            ].join(" ")}
+                          >
+                            {isSelected && (
+                              <CheckCircle className="w-4 h-4 text-white" />
+                            )}
+                          </div>
+
+                          {/* Icon + Text */}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <Emoji unified={pm.icon} size={18} />
+                              <h3 className="font-semibold text-brand-dark">
+                                {pm.label}
+                              </h3>
+                              {pm.default && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-dark/10 text-brand-dark">
+                                  افتراضي
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-[#888]">
+                              {pm.description}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Field>
+
                 <NavRow onBack={() => setStep(2)} onNext={handleNext} />
               </div>
             </StepWrapper>
           )}
+
+          {/* ── Step 4: Password ── */}
           {step === 4 && (
             <StepWrapper stepKey={4}>
               <div className="space-y-5">
@@ -875,10 +939,7 @@ export default function OnboardingPage() {
                     ستستخدمها لتسجيل الدخول إلى لوحة التحكم.
                   </p>
                 </div>
-
-                {/* Password strength indicator */}
                 <PasswordStrength password={form.password} />
-
                 <Field label="كلمة المرور" error={errors.password}>
                   <div className="relative">
                     <input
@@ -904,7 +965,6 @@ export default function OnboardingPage() {
                     </button>
                   </div>
                 </Field>
-
                 <Field label="تأكيد كلمة المرور" error={errors.confirmPassword}>
                   <div className="relative">
                     <input
@@ -931,14 +991,12 @@ export default function OnboardingPage() {
                     </button>
                   </div>
                 </Field>
-
                 {errors.global && (
                   <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                     <span>{errors.global}</span>
                   </div>
                 )}
-
                 <div className="flex items-center justify-between pt-4 border-t border-[#e3ceff] mt-6">
                   <button
                     type="button"
@@ -967,8 +1025,9 @@ export default function OnboardingPage() {
                 </div>
               </div>
             </StepWrapper>
-          )}{" "}
-          {/* ── Step 4: Slug / Domain ── */}
+          )}
+
+          {/* ── Step 5: Slug / Domain ── */}
           {step === 5 && (
             <StepWrapper stepKey={5}>
               <div className="space-y-5">
@@ -983,7 +1042,6 @@ export default function OnboardingPage() {
                     الرابط هو عنوانك على الإنترنت — اجعله بسيطًا ولا يُنسى.
                   </p>
                 </div>
-
                 <Field
                   label="رابط المتجر"
                   hint="حروف إنجليزية، أرقام وشرطات"
@@ -997,7 +1055,6 @@ export default function OnboardingPage() {
                         : "border-[#e8e3db] focus-within:border-brand-dark focus-within:ring-4 focus-within:ring-brand-dark/5 focus-within:bg-white",
                     ].join(" ")}
                   >
-                    {/* Domain suffix — shown on LEFT in RTL, so visually leads */}
                     <div className="h-full flex items-center px-3 border-l border-[#e8e3db] bg-[#e3ceff] text-[#999] text-xs font-medium whitespace-nowrap">
                       .{domain}
                     </div>
@@ -1012,8 +1069,6 @@ export default function OnboardingPage() {
                       }}
                       className="flex-1 h-full px-4 bg-transparent text-brand-dark text-sm outline-none placeholder:text-[#bbb]"
                     />
-
-                    {/* Status icon with Cool Loader */}
                     <div className="w-12 flex items-center justify-center">
                       {slugChecking && (
                         <div className="flex items-center gap-1">
@@ -1033,8 +1088,6 @@ export default function OnboardingPage() {
                     </div>
                   </div>
                 </Field>
-
-                {/* Preview */}
                 {form.slug && (
                   <div className="rounded-2xl border border-[#e8e3db] bg-[#f5f0e8] p-4">
                     <p className="text-[10px] font-semibold text-[#aaa] uppercase tracking-widest mb-1.5">
@@ -1050,18 +1103,13 @@ export default function OnboardingPage() {
                     </p>
                   </div>
                 )}
-
-                {/* Status Messages */}
                 <div className="min-h-[20px]">
-                  {/* Checking message */}
                   {slugChecking && (
                     <p className="text-xs text-[#888] flex items-center gap-2 animate-pulse">
                       <Loader2 className="w-3.5 h-3.5 animate-spin" /> جاري
                       التحقق من توفر الرابط...
                     </p>
                   )}
-
-                  {/* Availability message */}
                   {!slugChecking && !errors.slug && slugAvailable === true && (
                     <p className="text-xs text-emerald-600 flex items-center gap-1.5">
                       <CheckCircle className="w-3.5 h-3.5" /> هذا الرابط متاح
@@ -1069,16 +1117,12 @@ export default function OnboardingPage() {
                     </p>
                   )}
                 </div>
-
-                {/* Global error */}
                 {errors.global && (
                   <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                     <span>{errors.global}</span>
                   </div>
                 )}
-
-                {/* Final Nav */}
                 <div className="flex items-center justify-between pt-4 border-t border-[#e3ceff] mt-6">
                   <button
                     type="button"

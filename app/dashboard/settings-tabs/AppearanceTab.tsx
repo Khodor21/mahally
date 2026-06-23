@@ -1,8 +1,15 @@
-import { Plus, ImageIcon, ChevronDown, Loader2 } from "lucide-react";
+import {
+  Plus,
+  ImageIcon,
+  ChevronDown,
+  Loader2,
+  Trash2,
+  Edit2,
+} from "lucide-react";
 import { HeroBanner, Feature } from "@/types/api";
 import Testimonials from "./Testimonials";
 import FeatureForm from "./FeatureForm";
-
+import React from "react";
 interface AppearanceTabProps {
   lang: string;
   dir: string;
@@ -11,6 +18,7 @@ interface AppearanceTabProps {
     | "color"
     | "language"
     | "sections"
+    | "features"
     | "banners"
     | "testimonials";
   setAppearanceActive: (
@@ -19,6 +27,7 @@ interface AppearanceTabProps {
       | "color"
       | "language"
       | "sections"
+      | "features"
       | "banners"
       | "testimonials",
   ) => void;
@@ -28,6 +37,7 @@ interface AppearanceTabProps {
       | "color"
       | "language"
       | "sections"
+      | "features"
       | "banners"
       | "testimonials";
     label: string;
@@ -91,6 +101,45 @@ export default function AppearanceTab({
   showToast,
   setBannerConfirm,
 }: AppearanceTabProps) {
+  const [editingFeature, setEditingFeature] = React.useState<Feature | null>(
+    null,
+  );
+  const [deletingFeature, setDeletingFeature] = React.useState<
+    string | number | null
+  >(null);
+  const [isDeletingFeature, setIsDeletingFeature] = React.useState(false);
+
+  const handleDeleteFeature = async (featureId: string | number) => {
+    setIsDeletingFeature(true);
+    try {
+      const response = await fetch(`/api/features/${featureId}`, {
+        method: "DELETE",
+        headers: {
+          "x-store-id": storeId,
+        },
+      });
+
+      if (!response.ok) throw new Error("Failed to delete feature");
+
+      setDeletingFeature(null);
+      refetchFeatures();
+      showToast(
+        lang === "ar"
+          ? "تم حذف الميزة بنجاح!"
+          : "Feature deleted successfully!",
+        "success",
+      );
+    } catch (error) {
+      console.error(error);
+      showToast(
+        lang === "ar" ? "خطأ في حذف الميزة" : "Error deleting feature",
+        "error",
+      );
+    } finally {
+      setIsDeletingFeature(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Appearance Sub-tabs */}
@@ -230,7 +279,7 @@ export default function AppearanceTab({
             <h3 className="font-bold text-[rgb(60_28_84)]">
               {lang === "ar" ? "أقسام الموقع" : "Site Sections"}
             </h3>
-            {!isAddingFeature && (
+            {!isAddingFeature && !editingFeature && (
               <button
                 onClick={() => setIsAddingFeature(true)}
                 className="flex items-center gap-1 text-sm bg-[rgb(244_242_245)] hover:bg-[rgb(207_195_223)] text-[rgb(60_28_84)] px-3 py-1.5 rounded-lg transition-colors font-semibold"
@@ -255,6 +304,27 @@ export default function AppearanceTab({
                     lang === "ar"
                       ? "تم إضافة القسم بنجاح!"
                       : "Section added successfully!",
+                    "success",
+                  );
+                }}
+              />
+            )}
+
+            {editingFeature && (
+              <FeatureForm
+                lang={lang}
+                dir={dir}
+                initialData={editingFeature}
+                onCancel={() => setEditingFeature(null)}
+                storeId={storeId}
+                featureId={editingFeature.id}
+                onSuccess={() => {
+                  setEditingFeature(null);
+                  refetchFeatures();
+                  showToast(
+                    lang === "ar"
+                      ? "تم تحديث القسم بنجاح!"
+                      : "Section updated successfully!",
                     "success",
                   );
                 }}
@@ -324,6 +394,24 @@ export default function AppearanceTab({
                             {feature.icon_name}
                           </p>
                         </div>
+
+                        {/* Edit/Delete Actions */}
+                        <div className="flex gap-2 pt-2">
+                          <button
+                            onClick={() => setEditingFeature(feature)}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-lg transition-colors text-xs font-semibold"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                            {lang === "ar" ? "تعديل" : "Edit"}
+                          </button>
+                          <button
+                            onClick={() => setDeletingFeature(feature.id)}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors text-xs font-semibold"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            {lang === "ar" ? "حذف" : "Delete"}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -335,6 +423,101 @@ export default function AppearanceTab({
                     : "No sections added yet."}
                 </p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Features */}
+      {appearanceActive === "features" && (
+        <div className="bg-white rounded-sm border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
+          <div className="px-6 py-5 border-b border-[rgb(244_242_245)] flex justify-between items-center">
+            <h3 className="font-bold text-[rgb(60_28_84)]">
+              {lang === "ar" ? "المميزات" : "Features"}
+            </h3>
+            {!isAddingFeature && !editingFeature && (
+              <button
+                onClick={() => setIsAddingFeature(true)}
+                className="flex items-center gap-1 text-sm bg-[rgb(244_242_245)] hover:bg-[rgb(207_195_223)] text-[rgb(60_28_84)] px-3 py-1.5 rounded-lg transition-colors font-semibold"
+              >
+                <Plus className="w-4 h-4" />
+                {lang === "ar" ? "إضافة ميزة" : "Add Feature"}
+              </button>
+            )}
+          </div>
+          <div className="p-6 space-y-4">
+            {isAddingFeature && (
+              <FeatureForm
+                lang={lang}
+                dir={dir}
+                onCancel={() => setIsAddingFeature(false)}
+                storeId={storeId}
+                onSuccess={() => {
+                  setIsAddingFeature(false);
+                  refetchFeatures();
+                  showToast(
+                    lang === "ar"
+                      ? "تم إضافة الميزة بنجاح!"
+                      : "Feature added successfully!",
+                    "success",
+                  );
+                }}
+              />
+            )}
+
+            {editingFeature && (
+              <FeatureForm
+                lang={lang}
+                dir={dir}
+                initialData={editingFeature}
+                onCancel={() => setEditingFeature(null)}
+                storeId={storeId}
+                featureId={editingFeature.id}
+                onSuccess={() => {
+                  setEditingFeature(null);
+                  refetchFeatures();
+                  showToast(
+                    lang === "ar"
+                      ? "تم تحديث الميزة بنجاح!"
+                      : "Feature updated successfully!",
+                    "success",
+                  );
+                }}
+              />
+            )}
+
+            <div className="space-y-3">
+              {features.map((feature) => (
+                <div
+                  key={feature.id}
+                  className="bg-[rgb(244_242_245)] rounded-sm p-4 flex items-start justify-between group hover:bg-[rgb(240_238_245)] transition-colors"
+                >
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm text-[rgb(60_28_84)]">
+                      {feature.title}
+                    </p>
+                    <p className="text-xs text-[rgb(60_28_84)]/60">
+                      {feature.description}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => setEditingFeature(feature)}
+                      className="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-lg transition-colors"
+                      title={lang === "ar" ? "تعديل" : "Edit"}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setDeletingFeature(feature.id)}
+                      className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors"
+                      title={lang === "ar" ? "حذف" : "Delete"}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -548,6 +731,47 @@ export default function AppearanceTab({
       {appearanceActive === "testimonials" && (
         <div className="animate-fade-up">
           <Testimonials dir={dir} />
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingFeature && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg">
+            <h3 className="font-bold text-lg text-[rgb(60_28_84)] mb-2">
+              {lang === "ar" ? "تأكيد الحذف" : "Confirm Delete"}
+            </h3>
+            <p className="text-sm text-[rgb(60_28_84)]/70 mb-6">
+              {lang === "ar"
+                ? "هل أنت متأكد من حذف هذه الميزة؟ لا يمكن التراجع عن هذا الإجراء."
+                : "Are you sure you want to delete this feature? This action cannot be undone."}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDeletingFeature(null)}
+                disabled={isDeletingFeature}
+                className="flex-1 px-4 py-2 text-sm font-semibold text-[rgb(60_28_84)] bg-[rgb(244_242_245)] rounded-lg hover:opacity-80 transition-opacity disabled:opacity-50"
+              >
+                {lang === "ar" ? "إلغاء" : "Cancel"}
+              </button>
+              <button
+                onClick={() => handleDeleteFeature(deletingFeature)}
+                disabled={isDeletingFeature}
+                className="flex-1 px-4 py-2 text-sm font-semibold bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isDeletingFeature ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {lang === "ar" ? "جاري الحذف..." : "Deleting..."}
+                  </>
+                ) : lang === "ar" ? (
+                  "حذف"
+                ) : (
+                  "Delete"
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

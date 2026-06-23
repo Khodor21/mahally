@@ -1,4 +1,3 @@
-// lib/data/store-queries.ts
 import { unstable_cache } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
@@ -7,11 +6,32 @@ export const getCachedStoreData = unstable_cache(
     // 1. جلب بيانات المتجر
     const { data: store, error: storeError } = await supabaseAdmin
       .from("stores")
-      .select("id, store_name, slug, phone, admin_email, language")
+      .select(
+        "id, store_name, slug, phone, admin_email, language, payment_methods",
+      )
       .eq("slug", slug)
       .maybeSingle();
 
     if (storeError || !store) return null;
+
+    // SAFE PARSING: Prevent React crashes by ensuring payment_methods is ALWAYS a valid array
+    let parsedPaymentMethods: string[] = [];
+    if (store.payment_methods) {
+      try {
+        parsedPaymentMethods =
+          typeof store.payment_methods === "string"
+            ? JSON.parse(store.payment_methods)
+            : store.payment_methods;
+      } catch (e) {
+        console.error("Failed to parse payment_methods:", e);
+        parsedPaymentMethods = [];
+      }
+    }
+
+    // Assign the cleanly parsed array back to the store object
+    store.payment_methods = Array.isArray(parsedPaymentMethods)
+      ? parsedPaymentMethods
+      : [];
 
     // 2. جلب إعدادات المتجر
     const { data: settings } = await supabaseAdmin

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { requireStoreSession } from "@/lib/store";
+
 function isValidVariants(variants: any): boolean {
   if (!Array.isArray(variants)) return false;
 
@@ -23,6 +24,7 @@ function isValidVariants(variants: any): boolean {
     );
   });
 }
+
 export async function GET() {
   try {
     // 1. Get the authenticated store admin session securely
@@ -32,7 +34,7 @@ export async function GET() {
     const { data, error } = await supabaseAdmin
       .from("products")
       .select(
-        "id, store_id, title, description, price, stock, images, is_active, created_at, updated_at, category_id, variants",
+        "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variants",
       )
       .eq("store_id", user.id)
       .order("created_at", { ascending: false });
@@ -69,8 +71,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Added variants to destructuring
-    const { title, description, price, stock, images, category_id, variants } =
+    // Added variants, pin, and discount_price to destructuring
+    const { title, description, price, discount_price, stock, images, category_id, variants, pin } =
       body;
 
     // Validation
@@ -106,20 +108,34 @@ export async function POST(req: Request) {
       );
     }
 
+    let parsedDiscountPrice = null;
+    if (discount_price !== undefined && discount_price !== null && discount_price !== "") {
+      parsedDiscountPrice = parseFloat(discount_price);
+      if (isNaN(parsedDiscountPrice) || parsedDiscountPrice < 0) {
+        return NextResponse.json(
+          { success: false, message: "Invalid discount price" },
+          { status: 400 },
+        );
+      }
+    }
+
+    const isPinned = pin !== undefined ? Boolean(pin) : false;
+
     // Ensure images and variants are arrays, defaulting to empty arrays if missing
-   const imageArray = Array.isArray(images) ? images : [];
+    const imageArray = Array.isArray(images) ? images : [];
 
-if (variants !== undefined && !isValidVariants(variants)) {
-  return NextResponse.json(
-    {
-      success: false,
-      message: "Invalid variants structure",
-    },
-    { status: 400 },
-  );
-}
+    if (variants !== undefined && !isValidVariants(variants)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid variants structure",
+        },
+        { status: 400 },
+      );
+    }
 
-const variantsArray = Array.isArray(variants) ? variants : [];
+    const variantsArray = Array.isArray(variants) ? variants : [];
+    
     const { data, error } = await supabaseAdmin
       .from("products")
       .insert({
@@ -127,13 +143,15 @@ const variantsArray = Array.isArray(variants) ? variants : [];
         title: title.trim(),
         description: description?.trim() || "",
         price: parsedPrice,
+        discount_price: parsedDiscountPrice,
         stock: parsedStock,
         images: imageArray,
         category_id: category_id || null,
         variants: variantsArray, // Handled dynamically
+        pin: isPinned,
       })
       .select(
-        "id, title, description, price, stock, images, category_id, variants",
+        "id, title, description, price, discount_price, stock, images, category_id, variants, pin",
       ) // Explicit select
       .single();
 
@@ -172,16 +190,18 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // Added variants to destructuring
+    // Added variants, pin, and discount_price to destructuring
     const {
       id,
       title,
       description,
       price,
+      discount_price,
       stock,
       images,
       category_id,
       variants,
+      pin,
     } = body;
 
     if (!id) {
@@ -219,6 +239,21 @@ export async function PATCH(req: Request) {
       updates.price = parsedPrice;
     }
 
+    if (discount_price !== undefined) {
+      if (discount_price === "" || discount_price === null) {
+        updates.discount_price = null;
+      } else {
+        const parsedDiscountPrice = parseFloat(discount_price);
+        if (isNaN(parsedDiscountPrice) || parsedDiscountPrice < 0) {
+          return NextResponse.json(
+            { success: false, message: "Invalid discount price" },
+            { status: 400 },
+          );
+        }
+        updates.discount_price = parsedDiscountPrice;
+      }
+    }
+
     if (stock !== undefined) {
       const parsedStock = parseInt(stock);
       if (isNaN(parsedStock) || parsedStock < 0) {
@@ -234,19 +269,23 @@ export async function PATCH(req: Request) {
       updates.images = Array.isArray(images) ? images : [];
     }
 
-   if (variants !== undefined) {
-  if (!isValidVariants(variants)) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Invalid variants structure",
-      },
-      { status: 400 },
-    );
-  }
+    if (pin !== undefined) {
+      updates.pin = Boolean(pin);
+    }
 
-  updates.variants = variants;
-}
+    if (variants !== undefined) {
+      if (!isValidVariants(variants)) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Invalid variants structure",
+          },
+          { status: 400 },
+        );
+      }
+
+      updates.variants = variants;
+    }
 
     if (category_id !== undefined) {
       // Allows clearing the category by passing an empty string or null
@@ -267,7 +306,7 @@ export async function PATCH(req: Request) {
       .eq("id", id)
       .eq("store_id", user.id) // Security: ensure product belongs to this store
       .select(
-        "id, title, description, price, stock, images, category_id, variants",
+        "id, title, description, price, discount_price, stock, images, category_id, variants, pin",
       ) // Explicit select
       .single();
 

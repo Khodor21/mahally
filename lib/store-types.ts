@@ -3,16 +3,12 @@ export type Store = {
   id: string;
   store_name: string;
   slug: string;
-  language?: "en" | "ar"; // Default: "en" if not set
-  currency?: string; // Default: "$" if not set
-  currency_symbol?: string; // Default: "$" if not set
-  // ... other store fields
+  language?: "en" | "ar";
+  currency?: string;
+  currency_symbol?: string;
+  delivery_cost?: string;
 };
 
-/**
- * Get currency symbol for display
- * If store has currency_symbol, use that; otherwise use default based on currency
- */
 export function getCurrencySymbol(store: Store | null): string {
   if (!store) return "$";
 

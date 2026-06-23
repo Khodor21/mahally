@@ -1,4 +1,4 @@
-// app/[slug]/products/[id]/page.tsx
+// app/[slug]/product/[title]/page.tsx
 
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
@@ -9,8 +9,9 @@ import ProductRecommendations from "../../components/RecommendationsProducts";
 export default async function ProductPage({
   params,
 }: {
-  params: { slug: string; id: string };
+  params: { slug: string; title: string };
 }) {
+  // 1. Get the store by slug
   const { data: store, error: storeError } = await supabaseAdmin
     .from("stores")
     .select("id, language")
@@ -19,7 +20,10 @@ export default async function ProductPage({
 
   if (storeError || !store) return notFound();
 
-  // 👉 STRICT SELECTION: No more select("*")
+  // 2. Decode the product title slug
+  const decodedTitle = decodeURIComponent(params.title);
+
+  // 3. Find product by title (case-insensitive match)
   const { data: product, error } = await supabaseAdmin
     .from("products")
     .select(
@@ -34,8 +38,8 @@ export default async function ProductPage({
       variants
     `,
     )
-    .eq("id", params.id)
     .eq("store_id", store.id)
+    .ilike("title", decodedTitle) // 👉 Case-insensitive match
     .single();
 
   if (error || !product) return notFound();
@@ -64,7 +68,7 @@ export default async function ProductPage({
               storeId={store.id}
               storeSlug={params.slug}
               currentProductId={product.id}
-              lang={currentLang} // 👉 UNCOMMENTED AND TYPED
+              lang={currentLang}
             />
           </Suspense>
         </ProductClientUI>

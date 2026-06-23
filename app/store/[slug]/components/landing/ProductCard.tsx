@@ -1,3 +1,5 @@
+// app/[slug]/components/ProductCard.tsx
+
 "use client";
 
 import Image from "next/image";
@@ -26,7 +28,7 @@ type Product = {
 type ProductCardProps = {
   product: Product;
   storeSlug?: string;
-  lang: "en" | "ar"; // 👉 Added lang prop to comply with the backend-driven architecture
+  lang: "en" | "ar";
 };
 
 // 👉 Replaced hardcoded RGB with the new backend-driven CSS variable
@@ -53,7 +55,10 @@ export default function ProductCard({
 }: ProductCardProps) {
   const router = useRouter();
   const { addToCart, toggleFavorite, isFavorite, cartItems } = useShop();
-  const productUrl = `/product/${product.id}?lang=${lang}`; // 👉 Added lang to the URL
+
+  // 👉 UPDATED: Use product title slug instead of ID
+  const productUrl = `/product/${encodeURIComponent(product.title)}?lang=${lang}`;
+
   const productId = String(product.id);
   const favorited = isFavorite(productId);
 
@@ -119,17 +124,18 @@ export default function ProductCard({
         />
 
         {/* IMAGE CONTAINER */}
-        <div className="relative w-full aspect-[4/5] sm:h-64 overflow-hidden rounded-xl bg-[rgb(244_242_245)]/[0.7] transition-all duration-300">
+        <div className="relative w-full aspect-[3/4] sm:aspect-auto sm:h-80 overflow-hidden rounded-xl bg-[rgb(244_242_245)]/[0.7] transition-all duration-300">
+          {" "}
           <div
             className="absolute z-20 flex pointer-events-none
-             w-full top-7 px-3 left-0 justify-between items-start 
+             w-full top-10 px-4 left-0 justify-between items-start 
              md:top-auto md:bottom-4 md:px-0 md:justify-center md:gap-3"
           >
             <a
               href={productUrl}
-              className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white flex items-center justify-center text-gray-600 shadow-sm hover:scale-110 hover:text-[rgb(var(--color-brand-primary))] transition-all pointer-events-auto"
+              className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-white flex items-center justify-center text-gray-600 shadow-sm hover:scale-110 hover:text-[rgb(var(--color-brand-primary))] transition-all pointer-events-auto"
             >
-              <Eye className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <Eye className="w-3 h-3 md:w-4 md:h-4" />
             </a>
 
             <button
@@ -138,12 +144,12 @@ export default function ProductCard({
                 e.stopPropagation();
                 handleToggleFavorite();
               }}
-              className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white flex items-center justify-center shadow-sm hover:scale-110 transition-all pointer-events-auto"
+              className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-white flex items-center justify-center shadow-sm hover:scale-110 transition-all pointer-events-auto"
             >
               {favorited ? (
-                <Heart className="w-3.5 h-3.5 md:w-4 md:h-4 text-rose-500 fill-rose-500" />
+                <Heart className="w-3 h-3 md:w-4 md:h-4 text-rose-500 fill-rose-500" />
               ) : (
-                <Heart className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-600 hover:text-[rgb(var(--color-brand-primary))]" />
+                <Heart className="w-3 h-3 md:w-4 md:h-4 text-gray-600 hover:text-[rgb(var(--color-brand-primary))]" />
               )}
             </button>
           </div>
@@ -156,7 +162,7 @@ export default function ProductCard({
         </div>
 
         {/* BODY */}
-        <div className="flex flex-col flex-1 pt-4 pb-1 px-1">
+        <div className="flex flex-col flex-1 pb-1 px-1">
           <h3 className="text-sm md:text-base font-medium text-gray-800 line-clamp-2 text-center min-h-[2.5rem] md:min-h-[3rem]">
             {product.title}
           </h3>

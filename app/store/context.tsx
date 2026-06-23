@@ -25,6 +25,7 @@ export interface CartItem {
 }
 
 interface ShopContextType {
+  // Cart
   cartItems: CartItem[];
   cartCount: number;
   cartTotal: number;
@@ -33,12 +34,20 @@ interface ShopContextType {
   updateCartQty: (productId: string, qty: number) => void;
   clearCart: () => void;
 
+  // Favorites
   favorites: Product[];
   favCount: number;
   toggleFavorite: (product: Product) => void;
   removeFromFavorites: (productId: string) => void;
   isFavorite: (productId: string) => boolean;
   clearFavorites: () => void;
+
+  // Store Configuration
+  currencySymbol: string;
+  deliveryCost: number;
+  paymentMethods: string[];
+  orderTotal: number; // Cart Total + Delivery Cost
+  isConfigLoading: boolean;
 }
 
 const ShopContext = createContext<ShopContextType | null>(null);
@@ -47,11 +56,40 @@ const CART_STORAGE_KEY = "shop_cart";
 const FAV_STORAGE_KEY = "shop_favorites";
 
 export function ShopProvider({ children }: { children: React.ReactNode }) {
+  // ── State ────────────────────────────────────────────────
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [favorites, setFavorites] = useState<Product[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // ── Hydrate from localStorage ──────────────────────
+  // Store Config State
+  const [currencySymbol, setCurrencySymbol] = useState<string>("$");
+  const [deliveryCost, setDeliveryCost] = useState<number>(0);
+  const [paymentMethods, setPaymentMethods] = useState<string[]>(["cash_on_delivery"]);
+  const [isConfigLoading, setIsConfigLoading] = useState(true);
+
+  // ── Fetch Store Configuration ────────────────────────────
+  useEffect(() => {
+    async function fetchStoreConfig() {
+      try {
+        // NOTE: Adjust this URL to your public endpoint if fetching for storefront customers
+        const res = await fetch("/api/store"); 
+        if (res.ok) {
+          const body = await res.json();
+          setCurrencySymbol(body.store?.currency_symbol || "$");
+          setDeliveryCost(Number(body.store?.delivery_cost) || 0);
+          setPaymentMethods(body.store?.payment_methods || ["cash_on_delivery"]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch store configuration:", error);
+      } finally {
+        setIsConfigLoading(false);
+      }
+    }
+
+    fetchStoreConfig();
+  }, []);
+
+  // ── Hydrate from localStorage ────────────────────────────
   useEffect(() => {
     try {
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
@@ -66,7 +104,7 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // ── Persist cart to localStorage ──────────────────────
+  // ── Persist to localStorage ──────────────────────────────
   useEffect(() => {
     if (isHydrated) {
       try {
@@ -77,7 +115,6 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     }
   }, [cartItems, isHydrated]);
 
-  // ── Persist favorites to localStorage ──────────────────────
   useEffect(() => {
     if (isHydrated) {
       try {
@@ -122,12 +159,15 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     setCartItems([]);
   }, []);
 
+  // ── Derived Cart Math ─────────────────────────────────────
   const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
-
   const cartTotal = cartItems.reduce(
     (sum, i) => sum + (i.product.price ?? 0) * i.qty,
     0,
   );
+  
+  // Final total matching delivery fee configuration
+  const orderTotal = cartTotal + deliveryCost;
 
   // ── Favorites Actions ─────────────────────────────────────
   const toggleFavorite = useCallback((product: Product) => {
@@ -144,17 +184,20 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     [favorites],
   );
 
+  const removeFromFavorites = useCallback((productId: string) => {
+    setFavorites((prev) => prev.filter((p) => p.id !== productId));
+  }, []);
+
   const clearFavorites = useCallback(() => {
     setFavorites([]);
   }, []);
 
   const favCount = favorites.length;
-  const removeFromFavorites = useCallback((productId: string) => {
-    setFavorites((prev) => prev.filter((p) => p.id !== productId));
-  }, []);
+
   return (
     <ShopContext.Provider
       value={{
+        // Cart
         cartItems,
         cartCount,
         cartTotal,
@@ -162,13 +205,21 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         removeFromCart,
         updateCartQty,
         clearCart,
+        
+        // Favorites
         favorites,
         favCount,
         toggleFavorite,
         isFavorite,
+        removeFromFavorites,
         clearFavorites,
-            removeFromFavorites,
 
+        // Store Config
+        currencySymbol,
+        deliveryCost,
+        paymentMethods,
+        orderTotal,
+        isConfigLoading,
       }}
     >
       {children}

@@ -2,23 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LayoutGrid, ShoppingBag, Package, User } from "lucide-react";
+import { Home, LayoutGrid, ShoppingBag, Search, User } from "lucide-react";
 import { useShop } from "@/app/store/context";
 
 const translations = {
   en: {
     home: "Home",
     categories: "Categories",
+    search: "Search",
     cart: "Cart",
-    orders: "My Orders",
-    account: "Account",
+    profile: "Profile",
   },
   ar: {
     home: "الرئيسية",
     categories: "الأقسام",
+    search: "البحث",
     cart: "السلة",
-    orders: "طلباتي",
-    account: "حسابي",
+    profile: "الحساب",
   },
 } as const;
 
@@ -35,21 +35,37 @@ export default function BottomNavbar({
 
   const base = (path: string) => `/store/${storeSlug}${path}?lang=${lang}`;
 
+  // Emit a custom event so the Top Navbar knows to open the Search Modal
+  const handleOpenSearch = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.dispatchEvent(new CustomEvent("open-search-modal"));
+  };
+
   const navItems = [
-    { label: t.home, icon: <Home size={23} />, href: base("") },
+    {
+      label: t.home,
+      icon: <Home size={22} className="stroke-[1.5]" />,
+      href: base(""),
+    },
     {
       label: t.categories,
-      icon: <LayoutGrid size={23} />,
+      icon: <LayoutGrid size={22} className="stroke-[1.5]" />,
       href: base("/categories"),
+    },
+    {
+      label: t.search,
+      icon: <Search size={22} className="stroke-[1.5]" />,
+      href: "#",
+      onClick: handleOpenSearch,
     },
     {
       label: t.cart,
       href: base("/cart"),
       icon: (
         <span className="relative flex items-center justify-center leading-none">
-          <ShoppingBag size={23} />
+          <ShoppingBag size={22} className="stroke-[1.5]" />
           {cartCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 w-3 h-3 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-0.5 leading-none">
+            <span className="absolute -top-1.5 -right-2 w-4 h-4 flex items-center justify-center rounded-full bg-brand-primary text-white text-[9px] font-bold px-0.5 leading-none ring-2 ring-white">
               {cartCount > 9 ? "9+" : cartCount}
             </span>
           )}
@@ -57,44 +73,46 @@ export default function BottomNavbar({
       ),
     },
     {
-      label: t.orders,
-      icon: <Package size={23} />,
-      href: base("/orders"),
-    },
-    {
-      label: t.account,
-      icon: <User size={23} />,
-      href: base("/account"),
+      label: t.profile,
+      icon: <User size={22} className="stroke-[1.5]" />,
+      href: base("/profile"),
     },
   ];
 
   return (
     <nav
-      className="fixed md:hidden bottom-0 left-0 right-0 z-50 bg-white border-t border-secondary rounded-t-xl shadow-[0_-4px_10px_rgba(0,0,0,0.05)]"
+      className="fixed md:hidden bottom-0 left-0 right-0 z-[60] bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] pb-safe"
       dir={lang === "ar" ? "rtl" : "ltr"}
     >
-      <div className="flex justify-around items-center h-16 px-2">
+      <div className="flex justify-around items-center rounded-t-xl h-20 px-2">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href && item.href !== "#";
 
           return (
             <Link
               key={item.label}
               href={item.href}
-              className="flex items-center justify-center w-full h-full"
+              onClick={item.onClick}
+              className="flex flex-col items-center justify-center w-full h-full gap-1.5 tap-highlight-transparent group"
             >
-              <div className="flex flex-col items-center justify-center w-full h-full gap-1">
-                <div className={isActive ? "text-primary" : "text-black/75"}>
-                  {item.icon}
-                </div>
-                <span
-                  className={`text-[12px] ${
-                    isActive ? "text-primary" : "text-black/75"
-                  }`}
-                >
-                  {item.label}
-                </span>
+              <div
+                className={`transition-colors duration-200 text-xl ${
+                  isActive
+                    ? "text-brand-primary"
+                    : "text-gray-800 group-hover:text-gray-600"
+                }`}
+              >
+                {item.icon}
               </div>
+              <span
+                className={`text-sm font-medium transition-colors duration-200 ${
+                  isActive
+                    ? "text-brand-primary"
+                    : "text-gray-800 group-hover:text-gray-700"
+                }`}
+              >
+                {item.label}
+              </span>
             </Link>
           );
         })}

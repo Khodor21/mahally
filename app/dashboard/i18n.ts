@@ -85,7 +85,10 @@ export const t = {
 
     // Orders
     orderId: "رقم الطلب",
+    orderDetails: "تفاصيل الطلب",
+    statusOrder: "حالة الطلب",
     customer: "العميل",
+    customerData: "بيانات العميل",
     amount: "المبلغ",
     status: "الحالة",
     date: "التاريخ",
@@ -259,7 +262,7 @@ export const t = {
     // Categories
     totalCategories: "Total Categories",
     searchCategories: "Search categories...",
-    addCategory: "Add Category",
+    addCategory: "Add",
     editCategory: "Edit Category",
     logo: "Logo",
     logoUrl: "Logo URL (Optional)",
@@ -294,8 +297,11 @@ export const t = {
 
     // Orders
     orderId: "Order ID",
+    orderDetails: "Order Details",
     customer: "Customer",
+    customerData: "Customer Data",
     amount: "Amount",
+    statusOrder: "Order Status",
     status: "Status",
     date: "Date",
     items: "Items",

@@ -12,7 +12,7 @@ interface Category {
 
 interface CategoriesSectionProps {
   storeId: string;
-  lang: "en" | "ar"; // Removed the default fallback; force the parent to provide it
+  lang: "en" | "ar";
 }
 
 export default function CategoriesSection({
@@ -21,8 +21,6 @@ export default function CategoriesSection({
 }: CategoriesSectionProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Removed local 'dir' variable since LangDomSetter handles this globally
 
   const content = {
     ar: {
@@ -35,7 +33,7 @@ export default function CategoriesSection({
     },
   };
 
-  const t = content[lang] || content.en; // Safe fallback just in case
+  const t = content[lang] || content.en;
 
   useEffect(() => {
     async function fetchCategories() {
@@ -56,6 +54,7 @@ export default function CategoriesSection({
         setLoading(false);
       }
     }
+
     fetchCategories();
   }, [storeId, lang]);
 
@@ -80,7 +79,7 @@ export default function CategoriesSection({
 
   return (
     <section className="w-full bg-white px-2">
-      <div className="w-full px-8 mx-auto">
+      <div className="w-full mx-auto">
         {/* HEADER */}
         <div className="text-center mb-4">
           <p className="text-2xl md:text-4xl font-bold text-brand-black mb-2">
@@ -98,11 +97,11 @@ export default function CategoriesSection({
           {categories.map((cat) => (
             <Link
               key={cat.id}
-              href={`/category/${cat.id}?lang=${lang}`}
+              href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
               className="group flex flex-col items-center gap-3"
             >
               {/* IMAGE */}
-              <div className="relative w-[90%] md:w-full aspect-[3/4] rounded-2xl overflow-hidden bg-[rgb(244_242_245)] border border-[rgb(207_195_223)]">
+              <div className="relative w-[90%] md:w-full aspect-[3/4] rounded-lg overflow-hidden bg-[rgb(244_242_245)] border border-[rgb(207_195_223)]">
                 {cat.logo_url ? (
                   <Image
                     src={cat.logo_url}

@@ -21,16 +21,15 @@ import {
   MessageCircle,
   Music,
   Camera,
-  ChevronDown,
 } from "lucide-react";
 import AppearanceTab from "../settings-tabs/AppearanceTab";
+import FeaturesTab from "../components/Features";
 import StoreTab from "../settings-tabs/StoreTab";
 import AccountTab from "../settings-tabs/AccountTab";
 import PoliciesTab from "../settings-tabs/PoliciesTab";
 import NotificationsTab from "../settings-tabs/NotificationsTab";
 import { useDashboard } from "../DashboardContext";
-import { STORE_TYPE_LABELS } from "../data";
-import { StoreData, HeroBanner, Feature } from "@/types/api";
+import { StoreData, HeroBanner } from "@/types/api";
 import {
   useStore,
   useStoreUpdate,
@@ -40,6 +39,7 @@ import {
   useHeroBannerToggle,
 } from "@/hooks/useApi";
 import { useFeatures } from "@/hooks/useFeatures";
+
 export default function SettingsPanel() {
   const { tr, lang } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
@@ -127,7 +127,13 @@ export default function SettingsPanel() {
   } | null>(null);
 
   const [appearanceActive, setAppearanceActive] = useState<
-    "promo" | "color" | "language" | "sections" | "banners" | "testimonials"
+    | "promo"
+    | "color"
+    | "language"
+    | "sections"
+    | "banners"
+    | "features"
+    | "testimonials"
   >("promo");
 
   const [isAddingBanner, setIsAddingBanner] = useState(false);
@@ -360,6 +366,10 @@ export default function SettingsPanel() {
     {
       id: "banners" as const,
       label: lang === "ar" ? "اللافتات" : "Banners",
+    },
+    {
+      id: "features" as const,
+      label: lang === "ar" ? "المميزات" : "Features",
     },
     {
       id: "testimonials" as const,
@@ -659,7 +669,7 @@ export default function SettingsPanel() {
 }
 
 // ============================================
-// SUB-COMPONENTS (EXTRACTED FOR READABILITY)
+// SUB-COMPONENTS
 // ============================================
 
 interface ConfirmationModalProps {

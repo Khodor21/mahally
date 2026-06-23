@@ -80,7 +80,7 @@ export default async function ProductRecommendations({
   return (
     <div
       dir={isRtl ? "rtl" : "ltr"}
-      className="mt-24 pt-16 border-t border-gray-100 w-full"
+      className="mt-4 pt-4 border-t border-gray-100 w-full"
     >
       <div className="flex items-center justify-between mb-8">
         <h3 className="text-lg md:text-xl font-medium text-black/90">

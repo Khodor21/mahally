@@ -86,7 +86,7 @@ export default function HeroSection({
     return (
       <section
         dir={dir}
-        className="relative w-full aspect-[2/1] rounded-xs overflow-hidden bg-[rgb(244_242_245)]"
+        className="relative w-full aspect-[3/1] rounded-xs overflow-hidden bg-[rgb(244_242_245)]"
       >
         <Image
           src={currentBanner.image}

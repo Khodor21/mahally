@@ -19,6 +19,7 @@ import {
   Sparkles,
   Palette,
 } from "lucide-react";
+import FeaturesPanel from "../components/Features";
 import { useDashboard } from "../DashboardContext";
 import {
   useOrders,
@@ -181,8 +182,17 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
         color: "bg-[rgb(244_242_245)]",
         iconColor: "text-[rgb(60_28_84)]",
       },
+      {
+        label: tr.totalProducts || "إجمالي المنتجات",
+        value: products.length.toString(),
+        unit: "",
+        change: 0, // Placeholder for product growth, or kept at 0 to show stability
+        icon: Package,
+        color: "bg-[rgb(244_242_245)]",
+        iconColor: "text-[rgb(60_28_84)]",
+      },
     ];
-  }, [orders, customers, tr]);
+  }, [orders, customers, products, tr]);
 
   const recentOrders = useMemo(
     () =>
@@ -200,34 +210,34 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
       {/* Welcome */}
       <div className="animate-fade-up">
         <div className="flex items-center gap-1">
-          <h3 className="text-2xl font-bold text-[rgb(60_28_84)]">
+          <h3 className="text-xl md:text-2xl font-bold text-[rgb(60_28_84)]">
             {tr.welcomeBack || "مرحبا"}{" "}
             {store.admin_name?.split(" ")[0] || "المالك"}
           </h3>{" "}
           <Emoji unified="1f44b" size={24} />
         </div>
-        <p className="text-[rgb(60_28_84)]/50 text-sm mt-0.5">
+        <p className="text-[rgb(60_28_84)]/50 text-xs md:text-sm mt-0.5 font-regular">
           {tr.overviewDesc || "إليك ملخص نشاط متجرك اليوم"}
         </p>
       </div>
 
-      {/* Main 3 Stats grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-up delay-100">
+      {/* Main 4 Stats grid (2x2 on Mobile, 4x1 on Desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 animate-fade-up delay-100">
         {loading ? (
           /* Stats Skeleton Loaders */
           <>
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="rounded-2xl p-5 bg-[rgb(244_242_245)] animate-pulse h-[132px] flex flex-col justify-between"
+                className="rounded-lg p-3.5 md:p-5 bg-[rgb(244_242_245)] animate-pulse h-[110px] md:h-[132px] flex flex-col justify-between"
               >
                 <div className="flex items-start justify-between">
-                  <div className="w-10 h-10 rounded-xl bg-[rgb(60_28_84)]/10" />
-                  <div className="w-12 h-4 rounded bg-[rgb(60_28_84)]/10" />
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded bg-[rgb(60_28_84)]/10" />
+                  <div className="w-10 h-3 md:w-12 md:h-4 rounded bg-[rgb(60_28_84)]/10" />
                 </div>
                 <div>
-                  <div className="w-24 h-8 rounded-lg bg-[rgb(60_28_84)]/10 mb-2" />
-                  <div className="w-16 h-3 rounded bg-[rgb(60_28_84)]/10" />
+                  <div className="w-16 h-6 md:w-24 md:h-8 rounded bg-[rgb(60_28_84)]/10 mb-1.5 md:mb-2" />
+                  <div className="w-12 h-2.5 md:w-16 md:h-3 rounded bg-[rgb(60_28_84)]/10" />
                 </div>
               </div>
             ))}
@@ -239,20 +249,22 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
             return (
               <div
                 key={i}
-                className={`rounded-2xl p-5 ${stat.color} transition-all hover:scale-[1.02] cursor-default`}
+                className={`rounded-lg p-3.5 md:p-5 ${stat.color} transition-all hover:scale-[1.02] cursor-default flex flex-col justify-between`}
               >
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-3 md:mb-4">
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    className={`w-8 h-8 md:w-10 md:h-10 rounded flex items-center justify-center ${
                       stat.color === "bg-[rgb(60_28_84)]"
                         ? "bg-white/20"
                         : "bg-[rgb(60_28_84)]/10"
                     }`}
                   >
-                    <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+                    <stat.icon
+                      className={`w-4 h-4 md:w-5 md:h-5 ${stat.iconColor}`}
+                    />
                   </div>
                   <span
-                    className={`flex items-center gap-0.5 text-xs font-semibold ${
+                    className={`flex items-center gap-0.5 text-[10px] md:text-xs font-semibold ${
                       isPositive
                         ? stat.color === "bg-[rgb(60_28_84)]"
                           ? "text-emerald-300"
@@ -263,36 +275,38 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
                     }`}
                   >
                     {isPositive ? (
-                      <ArrowUpRight className="w-3 h-3" />
+                      <ArrowUpRight className="w-2.5 h-2.5 md:w-3 md:h-3" />
                     ) : (
-                      <ArrowDownRight className="w-3 h-3" />
+                      <ArrowDownRight className="w-2.5 h-2.5 md:w-3 md:h-3" />
                     )}
                     {Math.abs(stat.change)}%
                   </span>
                 </div>
-                <p
-                  className={`text-2xl font-bold ${
-                    stat.color === "bg-[rgb(60_28_84)]"
-                      ? "text-white"
-                      : "text-[rgb(60_28_84)]"
-                  }`}
-                >
-                  {stat.value}
-                  {stat.unit && (
-                    <span className="text-sm font-normal ms-1">
-                      {stat.unit}
-                    </span>
-                  )}
-                </p>
-                <p
-                  className={`text-xs mt-1 ${
-                    stat.color === "bg-[rgb(60_28_84)]"
-                      ? "text-white/60"
-                      : "text-[rgb(60_28_84)]/50"
-                  }`}
-                >
-                  {stat.label}
-                </p>
+                <div>
+                  <p
+                    className={`text-lg md:text-2xl font-bold ${
+                      stat.color === "bg-[rgb(60_28_84)]"
+                        ? "text-white"
+                        : "text-[rgb(60_28_84)]"
+                    }`}
+                  >
+                    {stat.value}
+                    {stat.unit && (
+                      <span className="text-xs md:text-sm font-normal ms-1">
+                        {stat.unit}
+                      </span>
+                    )}
+                  </p>
+                  <p
+                    className={`text-[10px] md:text-xs mt-0.5 md:mt-1 font-medium ${
+                      stat.color === "bg-[rgb(60_28_84)]"
+                        ? "text-white/70"
+                        : "text-[rgb(60_28_84)]/60"
+                    }`}
+                  >
+                    {stat.label}
+                  </p>
+                </div>
               </div>
             );
           })
@@ -302,7 +316,7 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
       {/* Marketing Panel + Quick Actions */}
       <div className="grid lg:grid-cols-3 gap-6 animate-fade-up delay-200">
         {/* Marketing Banner */}
-        <div className="lg:col-span-2 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[rgb(60_28_84)] to-[rgb(85_40_120)] text-white p-6 md:p-8 flex flex-col justify-center shadow-sm">
+        <div className="lg:col-span-2 relative overflow-hidden rounded-lg bg-gradient-to-br from-[rgb(60_28_84)] to-[rgb(85_40_120)] text-white p-6 md:p-8 flex flex-col justify-center shadow-sm">
           <Palette className="absolute -bottom-6 -end-6 w-32 h-32 text-white opacity-5 pointer-events-none" />
           <Sparkles className="absolute top-6 -start-6 w-24 h-24 text-white opacity-10 pointer-events-none" />
 
@@ -311,10 +325,10 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
               <Sparkles className="w-3.5 h-3.5" />
               {tr.premiumServices || "خدمات مخصصة لمتجرك"}
             </span>
-            <h3 className="text-xl md:text-2xl font-bold mb-3 leading-tight">
+            <h3 className="text-lg md:text-2xl font-bold mb-3 leading-tight">
               {tr.marketingTitle || "احصل على تصميم احترافي لمتجرك!"}
             </h3>
-            <p className="text-white/80 text-sm md:text-base mb-6 leading-relaxed">
+            <p className="text-white/80 text-xs md:text-base mb-6 leading-relaxed">
               {tr.marketingDesc ||
                 "هل تحتاج إلى تصميم موقع مخصص أو منشورات جذابة لوسائل التواصل الاجتماعي؟ خبراؤنا هنا لمساعدتك في بناء هوية بصرية مميزة تزيد من مبيعاتك وتألّق علامتك التجارية."}
             </p>
@@ -322,16 +336,16 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
               href="https://wa.me/96171708103"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-white text-[rgb(60_28_84)] px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-105 hover:bg-gray-50 w-max shadow-sm"
+              className="inline-flex items-center gap-2 bg-white text-[rgb(60_28_84)] px-4 py-1.5 rounded-sm font-bold text-xs transition-all hover:scale-105 hover:bg-gray-50 w-max shadow-sm"
             >
-              <MessageCircle className="w-4 h-4" />
+              <MessageCircle className="w-3.5 h-3.5" />
               {tr.contactWhatsapp || "تواصل معنا عبر واتساب"}
             </a>
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] p-5 shadow-sm">
+        <div className="">
           <h3 className="font-bold text-[rgb(60_28_84)] text-base mb-4">
             {tr.quickActions || "الإجراءات السريعة"}
           </h3>
@@ -340,7 +354,7 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
               <button
                 key={action.label}
                 onClick={() => setActiveNav(action.nav)}
-                className={`flex flex-col items-center gap-2 p-4 rounded-xl text-sm font-semibold transition-all hover:scale-[1.03] ${action.color}`}
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg text-sm font-semibold transition-all hover:scale-[1.03] ${action.color}`}
               >
                 <action.icon className="w-5 h-5" />
                 <span className="text-center text-xs leading-tight">
@@ -351,7 +365,7 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
           </div>
 
           {/* Store Link */}
-          <div className="mt-4 p-4 bg-[rgb(244_242_245)] rounded-xl">
+          <div className="mt-4 p-4 bg-[rgb(244_242_245)] rounded-lg">
             <p className="text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
               {tr.storeLink || "رابط المتجر"}
             </p>
@@ -385,8 +399,8 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
       </div>
 
       {/* Recent Orders */}
-      <div className="bg-white rounded-2xl border border-[rgb(244_242_245)] shadow-sm animate-fade-up delay-300">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[rgb(244_242_245)]">
+      <div className="animate-fade-up delay-300 bg-white rounded-lg border border-[rgb(244_242_245)] overflow-hidden">
+        <div className="flex items-center justify-between p-4 md:p-5 border-b border-[rgb(244_242_245)]">
           <h3 className="font-bold text-[rgb(60_28_84)] text-base">
             {tr.recentOrders || "الطلبات الأخيرة"}
           </h3>
@@ -406,7 +420,7 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
               <thead>
                 <tr className="border-b border-[rgb(244_242_245)]">
                   {[1, 2, 3, 4, 5].map((h) => (
-                    <th key={h} className="px-5 py-3 text-start">
+                    <th key={h} className="px-4 md:px-5 py-3 text-start">
                       <div className="h-4 w-16 bg-[rgb(244_242_245)] rounded animate-pulse" />
                     </th>
                   ))}
@@ -415,20 +429,20 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
               <tbody>
                 {[1, 2, 3, 4, 5].map((row) => (
                   <tr key={row} className="border-b border-[rgb(244_242_245)]">
-                    <td className="px-5 py-3.5">
+                    <td className="px-4 md:px-5 py-3.5">
                       <div className="h-4 w-16 bg-[rgb(244_242_245)] rounded animate-pulse" />
                     </td>
-                    <td className="px-5 py-3.5">
-                      <div className="h-4 w-32 bg-[rgb(244_242_245)] rounded animate-pulse" />
+                    <td className="px-4 md:px-5 py-3.5">
+                      <div className="h-4 w-24 md:w-32 bg-[rgb(244_242_245)] rounded animate-pulse" />
                     </td>
-                    <td className="px-5 py-3.5">
-                      <div className="h-4 w-16 bg-[rgb(244_242_245)] rounded animate-pulse" />
+                    <td className="px-4 md:px-5 py-3.5">
+                      <div className="h-4 w-12 md:w-16 bg-[rgb(244_242_245)] rounded animate-pulse" />
                     </td>
-                    <td className="px-5 py-3.5">
-                      <div className="h-6 w-20 bg-[rgb(244_242_245)] rounded-full animate-pulse" />
+                    <td className="px-4 md:px-5 py-3.5">
+                      <div className="h-6 w-16 md:w-20 bg-[rgb(244_242_245)] rounded-full animate-pulse" />
                     </td>
-                    <td className="px-5 py-3.5">
-                      <div className="h-4 w-24 bg-[rgb(244_242_245)] rounded animate-pulse" />
+                    <td className="px-4 md:px-5 py-3.5">
+                      <div className="h-4 w-20 md:w-24 bg-[rgb(244_242_245)] rounded animate-pulse" />
                     </td>
                   </tr>
                 ))}
@@ -437,16 +451,18 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
           </div>
         ) : recentOrders.length === 0 ? (
           /* Empty State */
-          <div className="flex flex-col gap-1 items-center justify-center h-[200px] text-[rgb(60_28_84)]/40">
-            <Package className="w-8 md:w-10 h-8 md:h-10 text-gray-300" />
-            <p className="text-gray-500">{tr.noData || "لا توجد بيانات"}</p>
+          <div className="flex flex-col gap-2 items-center justify-center h-[200px] text-[rgb(60_28_84)]/40 bg-[rgb(244_242_245)]/20">
+            <Package className="w-8 md:w-10 h-8 md:h-10 text-[#fefefe]" />
+            <p className="text-sm font-medium text-[rgb(60_28_84)]/50">
+              {tr.noData || "لا توجد بيانات"}
+            </p>
           </div>
         ) : (
           /* Actual Table */
           <div className="overflow-x-auto">
             <table className="w-full text-sm" dir={dir}>
               <thead>
-                <tr className="border-b border-[rgb(244_242_245)]">
+                <tr className="border-b border-[rgb(244_242_245)] bg-[rgb(244_242_245)]/30">
                   {[
                     tr.orderId || "رقم الطلب",
                     tr.customer || "العميل",
@@ -456,7 +472,7 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
                   ].map((h) => (
                     <th
                       key={h}
-                      className="px-5 py-3 text-start text-xs font-semibold text-[rgb(60_28_84)]/40 uppercase tracking-wider whitespace-nowrap"
+                      className="px-4 md:px-5 py-3 text-start text-[10px] md:text-xs font-bold text-[rgb(60_28_84)]/50 uppercase tracking-wider whitespace-nowrap"
                     >
                       {h}
                     </th>
@@ -469,26 +485,26 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
                     key={order.id}
                     className="border-b border-[rgb(244_242_245)] last:border-0 hover:bg-[rgb(244_242_245)]/50 transition-colors"
                   >
-                    <td className="px-5 py-3.5 font-mono text-xs font-bold text-[rgb(60_28_84)]">
+                    <td className="px-4 md:px-5 py-3.5 font-mono text-xs font-bold text-[rgb(60_28_84)]">
                       {order.id.slice(0, 8).toUpperCase()}
                     </td>
-                    <td className="px-5 py-3.5 font-medium text-[rgb(60_28_84)] whitespace-nowrap">
+                    <td className="px-4 md:px-5 py-3.5 font-medium text-[rgb(60_28_84)] whitespace-nowrap text-xs md:text-sm">
                       {order.customer_name}
                     </td>
-                    <td className="px-5 py-3.5 font-bold text-[rgb(60_28_84)] whitespace-nowrap">
+                    <td className="px-4 md:px-5 py-3.5 font-bold text-[rgb(60_28_84)] whitespace-nowrap text-xs md:text-sm">
                       $
                       {Number(order.total).toLocaleString("en-US", {
                         maximumFractionDigits: 2,
                       })}
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-4 md:px-5 py-3.5">
                       <span
-                        className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${statusColors[order.status]}`}
+                        className={`inline-flex px-2.5 py-1 rounded-full text-[10px] md:text-xs font-bold ${statusColors[order.status]}`}
                       >
                         {statusLabel[order.status]}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-[rgb(60_28_84)]/50 text-xs whitespace-nowrap">
+                    <td className="px-4 md:px-5 py-3.5 text-[rgb(60_28_84)]/60 text-[10px] md:text-xs font-medium whitespace-nowrap">
                       {new Date(order.created_at).toLocaleDateString(
                         dir === "rtl" ? "ar-SA" : "en-US",
                         {
@@ -504,6 +520,7 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
             </table>
           </div>
         )}
+        <FeaturesPanel />
       </div>
     </div>
   );

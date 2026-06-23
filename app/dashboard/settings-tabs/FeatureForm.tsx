@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 interface FeatureFormProps {
@@ -7,6 +7,8 @@ interface FeatureFormProps {
   storeId: string;
   onCancel: () => void;
   onSuccess: () => void;
+  initialData?: any;
+  featureId?: string | number;
 }
 
 export default function FeatureForm({
@@ -15,6 +17,8 @@ export default function FeatureForm({
   storeId,
   onCancel,
   onSuccess,
+  initialData,
+  featureId,
 }: FeatureFormProps) {
   const [formData, setFormData] = useState({
     title: "",
@@ -38,13 +42,26 @@ export default function FeatureForm({
     "Leaf",
   ];
 
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        title: initialData.title,
+        description: initialData.description,
+        icon_name: initialData.icon_name,
+      });
+    }
+  }, [initialData]);
+
   const handleSubmit = async () => {
     if (!formData.title.trim() || !formData.description.trim()) return;
 
     setIsLoading(true);
     try {
-      const response = await fetch("/api/features", {
-        method: "POST",
+      const method = featureId ? "PUT" : "POST";
+      const url = featureId ? `/api/features/${featureId}` : "/api/features";
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           "x-store-id": storeId,
@@ -52,7 +69,12 @@ export default function FeatureForm({
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) throw new Error("Failed to create feature");
+      if (!response.ok) {
+        throw new Error(
+          featureId ? "Failed to update feature" : "Failed to create feature",
+        );
+      }
+
       onSuccess();
     } catch (error) {
       console.error(error);
@@ -61,11 +83,19 @@ export default function FeatureForm({
     }
   };
 
+  const isEditing = !!featureId;
+
   return (
     <div className="bg-white border border-[rgb(207_195_223)] rounded-lg p-5 space-y-4">
-      <h4 className="font-bold text-sm text-[rgb(60_28_84)]">
-        {lang === "ar" ? "إضافة قسم جديد" : "Add New Section"}
-      </h4>
+      <h3 className="font-bold text-sm text-[rgb(60_28_84)]">
+        {isEditing
+          ? lang === "ar"
+            ? "تعديل القسم"
+            : "Edit Section"
+          : lang === "ar"
+            ? "إضافة قسم جديد"
+            : "Add New Section"}
+      </h3>
 
       <div>
         <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
@@ -143,6 +173,12 @@ export default function FeatureForm({
               <Loader2 className="w-4 h-4 animate-spin" />
               {lang === "ar" ? "جاري الحفظ..." : "Saving..."}
             </>
+          ) : isEditing ? (
+            lang === "ar" ? (
+              "تحديث"
+            ) : (
+              "Update"
+            )
           ) : lang === "ar" ? (
             "إضافة"
           ) : (

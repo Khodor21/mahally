@@ -6,7 +6,14 @@ import { authOptions } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 
 /* ─────────────────────────────────────────────
-   GET STORE + SETTINGS (MERGED FOR FRONTEND)
+    VALIDATION SCHEMAS FOR NEW FIELDS
+───────────────────────────────────────────── */
+const PaymentMethodsSchema = z
+  .array(z.enum(["cash_on_delivery", "whish_money", "bob_finance"]))
+  .min(1, "اختر طريقة دفع واحدة على الأقل / Select at least one payment method");
+
+/* ─────────────────────────────────────────────
+    GET STORE + SETTINGS (MERGED FOR FRONTEND)
 ───────────────────────────────────────────── */
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -17,7 +24,7 @@ export async function GET() {
 
   const userId = (session.user as any).id;
 
-  // 1. Get store (includes language field)
+  // 1. Get store (includes language, currency, plan, delivery, and payments)
   const { data: store, error: storeError } = await supabaseAdmin
     .from("stores")
     .select("*")
@@ -43,6 +50,9 @@ export async function GET() {
   const mergedStore = {
     ...store,
     language: store.language || "en",
+    plan_type: store.plan_type || "Starter",
+    delivery_cost: store.delivery_cost ?? 0,
+    payment_methods: store.payment_methods || ["cash_on_delivery"],
 
     // Contact info
     email: store.admin_email,
@@ -52,7 +62,8 @@ export async function GET() {
     logo_url: settings?.logo_url || null,
     description: settings?.description || null,
     promo_text: settings?.promo_text || "",
-    // Policiest
+    
+    // Policies
     privacy_policy: settings?.privacy_policy || null,
     shipping_policy: settings?.shipping_policy || null,
     return_policy: settings?.return_policy || null,
@@ -65,7 +76,7 @@ export async function GET() {
     twitter_url: settings?.twitter_url || null,
     snapchat_url: settings?.snapchat_url || null,
 
-    // ✅ NEW: Testimonials
+    // Testimonials
     testimonials: settings?.testimonials || { testimonials: [] },
   };
 
@@ -76,9 +87,8 @@ export async function GET() {
 }
 
 /* ─────────────────────────────────────────────
-   TESTIMONIAL VALIDATION SCHEMAS
+    TESTIMONIAL VALIDATION SCHEMAS
 ───────────────────────────────────────────── */
-
 const BilingualTextSchema = z.object({
   ar: z.string().min(1, "نص عربي مطلوب").max(500),
   en: z.string().min(1, "English text required").max(500),
@@ -97,8 +107,9 @@ const TestimonialsListSchema = z.object({
   testimonials: z.array(TestimonialSchema),
 });
 
+
 /* ─────────────────────────────────────────────
-   REST OF EXISTING CODE (CreateStoreSchema, POST, PUT, etc.)
+   CREATE STORE SCHEMA WITH PAYMENT METHODS
 ───────────────────────────────────────────── */
 
 const CreateStoreSchema = z.object({
@@ -150,6 +161,9 @@ const CreateStoreSchema = z.object({
       "other",
     ])
     .optional(),
+
+  // ✅ NEW: Payment Methods validation
+  paymentMethods: PaymentMethodsSchema.default(["cash_on_delivery"]),
 
   slug: z
     .string()
@@ -307,6 +321,7 @@ export async function POST(request: NextRequest) {
     location,
     storeName,
     storeType,
+    paymentMethods,
     slug,
     password,
   } = parsed.data;
@@ -364,6 +379,7 @@ export async function POST(request: NextRequest) {
       slug,
       password_hash: passwordHash,
       language: "en", // ✅ Default language is English
+      payment_methods: JSON.stringify(paymentMethods), // ✅ NEW: Store payment methods as JSON
       is_active: true,
       created_at: new Date().toISOString(),
     })
@@ -405,9 +421,8 @@ export async function POST(request: NextRequest) {
 }
 
 /* ─────────────────────────────────────────────
-   UPDATE STORE SETTINGS (PUT) - HANDLES TESTIMONIALS
+    UPDATE STORE SETTINGS (PUT)
 ───────────────────────────────────────────── */
-
 export async function PUT(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
@@ -427,7 +442,10 @@ export async function PUT(request: NextRequest) {
       store_type,
       admin_name,
       admin_email,
-      language, // ✅ ACCEPT LANGUAGE UPDATES
+      language,
+      plan_type,
+      delivery_cost,
+      payment_methods,
       primary_color,
       privacy_policy,
       shipping_policy,
@@ -445,8 +463,8 @@ export async function PUT(request: NextRequest) {
     } = body;
 
     /* ─────────────────────────────
-       1. UPDATE stores TABLE
-    ───────────────────────────── */
+        1. UPDATE stores TABLE
+     ───────────────────────────── */
     const storeUpdate: Record<string, any> = {};
     if (store_name !== undefined) storeUpdate.store_name = store_name;
     if (location !== undefined) storeUpdate.location = location;
@@ -454,17 +472,38 @@ export async function PUT(request: NextRequest) {
     if (store_type !== undefined) storeUpdate.store_type = store_type;
     if (admin_name !== undefined) storeUpdate.admin_name = admin_name;
     if (admin_email !== undefined) storeUpdate.admin_email = admin_email;
+    
     if (language !== undefined) {
       if (!["en", "ar"].includes(language)) {
-        return NextResponse.json(
-          {
-            error: "اللغة يجب أن تكون 'en' أو 'ar'",
-            field: "language",
-          },
-          { status: 422 },
-        );
+        return NextResponse.json({ error: "اللغة يجب أن تكون 'en' أو 'ar'", field: "language" }, { status: 422 });
       }
       storeUpdate.language = language;
+    }
+
+    // Validate and update Plan Type
+    if (plan_type !== undefined) {
+      if (!["Starter", "Pro"].includes(plan_type)) {
+        return NextResponse.json({ error: "Invalid plan type", field: "plan_type" }, { status: 422 });
+      }
+      storeUpdate.plan_type = plan_type;
+    }
+
+    // Validate and update Delivery Cost
+    if (delivery_cost !== undefined) {
+      const parsedCost = Number(delivery_cost);
+      if (isNaN(parsedCost) || parsedCost < 0) {
+        return NextResponse.json({ error: "Delivery cost must be a positive number", field: "delivery_cost" }, { status: 422 });
+      }
+      storeUpdate.delivery_cost = parsedCost;
+    }
+
+    // Validate and update Payment Methods
+    if (payment_methods !== undefined) {
+      const paymentParsed = PaymentMethodsSchema.safeParse(payment_methods);
+      if (!paymentParsed.success) {
+        return NextResponse.json({ error: "Invalid payment methods composition", details: paymentParsed.error.issues }, { status: 422 });
+      }
+      storeUpdate.payment_methods = JSON.stringify(paymentParsed.data);
     }
 
     if (Object.keys(storeUpdate).length > 0) {
@@ -474,54 +513,33 @@ export async function PUT(request: NextRequest) {
         .eq("id", storeId);
 
       if (storeError) {
-        return NextResponse.json(
-          { error: storeError.message },
-          { status: 500 },
-        );
+        return NextResponse.json({ error: storeError.message }, { status: 500 });
       }
     }
 
     /* ─────────────────────────────
-       2. UPSERT store_settings
-       - Guarantees ONE row per store
-       - Updates if exists, creates if not
-    ───────────────────────────── */
-    const settingsUpdate: Record<string, any> = {
-      store_id: storeId,
-    };
+        2. UPSERT store_settings
+     ───────────────────────────── */
+    const settingsUpdate: Record<string, any> = { store_id: storeId };
 
-    // Only add fields that are explicitly provided
-    if (primary_color !== undefined)
-      settingsUpdate.primary_color = primary_color;
+    if (primary_color !== undefined) settingsUpdate.primary_color = primary_color;
     if (promo_text !== undefined) settingsUpdate.promo_text = promo_text;
-    if (privacy_policy !== undefined)
-      settingsUpdate.privacy_policy = privacy_policy;
-    if (shipping_policy !== undefined)
-      settingsUpdate.shipping_policy = shipping_policy;
-    if (return_policy !== undefined)
-      settingsUpdate.return_policy = return_policy;
+    if (privacy_policy !== undefined) settingsUpdate.privacy_policy = privacy_policy;
+    if (shipping_policy !== undefined) settingsUpdate.shipping_policy = shipping_policy;
+    if (return_policy !== undefined) settingsUpdate.return_policy = return_policy;
     if (logo_url !== undefined) settingsUpdate.logo_url = logo_url;
     if (description !== undefined) settingsUpdate.description = description;
-    if (instagram_url !== undefined)
-      settingsUpdate.instagram_url = instagram_url;
+    if (instagram_url !== undefined) settingsUpdate.instagram_url = instagram_url;
     if (facebook_url !== undefined) settingsUpdate.facebook_url = facebook_url;
     if (tiktok_url !== undefined) settingsUpdate.tiktok_url = tiktok_url;
     if (twitter_url !== undefined) settingsUpdate.twitter_url = twitter_url;
     if (snapchat_url !== undefined) settingsUpdate.snapchat_url = snapchat_url;
-    if (whatsapp_number !== undefined)
-      settingsUpdate.whatsapp_number = whatsapp_number;
+    if (whatsapp_number !== undefined) settingsUpdate.whatsapp_number = whatsapp_number;
 
-    // ✅ NEW: Validate and save testimonials
     if (testimonials !== undefined) {
       const testimonialsParsed = TestimonialsListSchema.safeParse(testimonials);
       if (!testimonialsParsed.success) {
-        return NextResponse.json(
-          {
-            error: "Invalid testimonials format",
-            details: testimonialsParsed.error.issues,
-          },
-          { status: 422 },
-        );
+        return NextResponse.json({ error: "Invalid testimonials format", details: testimonialsParsed.error.issues }, { status: 422 });
       }
       settingsUpdate.testimonials = testimonialsParsed.data;
     }
@@ -530,17 +548,12 @@ export async function PUT(request: NextRequest) {
 
     const { data: settingsData, error: settingsError } = await supabaseAdmin
       .from("store_settings")
-      .upsert(settingsUpdate, {
-        onConflict: "store_id",
-      })
+      .upsert(settingsUpdate, { onConflict: "store_id" })
       .select()
       .single();
 
     if (settingsError) {
-      return NextResponse.json(
-        { error: settingsError.message },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: settingsError.message }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -550,9 +563,6 @@ export async function PUT(request: NextRequest) {
     });
   } catch (err) {
     console.error("PUT /stores error:", err);
-    return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 }

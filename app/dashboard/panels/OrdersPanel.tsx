@@ -11,6 +11,9 @@ import {
   Phone,
   Mail,
   Loader2,
+  Calendar,
+  CreditCard,
+  User,
 } from "lucide-react";
 
 import { useDashboard } from "../DashboardContext";
@@ -20,23 +23,36 @@ import type { Order, StoreData } from "@/types/api";
 
 const statusStyles: Record<
   string,
-  { bg: string; text: string; icon: string; label: string }
+  {
+    bg: string;
+    text: string;
+    icon: string;
+    label: string;
+    border: string;
+    ring: string;
+  }
 > = {
   pending: {
     bg: "bg-amber-50",
     text: "text-amber-700",
+    border: "border-amber-200",
+    ring: "ring-amber-500",
     icon: "⏳",
     label: "قيد الانتظار",
   },
   completed: {
     bg: "bg-emerald-50",
     text: "text-emerald-700",
+    border: "border-emerald-200",
+    ring: "ring-emerald-500",
     icon: "✓",
     label: "مكتمل",
   },
   cancelled: {
-    bg: "bg-red-50 ",
-    text: "text-red-700 ",
+    bg: "bg-red-50",
+    text: "text-red-700",
+    border: "border-red-200",
+    ring: "ring-red-500",
     icon: "✕",
     label: "ملغى",
   },
@@ -80,6 +96,8 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [toast, setToast] = useState<ToastState | null>(null);
+
+  // Animation states separated from mounting state
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -90,7 +108,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
   };
 
   const filters = [
-    { key: "all", label: tr.allOrders || "جميع الطلبات" },
+    { key: "all", label: tr.allOrders || "الكل" },
     { key: "pending", label: tr.pending || "قيد الانتظار" },
     { key: "completed", label: tr.completed || "مكتمل" },
     { key: "cancelled", label: tr.cancelled || "ملغى" },
@@ -102,7 +120,6 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
 
   const errorMsg = tr.errorOccurred || "حدث خطأ";
 
-  // Show error toast automatically if hook returns error
   useMemo(() => {
     if (error) showToast(errorMsg, "error");
   }, [error, errorMsg]);
@@ -127,13 +144,15 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
 
   const openOrderModal = (order: Order) => {
     setSelectedOrder(order);
-    setModalOpen(true);
     document.body.style.overflow = "hidden";
+    // Slight delay to allow DOM to mount before adding transition classes
+    setTimeout(() => setModalOpen(true), 10);
   };
 
   const closeOrderModal = () => {
     setModalOpen(false);
     document.body.style.overflow = "";
+    // Wait for the transition to finish before unmounting
     setTimeout(() => setSelectedOrder(null), 300);
   };
 
@@ -146,8 +165,6 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
       const updatedOrder = { ...selectedOrder, status: newStatus as any };
       setSelectedOrder(updatedOrder);
 
-      // We still update local state optimistically here or refetch
-      // To ensure strict sync with hook pattern, we call fetchOrders()
       fetchOrders();
 
       showToast(
@@ -163,13 +180,13 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
 
   return (
     <div className="space-y-6" dir={dir}>
-      {/* Summary Cards - Grid updated to 3 columns */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 animate-fade-up">
+      {/* Summary Cards - Grid updated to 4 columns */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 animate-fade-up">
         {loading
-          ? Array.from({ length: 3 }).map((_, i) => (
+          ? Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="rounded-lg md:rounded-xl p-3 md:p-6 bg-gray-100 animate-pulse"
+                className="rounded-lg md:rounded-xl p-4 md:p-6 bg-gray-100 animate-pulse h-[88px] md:h-[104px]"
               />
             ))
           : [
@@ -177,29 +194,35 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                 label: tr.allOrders || "جميع الطلبات",
                 value: orders.length,
                 color:
-                  "bg-gradient-to-br from-[rgb(60_28_84)] to-[rgb(80_40_110)] text-white ",
+                  "bg-gradient-to-br from-[rgb(60_28_84)] to-[rgb(80_40_110)] text-white shadow-sm",
               },
               {
                 label: tr.pending || "قيد الانتظار",
                 value: orders.filter((o) => o.status === "pending").length,
                 color:
-                  "bg-gradient-to-br from-amber-50 to-orange-50 text-amber-700",
+                  "bg-gradient-to-br from-amber-50 to-orange-50 text-amber-800 border border-amber-100 shadow-sm",
               },
               {
                 label: tr.completed || "مكتمل",
                 value: orders.filter((o) => o.status === "completed").length,
                 color:
-                  "bg-gradient-to-br from-emerald-50 to-teal-50 text-emerald-700",
+                  "bg-gradient-to-br from-emerald-50 to-teal-50 text-emerald-800 border border-emerald-100 shadow-sm",
+              },
+              {
+                label: tr.cancelled || "ملغى",
+                value: orders.filter((o) => o.status === "cancelled").length,
+                color:
+                  "bg-gradient-to-br from-red-50 to-rose-50 text-red-800 border border-red-100 shadow-sm",
               },
             ].map((c) => (
               <div
                 key={c.label}
-                className={`rounded-lg md:rounded-xl p-3 md:p-6 ${c.color} transition-all duration-300 hover:shadow-md hover:scale-105`}
+                className={`rounded-lg md:rounded-xl p-4 md:p-6 ${c.color} transition-all duration-300 hover:-translate-y-1`}
               >
-                <p className="text-xl md:text-3xl font-bold font-sans">
+                <p className="text-2xl md:text-3xl font-bold font-sans">
                   {c.value}
                 </p>
-                <p className="text-xs md:text-sm mt-1 md:mt-2 opacity-70 font-medium leading-tight">
+                <p className="text-xs md:text-sm mt-1 md:mt-2 opacity-80 font-medium leading-tight">
                   {c.label}
                 </p>
               </div>
@@ -207,26 +230,24 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
       </div>
 
       {/* Main Table Card */}
-      <div className="bg-white rounded-lg md:rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-fade-up delay-100">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm animate-fade-up delay-100">
         {/* Toolbar */}
-        <div
-          className={`flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4 px-4 md:px-6 py-3 md:py-5 border-b border-gray-100 bg-gray-50`}
-        >
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4 px-4 md:px-6 py-4 border-b border-gray-100 bg-white">
           <div className="flex items-center gap-2 w-full md:w-auto">
             {loading ? (
-              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 md:px-4 py-2 flex-1 md:flex-none animate-pulse w-full md:w-56">
-                <div className="w-4 h-4 rounded-full bg-gray-300/40"></div>
-                <div className="h-4 w-24 rounded bg-gray-300/40"></div>
+              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex-1 md:flex-none animate-pulse w-full md:w-64">
+                <div className="w-4 h-4 rounded-full bg-gray-200"></div>
+                <div className="h-4 w-24 rounded bg-gray-200"></div>
               </div>
             ) : (
-              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 md:px-4 py-2 flex-1 md:flex-none">
+              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex-1 md:flex-none focus-within:ring-2 focus-within:ring-[rgb(60_28_84)]/20 focus-within:border-[rgb(60_28_84)] transition-all">
                 <Search className="w-4 h-4 text-gray-400 shrink-0" />
                 <input
                   type="text"
                   placeholder={tr.searchOrders || "ابحث عن طلب..."}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full"
+                  className="bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none w-full"
                   dir={dir}
                 />
               </div>
@@ -235,7 +256,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
             <button
               onClick={fetchOrders}
               disabled={loading || !storeId}
-              className="p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors disabled:opacity-50 shrink-0"
+              className="p-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors disabled:opacity-50 shrink-0"
               title="تحديث"
             >
               <RefreshCw
@@ -245,15 +266,15 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
           </div>
 
           {/* Filter Buttons */}
-          <div className="flex items-center gap-2 flex-wrap w-full md:w-auto overflow-x-auto md:overflow-x-visible">
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 hide-scrollbar">
             {filters.map((f) => (
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}
-                className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs font-semibold transition-all duration-200 whitespace-nowrap shrink-0 ${
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 whitespace-nowrap shrink-0 ${
                   filter === f.key
-                    ? "bg-[rgb(60_28_84)] text-white shadow-md"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-[rgb(60_28_84)] text-white shadow-sm"
+                    : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200"
                 }`}
               >
                 {f.label}
@@ -264,16 +285,16 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
 
         {/* Revenue Bar */}
         {loading ? (
-          <div className="px-4 md:px-6 py-3 md:py-4 bg-gradient-to-r from-[rgb(60_28_84)]/5 to-transparent border-b border-gray-100 flex items-center justify-between">
-            <div className="h-3 w-24 rounded bg-gray-300/40 animate-pulse"></div>
-            <div className="h-6 w-16 rounded bg-gray-300/40 animate-pulse"></div>
+          <div className="px-4 md:px-6 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
+            <div className="h-3 w-24 rounded bg-gray-200 animate-pulse"></div>
+            <div className="h-6 w-16 rounded bg-gray-200 animate-pulse"></div>
           </div>
         ) : (
-          <div className="px-4 md:px-6 py-3 md:py-4 bg-gradient-to-r from-[rgb(60_28_84)]/5 to-transparent border-b border-gray-100 flex items-center justify-between">
-            <span className="text-xs text-gray-600 font-semibold uppercase tracking-wide">
+          <div className="px-4 md:px-6 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
+            <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">
               {tr.totalRevenue || "إجمالي الإيرادات"}:
             </span>
-            <span className="text-lg font-bold text-[rgb(60_28_84)]">
+            <span className="text-base md:text-lg font-bold text-[rgb(60_28_84)]">
               ${" "}
               {totalRevenue.toLocaleString("en-US", {
                 maximumFractionDigits: 2,
@@ -286,7 +307,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="hidden md:table-header-group">
-              <tr className="border-b border-gray-100 bg-gray-50">
+              <tr className="border-b border-gray-100 bg-white">
                 {[
                   tr.orderId || "رقم الطلب",
                   tr.customer || "العميل",
@@ -298,7 +319,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                 ].map((h, i) => (
                   <th
                     key={i}
-                    className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap"
+                    className="px-6 py-4 text-start text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap"
                   >
                     {h}
                   </th>
@@ -309,92 +330,85 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
             <tbody>
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr
-                    key={i}
-                    className="border-b border-gray-100 md:border-b md:border-gray-100"
-                  >
-                    <td className="px-4 md:px-6 py-3 md:py-4">
-                      <div className="h-4 w-20 mx-auto rounded bg-gray-200 animate-pulse"></div>
+                  <tr key={i} className="border-b border-gray-50 last:border-0">
+                    <td className="px-4 md:px-6 py-4">
+                      <div className="h-4 w-20 rounded bg-gray-100 animate-pulse"></div>
                     </td>
-                    <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
-                      <div className="h-4 w-24 mx-auto rounded bg-gray-200 animate-pulse"></div>
+                    <td className="px-4 md:px-6 py-4 hidden md:table-cell">
+                      <div className="h-4 w-32 rounded bg-gray-100 animate-pulse"></div>
                     </td>
-                    <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
-                      <div className="h-4 w-16 mx-auto rounded bg-gray-200 animate-pulse"></div>
+                    <td className="px-4 md:px-6 py-4 hidden md:table-cell">
+                      <div className="h-4 w-12 rounded bg-gray-100 animate-pulse"></div>
                     </td>
-                    <td className="px-4 md:px-6 py-3 md:py-4">
-                      <div className="h-4 w-16 mx-auto rounded bg-gray-200 animate-pulse"></div>
+                    <td className="px-4 md:px-6 py-4">
+                      <div className="h-4 w-16 rounded bg-gray-100 animate-pulse"></div>
                     </td>
-                    <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
-                      <div className="h-4 w-20 mx-auto rounded bg-gray-200 animate-pulse"></div>
+                    <td className="px-4 md:px-6 py-4 hidden md:table-cell">
+                      <div className="h-6 w-24 rounded-full bg-gray-100 animate-pulse"></div>
                     </td>
-                    <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
-                      <div className="h-4 w-24 mx-auto rounded bg-gray-200 animate-pulse"></div>
+                    <td className="px-4 md:px-6 py-4 hidden md:table-cell">
+                      <div className="h-4 w-24 rounded bg-gray-100 animate-pulse"></div>
                     </td>
-                    <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
-                      <div className="h-8 w-8 mx-auto rounded-lg bg-gray-200 animate-pulse"></div>
+                    <td className="px-4 md:px-6 py-4 hidden md:table-cell">
+                      <div className="h-8 w-8 rounded-lg bg-gray-100 animate-pulse"></div>
                     </td>
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="py-12 md:py-20 px-4 md:px-6 text-center"
-                  >
-                    <div className="flex flex-col items-center justify-center gap-3 md:gap-4">
-                      <Package className="w-10 md:w-12 h-10 md:h-12 text-gray-300" />
-                      <p className="text-sm text-gray-500">
-                        {tr.noData || "لا توجد طلبات"}
+                  <td colSpan={7} className="py-16 md:py-24 px-4 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-2">
+                        <Package className="w-8 h-8 text-gray-300" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-500">
+                        {tr.noData || "لا توجد طلبات تطابق بحثك"}
                       </p>
                     </div>
                   </td>
                 </tr>
               ) : (
-                filtered.map((order, idx) => (
+                filtered.map((order) => (
                   <tr
                     key={order.id}
                     onClick={() => openOrderModal(order)}
-                    className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors cursor-pointer text-center ${
-                      idx % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                    }`}
+                    className="border-b border-gray-50 last:border-0 hover:bg-gray-50/80 transition-colors cursor-pointer group"
                   >
                     {/* Order ID */}
-                    <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-[rgb(60_28_84)]" />
-                        <span className="font-mono text-xs font-bold text-gray-900">
-                          {order.id.slice(0, 8).toUpperCase()}
+                    <td className="px-4 md:px-6 py-4 hidden md:table-cell">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-[rgb(60_28_84)] bg-[rgb(60_28_84)]/5 px-2 py-1 rounded">
+                          #{order.id.slice(0, 8).toUpperCase()}
                         </span>
                       </div>
                     </td>
 
                     {/* Customer Name */}
-                    <td className="px-4 md:px-6 py-3 md:py-4 font-medium text-gray-900 whitespace-nowrap">
-                      <div className="flex flex-col items-center">
+                    <td className="px-4 md:px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                      <div className="flex flex-col">
                         <span className="text-sm font-semibold">
                           {order.customer_name}
                         </span>
-                        <span className="text-xs text-gray-500 md:hidden">
-                          {order.id.slice(0, 8).toUpperCase()}
+                        <span className="text-[10px] text-gray-400 font-mono mt-0.5 md:hidden">
+                          #{order.id.slice(0, 8).toUpperCase()}
                         </span>
                       </div>
                     </td>
 
                     {/* Items Count */}
-                    <td className="px-4 md:px-6 py-3 md:py-4 text-gray-600 font-medium hidden md:table-cell">
-                      <span className="inline-flex items-center justify-center w-7 h-7 bg-gray-100 rounded-full text-xs font-bold text-gray-700">
-                        {order.order_items?.length || 0}
+                    <td className="px-4 md:px-6 py-4 text-gray-500 font-medium hidden md:table-cell">
+                      <span className="text-xs font-semibold bg-gray-100 px-2.5 py-1 rounded-full text-gray-600">
+                        {order.order_items?.length || 0} {tr.items || "عناصر"}
                       </span>
                     </td>
 
                     {/* Amount */}
-                    <td className="px-4 md:px-6 py-3 md:py-4 font-bold text-gray-900 whitespace-nowrap">
-                      <div className="flex flex-col md:flex-row md:items-center justify-center">
-                        <span className="text-xs text-gray-500 md:hidden">
+                    <td className="px-4 md:px-6 py-4 font-bold text-gray-900 whitespace-nowrap">
+                      <div className="flex flex-col md:flex-row md:items-center">
+                        <span className="text-[10px] text-gray-400 font-medium md:hidden uppercase tracking-wider mb-0.5">
                           {tr.amount || "المبلغ"}
                         </span>
-                        <span className="font-bold text-[rgb(60_28_84)]">
+                        <span className="font-bold text-[rgb(60_28_84)] text-sm md:text-base">
                           ${" "}
                           {Number(order.total).toLocaleString("en-US", {
                             maximumFractionDigits: 2,
@@ -404,16 +418,16 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                     </td>
 
                     {/* Status */}
-                    <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
+                    <td className="px-4 md:px-6 py-4 hidden md:table-cell">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${statusStyles[order.status].bg} ${statusStyles[order.status].text}`}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${statusStyles[order.status].bg} ${statusStyles[order.status].text} border ${statusStyles[order.status].border}`}
                       >
                         {statusLabel[order.status]}
                       </span>
                     </td>
 
                     {/* Date */}
-                    <td className="px-4 md:px-6 py-3 md:py-4 text-gray-500 text-xs whitespace-nowrap hidden md:table-cell">
+                    <td className="px-4 md:px-6 py-4 text-gray-500 text-xs whitespace-nowrap hidden md:table-cell font-medium">
                       {new Date(order.created_at).toLocaleDateString(
                         dir === "rtl" ? "ar-SA" : "en-US",
                         {
@@ -425,18 +439,16 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                     </td>
 
                     {/* Action */}
-                    <td className="px-4 md:px-6 py-3 md:py-4 hidden md:table-cell">
-                      <div className="flex justify-center">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openOrderModal(order);
-                          }}
-                          className="p-2 rounded-lg hover:bg-[rgb(60_28_84)]/10 text-gray-400 hover:text-[rgb(60_28_84)] transition-all duration-200 group"
-                        >
-                          <Eye className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                        </button>
-                      </div>
+                    <td className="px-4 md:px-6 py-4 hidden md:table-cell text-end">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openOrderModal(order);
+                        }}
+                        className="p-2 rounded-lg text-gray-400 hover:text-[rgb(60_28_84)] hover:bg-[rgb(60_28_84)]/5 transition-all duration-200"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -446,180 +458,208 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
         </div>
       </div>
 
-      {/* BOTTOM SHEET MODAL */}
-      {modalOpen && selectedOrder && (
-        <>
+      {/* MODAL / DRAWER */}
+      {selectedOrder && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center pointer-events-none">
+          {/* Backdrop */}
           <div
-            className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${
-              modalOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+            className={`absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto ${
+              modalOpen ? "opacity-100" : "opacity-0"
             }`}
             onClick={closeOrderModal}
           />
 
+          {/* Modal Panel - Bottom sheet on mobile, Centered card on desktop */}
           <div
-            className={`fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl transition-all duration-300 transform max-h-[95vh] overflow-hidden ${
+            className={`relative w-full md:max-w-2xl bg-white rounded-t-[1.5rem] md:rounded-2xl shadow-2xl max-h-[90vh] md:max-h-[85vh] flex flex-col pointer-events-auto transition-all duration-300 transform ${
               modalOpen
-                ? "translate-y-0 opacity-100"
-                : "translate-y-full opacity-0"
+                ? "translate-y-0 opacity-100 md:scale-100"
+                : "translate-y-full md:translate-y-8 opacity-0 md:scale-95"
             }`}
-            onClick={(e) => e.stopPropagation()}
             dir={dir}
           >
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 md:px-8 py-3 flex items-center justify-between rounded-t-3xl z-10">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white rounded-t-[1.5rem] md:rounded-t-2xl shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[rgb(60_28_84)]/5 flex items-center justify-center">
+                  <Package className="w-5 h-5 text-[rgb(60_28_84)]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 leading-tight">
+                    {tr.orderDetails || "تفاصيل الطلب"}
+                  </h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[rgb(60_28_84)]" />
+                    <p className="text-[11px] text-gray-500 font-mono font-bold tracking-wider">
+                      {selectedOrder.id.slice(0, 8).toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+              </div>
               <button
                 onClick={closeOrderModal}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-50 rounded-full transition-colors"
               >
-                <X className="w-6 h-6 text-gray-600" />
+                <X className="w-5 h-5" />
               </button>
-
-              <div className="flex-1 text-center">
-                <h2 className="text-lg font-bold text-gray-900">
-                  {tr.orderId || "رقم الطلب"}
-                </h2>
-                <p className="text-xs text-gray-500 font-mono">
-                  {selectedOrder.id}
-                </p>
-              </div>
-
-              <div className="w-10" />
             </div>
 
-            <div className="overflow-y-auto max-h-[calc(95vh-60px)] px-4 md:px-8 py-6 space-y-6">
-              {/* Status Section */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-gray-900">
-                    {tr.status || "حالة الطلب"}
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto p-4 md:p-6 space-y-6 hide-scrollbar flex-1 bg-gray-50/30">
+              {/* Status Manager */}
+              <div className="">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-gray-900">
+                    {tr.statusOrder || "حالة الطلب"}
                   </h3>
                   {updatingStatus && (
                     <Loader2 className="w-4 h-4 text-[rgb(60_28_84)] animate-spin" />
                   )}
                 </div>
 
-                <div className="p-4 rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200">
-                  <p className="text-xs text-gray-600 uppercase font-bold tracking-wide mb-2">
-                    {tr.currentStatus || "الحالة الحالية"}
-                  </p>
-                  <span
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold ${statusStyles[selectedOrder.status].bg} ${statusStyles[selectedOrder.status].text}`}
-                  >
-                    <span>{statusStyles[selectedOrder.status].icon}</span>
-                    {statusLabel[selectedOrder.status]}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {statusOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        if (
-                          selectedOrder.status !== option.value &&
-                          !updatingStatus
-                        ) {
-                          updateOrderStatus(option.value);
-                        }
-                      }}
-                      disabled={
-                        updatingStatus || selectedOrder.status === option.value
-                      }
-                      className={`px-3 py-2.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                        selectedOrder.status === option.value
-                          ? `${statusStyles[option.value].bg} ${statusStyles[option.value].text} ring-2 ring-offset-2`
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
-                      }`}
-                    >
-                      {lang === "ar" ? option.label : option.labelEn}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-3 gap-2">
+                  {statusOptions.map((option) => {
+                    const isActive = selectedOrder.status === option.value;
+                    const style = statusStyles[option.value];
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          if (!isActive && !updatingStatus) {
+                            updateOrderStatus(option.value);
+                          }
+                        }}
+                        disabled={updatingStatus || isActive}
+                        className={`relative flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-lg text-xs font-bold transition-all duration-200 border ${
+                          isActive
+                            ? `${style.bg} ${style.border} ${style.text} ring-1 ${style.ring}`
+                            : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                        }`}
+                      >
+                        <span>
+                          {lang === "ar" ? option.label : option.labelEn}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Customer Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-gray-900">
-                  {tr.customer || "بيانات العميل"}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-xs text-gray-600 uppercase font-bold tracking-wide mb-2">
-                      {tr.customer || "الاسم"}
-                    </p>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {selectedOrder.customer_name}
-                    </p>
-                  </div>
-
-                  {selectedOrder.customer_phone && (
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <p className="text-xs text-gray-600 uppercase font-bold tracking-wide flex items-center gap-2 mb-2">
-                        <Phone className="w-3 h-3" /> {tr.phone || "الهاتف"}
-                      </p>
-                      <p className="text-sm font-semibold text-gray-900 font-mono">
-                        {selectedOrder.customer_phone}
-                      </p>
-                    </div>
-                  )}
-
-                  {selectedOrder.customer_email && (
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 md:col-span-2">
-                      <p className="text-xs text-gray-600 uppercase font-bold tracking-wide flex items-center gap-2 mb-2">
-                        <Mail className="w-3 h-3" />{" "}
-                        {tr.email || "البريد الإلكتروني"}
-                      </p>
-                      <p className="text-sm font-semibold text-gray-900 break-all">
-                        {selectedOrder.customer_email}
-                      </p>
-                    </div>
-                  )}
-
-                  {selectedOrder.address && (
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 md:col-span-2">
-                      <p className="text-xs text-gray-600 uppercase font-bold tracking-wide flex items-center gap-2 mb-2">
-                        <MapPin className="w-3 h-3" /> {tr.address || "العنوان"}
+              {/* Customer Information (Clean Card Style) */}
+              <div className="">
+                <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <User className="w-4 h-4 text-gray-400" />
+                    {tr.customerData || "بيانات العميل"}
+                  </h3>
+                </div>
+                <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">
+                        {tr.customer || "الاسم"}
                       </p>
                       <p className="text-sm font-semibold text-gray-900">
-                        {selectedOrder.address}
-                        {selectedOrder.city && `, ${selectedOrder.city}`}
+                        {selectedOrder.customer_name}
                       </p>
                     </div>
-                  )}
+
+                    {selectedOrder.customer_phone && (
+                      <div>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                          <Phone className="w-3 h-3" /> {tr.phone || "الهاتف"}
+                        </p>
+                        <p
+                          className="text-sm font-semibold text-gray-900 font-mono"
+                          dir="ltr"
+                          style={{
+                            textAlign: dir === "rtl" ? "right" : "left",
+                          }}
+                        >
+                          {selectedOrder.customer_phone}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between items-end">
+                    {selectedOrder.address && (
+                      <div className="md:col-span-2">
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />{" "}
+                          {tr.address || "العنوان"}
+                        </p>
+                        <p className="text-sm font-medium text-gray-900 leading-relaxed">
+                          {selectedOrder.address}
+                          {selectedOrder.city && `، ${selectedOrder.city}`}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="md:col-span-2 pt-2 border-t border-gray-50">
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />{" "}
+                        {tr.date || "تاريخ الطلب"}
+                      </p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {new Date(selectedOrder.created_at).toLocaleString(
+                          dir === "rtl" ? "ar-SA" : "en-US",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Order Items */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-gray-900">
-                  {tr.items || "العناصر"}
-                </h3>
-                <div className="space-y-3">
+              {/* Order Items List */}
+              <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <Package className="w-4 h-4 text-gray-400" />
+                    {tr.items || "المنتجات"} (
+                    {selectedOrder.order_items?.length || 0})
+                  </h3>
+                </div>
+                <div className="divide-y divide-gray-50">
                   {selectedOrder.order_items?.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center gap-3 md:gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                      className="flex items-center gap-3 p-4 hover:bg-gray-50/50 transition-colors"
                     >
-                      {item.image && (
+                      {item.image ? (
                         <img
                           src={item.image}
                           alt={item.title}
-                          className="w-12 md:w-16 h-12 md:h-16 rounded-lg object-cover border border-gray-200 shrink-0"
+                          className="w-12 h-12 rounded-lg object-cover border border-gray-100 shrink-0"
                         />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
+                          <Package className="w-5 h-5 text-gray-300" />
+                        </div>
                       )}
+
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 truncate">
-                          {item.title || `Item #${item.id.slice(0, 8)}`}
+                        <p className="text-sm font-bold text-gray-900 truncate">
+                          {item.title || `منتج #${item.id.slice(0, 8)}`}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-900 font-medium mt-0.5">
                           {tr.quantity || "الكمية"}:{" "}
-                          <span className="font-bold text-gray-700">
+                          <span className="font-bold text-gray-900">
                             {item.qty}
                           </span>
                         </p>
                       </div>
-                      <div className="text-right shrink-0">
+
+                      <div className="text-end shrink-0">
                         {item.total && (
-                          <p className="text-sm font-bold text-gray-900">
+                          <p className="text-base font-bold text-[rgb(60_28_84)]">
                             ${" "}
                             {Number(item.total).toLocaleString("en-US", {
                               maximumFractionDigits: 2,
@@ -632,10 +672,10 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                 </div>
               </div>
 
-              {/* Order Summary */}
-              <div className="space-y-3 p-4 md:p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700 font-medium">
+              {/* Order Summary / Total */}
+              <div className="bg-white border border-gray-100 rounded-xl shadow-sm p-5 space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500 font-medium">
                     {tr.subtotal || "المجموع الجزئي"}
                   </span>
                   <span className="text-gray-900 font-bold">
@@ -648,9 +688,9 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                 </div>
 
                 {selectedOrder.shipping ? (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-700 font-medium">
-                      {tr.shipping || "الشحن"}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500 font-medium">
+                      {tr.shipping || "رسوم الشحن"}
                     </span>
                     <span className="text-gray-900 font-bold">
                       ${" "}
@@ -661,11 +701,12 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                   </div>
                 ) : null}
 
-                <div className="border-t border-gray-300 pt-3 flex items-center justify-between">
-                  <span className="text-lg font-bold text-gray-900">
+                <div className="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between">
+                  <span className="text-base font-bold text-gray-900 flex items-center gap-1.5">
+                    <CreditCard className="w-4 h-4 text-[rgb(60_28_84)]" />
                     {tr.total || "الإجمالي"}
                   </span>
-                  <span className="text-2xl font-bold text-[rgb(60_28_84)]">
+                  <span className="text-xl md:text-2xl font-black text-[rgb(60_28_84)]">
                     ${" "}
                     {Number(selectedOrder.total).toLocaleString("en-US", {
                       maximumFractionDigits: 2,
@@ -673,11 +714,9 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                   </span>
                 </div>
               </div>
-
-              <div className="h-4" />
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {toast && (

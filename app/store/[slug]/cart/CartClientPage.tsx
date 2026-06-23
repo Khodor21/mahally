@@ -9,9 +9,6 @@ import {
   Minus,
   Plus,
   Loader2,
-  MapPin,
-  User,
-  Phone,
   StickyNote,
   Tag,
   X,
@@ -26,11 +23,7 @@ import {
   checkoutTranslations,
   type Language,
 } from "@/lib/checkout-translations";
-import {
-  getStoreLanguage,
-  getCurrencySymbol,
-  type Store,
-} from "@/lib/store-types";
+import { getStoreLanguage, type Store } from "@/lib/store-types";
 
 const LEBANON_GOVERNORATES_EN = [
   "Beirut",
@@ -62,10 +55,15 @@ export default function CartClientPage({ store }: Props) {
   const router = useRouter();
   const language = getStoreLanguage(store) as Language;
   const t = checkoutTranslations[language];
-  const currencySymbol = getCurrencySymbol(store);
   const isArabic = language === "ar";
+
+  // Pull cart management from Context
   const { cartItems, cartTotal, updateCartQty, removeFromCart, clearCart } =
     useShop();
+
+  // ✅ GUARANTEED DATA EXTRACTION: Pull directly from the verified Server Component prop
+  const currencySymbol = store?.currency_symbol || "$";
+  const storeDeliveryCost = parseFloat(store?.delivery_cost as string) || 0;
 
   // ── Auth & Auto-fill ────────────────────────────────────
   const { customer, loading: authLoading } = useAuth(store?.id);
@@ -107,7 +105,10 @@ export default function CartClientPage({ store }: Props) {
 
   // ── Totals ──────────────────────────────────────────
   const subtotal = useMemo(() => cartTotal, [cartTotal]);
-  const shipping = subtotal > 0 ? 15 : 0;
+
+  // ✅ ACCURATE SHIPPING CALCULATION
+  const shipping = subtotal > 0 ? storeDeliveryCost : 0;
+
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const total = Math.max(0, subtotal - discountAmount) + shipping;
 
@@ -190,7 +191,7 @@ export default function CartClientPage({ store }: Props) {
           city,
           address,
           notes,
-          shipping,
+          shipping, // ✅ Dynamic delivery fee correctly sent
           couponCode: appliedCoupon?.code || "",
           items: cartItems.map((item) => ({
             productId: item.product.id,
@@ -207,7 +208,7 @@ export default function CartClientPage({ store }: Props) {
       }
 
       clearCart();
-      router.push(`/store/${store.slug}/success?order=${data.orderId}`);
+      router.push(`/`);
     } catch (err) {
       console.error(err);
       setError(t.somethingWentWrong);
@@ -219,24 +220,23 @@ export default function CartClientPage({ store }: Props) {
   // ── Empty Cart ──────────────────────────────────────
   if (cartItems.length === 0) {
     return (
-      // 👉 Removed min-h-screen so the recommendations underneath are visible
       <div className="w-full bg-white flex flex-col items-center justify-center pt-8 px-4">
-        {/* 👉 Removed border-gray-200 */}
-        <div className="bg-white rounded-sm p-8 max-w-md w-full text-center">
-          {/* 👉 Removed bg-gray-100 and added Emoji */}
-          <div className="flex items-center justify-center gap-1">
-            <h3 className="text-xl mt-1 font-bold text-gray-900">
+        <div className="bg-white rounded-xl p-8 max-w-md w-full text-center border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <h3 className="text-2xl font-bold text-gray-900">
               {t.emptyCartTitle}
-            </h3>{" "}
-            <Emoji unified="1f915" size={34} />
+            </h3>
+            <Emoji unified="1f915" size={32} />
           </div>
 
-          <p className="mt-2 text-sm text-gray-500">{t.emptyCartDesc}</p>
+          <p className="text-sm text-gray-500 leading-relaxed mb-8">
+            {t.emptyCartDesc}
+          </p>
           <button
-            onClick={() => router.push(`/`)} // 👉 Changed route to '/'
-            className="w-full mt-6 h-11 rounded-xs text-brand-primary underline font-medium transition flex items-center justify-center gap-2"
+            onClick={() => router.push(`/`)}
+            className="w-full h-12 rounded-xl bg-brand-primary text-white font-bold transition-all hover:opacity-90 active:scale-95 flex items-center justify-center gap-2"
           >
-            <ArrowRight />
+            <ArrowRight className="w-4 h-4" />
             {t.continueShopping}
           </button>
         </div>
@@ -254,56 +254,56 @@ export default function CartClientPage({ store }: Props) {
   const ArrowIcon = isArabic ? ChevronRight : ChevronLeft;
 
   return (
-    // 👉 Removed min-h-screen from here as well to allow natural flow
     <div className={`w-full bg-white py-8 px-4 ${isArabic ? "rtl" : "ltr"}`}>
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="mb-8 flex justify-between items-center">
-          <h3 className="text-2xl font-bold text-gray-900">
-            {step === "cart" ? t.cart : t.shippingInfo}
-          </h3>
-          <p className="mt-1 text-sm text-gray-500">
-            {step === "cart"
-              ? ` ${t.products}: ${cartItems.length}`
-              : t.fillDetailsBelow}
-          </p>
+          <div>
+            <h3 className="text-2xl font-bold text-gray-900">
+              {step === "cart" ? t.cart : t.shippingInfo}
+            </h3>
+            <p className="mt-1 text-sm text-gray-500 font-medium">
+              {step === "cart"
+                ? ` ${t.products}: ${cartItems.length}`
+                : t.fillDetailsBelow}
+            </p>
+          </div>
         </div>
 
         {/* STEP 1: CART VIEW */}
         {step === "cart" && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in">
             {/* Cart Items */}
             <div className="bg-white">
               <div className="space-y-4">
                 {cartItems.map((item) => (
                   <div
                     key={item.product.id}
-                    className="flex gap-4 pb-4 border-b border-gray-200 last:border-0"
+                    className="flex gap-4 pb-4 border-b border-gray-100 last:border-0"
                   >
                     {/* Product Image */}
                     {item.product.image && (
-                      <div className="flex-shrink-0 w-20 h-20 bg-gray-100 rounded-xs overflow-hidden">
+                      <div className="flex-shrink-0 w-24 h-24 bg-gray-50 rounded-xl border border-gray-100 overflow-hidden relative">
                         <Image
                           src={item.product.image}
                           alt={item.product.title}
-                          width={80}
-                          height={80}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
                         />
                       </div>
                     )}
 
                     {/* Product Details */}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 py-1">
                       <div className="flex justify-between items-start gap-2">
                         <div className="min-w-0">
-                          {/* Product Title - ALWAYS VISIBLE */}
-                          <p className="font-semibold text-gray-900 text-sm truncate">
+                          {/* Product Title */}
+                          <p className="font-bold text-gray-900 text-sm truncate">
                             {item.product.title}
                           </p>
 
                           {/* Price */}
-                          <p className="text-sm font-semibold text-gray-900 mt-2">
+                          <p className="text-sm font-bold text-brand-primary mt-1">
                             {currencySymbol}
                             {item.product.price !== undefined
                               ? item.product.price.toLocaleString()
@@ -312,14 +312,14 @@ export default function CartClientPage({ store }: Props) {
                         </div>
                         <button
                           onClick={() => removeFromCart(item.product.id)}
-                          className="text-red-500 hover:text-red-600 flex-shrink-0"
+                          className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 p-1"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
 
                       {/* Quantity Controls */}
-                      <div className="flex items-center gap-2 mt-4">
+                      <div className="flex items-center gap-3 mt-4">
                         <button
                           onClick={() =>
                             updateCartQty(
@@ -327,20 +327,20 @@ export default function CartClientPage({ store }: Props) {
                               Math.max(1, item.qty - 1),
                             )
                           }
-                          className="w-7 h-7 rounded-xs bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition text-gray-600"
+                          className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600"
                         >
-                          <Minus className="w-3 h-3" />
+                          <Minus className="w-3.5 h-3.5" />
                         </button>
-                        <span className="w-8 text-center font-semibold text-gray-900 text-sm">
+                        <span className="w-6 text-center font-bold text-gray-900 text-sm">
                           {item.qty}
                         </span>
                         <button
                           onClick={() =>
                             updateCartQty(item.product.id, item.qty + 1)
                           }
-                          className="w-7 h-7 rounded-xs bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition text-gray-600"
+                          className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600"
                         >
-                          <Plus className="w-3 h-3" />
+                          <Plus className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -350,17 +350,19 @@ export default function CartClientPage({ store }: Props) {
             </div>
 
             {/* Order Summary Card */}
-            <div className="bg-gray-50 border border-gray-200 rounded-sm p-6">
-              <div className="space-y-3 text-sm">
+            <div className="bg-gray-50/50 border border-gray-200 rounded-2xl p-6">
+              <div className="space-y-4 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t.subtotal}</span>
-                  <span className="font-semibold text-gray-900">
+                  <span className="text-gray-600 font-medium">
+                    {t.subtotal}
+                  </span>
+                  <span className="font-bold text-gray-900">
                     {currencySymbol}
                     {subtotal.toLocaleString()}
                   </span>
                 </div>
                 {appliedCoupon && (
-                  <div className="flex justify-between text-green-600 font-semibold">
+                  <div className="flex justify-between text-brand-primary font-bold">
                     <span>
                       {t.discount} ({appliedCoupon.code})
                     </span>
@@ -371,28 +373,37 @@ export default function CartClientPage({ store }: Props) {
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t.shipping}</span>
-                  <span className="font-semibold text-gray-900">
-                    {currencySymbol}
-                    {shipping.toLocaleString()}
+                  <span className="text-gray-600 font-medium">
+                    {t.shipping}
+                  </span>
+                  <span className="font-bold text-gray-900">
+                    {shipping === 0 ? (
+                      "Free"
+                    ) : (
+                      <>
+                        {currencySymbol}
+                        {shipping.toLocaleString()}
+                      </>
+                    )}
                   </span>
                 </div>
-                <div className="h-px bg-gray-300" />
-                <div className="flex justify-between font-bold text-base">
+                <div className="h-px bg-gray-200" />
+                <div className="flex justify-between font-black text-lg">
                   <span className="text-gray-900">{t.total}</span>
-                  <span className="text-gray-900">
+                  <span className="text-brand-primary">
                     {currencySymbol}
                     {total.toLocaleString()}
                   </span>
                 </div>
               </div>
+
               {/* Coupon Section */}
-              <div className="mt-4">
+              <div className="mt-6 pt-6 border-t border-gray-200">
                 {!appliedCoupon ? (
                   <div className="flex gap-2">
                     <div className="relative flex-1">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Tag className="w-3 h-3 text-gray-400" />
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <Tag className="w-4 h-4 text-gray-400" />
                       </div>
                       <input
                         value={couponInput}
@@ -400,13 +411,13 @@ export default function CartClientPage({ store }: Props) {
                           setCouponInput(e.target.value.toUpperCase())
                         }
                         placeholder={t.discountCode}
-                        className="w-full h-8 rounded-xs border border-gray-200 pl-10 pr-4 text-sm outline-none focus:border-gray-400 transition bg-white"
+                        className="w-full h-11 rounded-xl border border-gray-200 pl-11 pr-4 text-sm font-medium outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all bg-white uppercase"
                       />
                     </div>
                     <button
                       onClick={handleApplyCoupon}
                       disabled={!couponInput.trim() || couponLoading}
-                      className="h-8 px-4 bg-gray-900 text-white rounded-xs font-medium text-xs hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[80px]"
+                      className="h-11 px-5 bg-brand-primary text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[90px]"
                     >
                       {couponLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -416,23 +427,23 @@ export default function CartClientPage({ store }: Props) {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-xs border border-green-200">
+                  <div className="flex items-center justify-between p-3.5 bg-brand-primary/10 rounded-xl border border-brand-primary/20">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xs bg-green-100 flex items-center justify-center">
-                        <Tag className="w-4 h-4 text-green-600" />
+                      <div className="w-9 h-9 rounded-lg bg-brand-primary flex items-center justify-center">
+                        <Tag className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-green-800">
+                        <p className="text-sm font-bold text-brand-primary">
                           {appliedCoupon.code}
                         </p>
-                        <p className="text-xs text-green-600">
+                        <p className="text-xs font-medium text-brand-primary/70">
                           {t.couponApplied}
                         </p>
                       </div>
                     </div>
                     <button
                       onClick={handleRemoveCoupon}
-                      className="w-8 h-8 flex items-center justify-center text-green-600 hover:bg-green-100 rounded-xs transition"
+                      className="w-9 h-9 flex items-center justify-center text-brand-primary hover:bg-brand-primary/20 rounded-lg transition-colors"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -440,9 +451,9 @@ export default function CartClientPage({ store }: Props) {
                 )}
                 {couponMessage && (
                   <p
-                    className={`text-xs mt-2 font-medium ${
+                    className={`text-xs mt-3 font-bold ${
                       couponMessage.type === "success"
-                        ? "text-green-600"
+                        ? "text-brand-primary"
                         : "text-red-500"
                     }`}
                   >
@@ -452,20 +463,20 @@ export default function CartClientPage({ store }: Props) {
               </div>
             </div>
 
-            {/* Navigation */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep("shipping")}
-                className="flex-1 h-11 rounded-xs bg-gray-900 text-white font-medium text-sm hover:bg-gray-800 transition flex items-center justify-center gap-2"
-              >
-                <ArrowIcon className="w-4 h-4" />
-                {isArabic ? "المتابعة" : "Continue"}
-              </button>
+            {/* Navigation - Enhanced UI */}
+            <div className="flex gap-4 pt-2">
               <button
                 onClick={() => router.back()}
-                className="flex-1 h-11 rounded-xs border border-gray-300 text-gray-900 font-medium text-sm hover:bg-gray-50 transition flex items-center justify-center"
+                className="flex-1 h-12 rounded-xl border-2 border-brand-primary text-brand-primary bg-transparent font-bold text-sm hover:bg-brand-primary hover:text-white transition-colors flex items-center justify-center"
               >
                 {isArabic ? "العودة" : "Back"}
+              </button>
+              <button
+                onClick={() => setStep("shipping")}
+                className="flex-[2] h-12 rounded-xl bg-brand-primary text-white font-bold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              >
+                {isArabic ? "المتابعة للعنوان" : "Continue to Shipping"}
+                <ArrowIcon className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -473,26 +484,29 @@ export default function CartClientPage({ store }: Props) {
 
         {/* STEP 2: SHIPPING FORM */}
         {step === "shipping" && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in">
             {/* Customer Info Form */}
-            <div className="">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-bold text-gray-900 text-lg">
+                  {isArabic ? " تفاصيل الطلب" : " Order Details"}
+                </h3>
                 {authLoading && (
-                  <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                  <Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
                 )}
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {/* Name */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs font-bold text-gray-700 mb-2">
                     {t.fullName}
                   </label>
                   <input
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full h-11 rounded-xs border border-gray-200 px-4 text-sm outline-none focus:border-gray-400 transition bg-white"
+                    className="w-full h-11 rounded-xl border border-gray-200 px-4 text-sm font-medium outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all bg-gray-50 hover:bg-white focus:bg-white"
                     placeholder={t.fullName}
                     dir={isArabic ? "rtl" : "ltr"}
                   />
@@ -500,14 +514,14 @@ export default function CartClientPage({ store }: Props) {
 
                 {/* Phone */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs font-bold text-gray-700 mb-2">
                     {t.phoneNumber}
                   </label>
                   <input
                     type="tel"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="w-full h-11 rounded-xs border border-gray-200 px-4 text-sm outline-none focus:border-gray-400 transition bg-white"
+                    className="w-full h-11 rounded-xl border border-gray-200 px-4 text-sm font-medium outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all bg-gray-50 hover:bg-white focus:bg-white"
                     placeholder={t.phoneNumber}
                     dir={isArabic ? "rtl" : "ltr"}
                   />
@@ -515,13 +529,13 @@ export default function CartClientPage({ store }: Props) {
 
                 {/* City */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs font-bold text-gray-700 mb-2">
                     {t.city}
                   </label>
                   <select
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="w-full h-11 rounded-xs border border-gray-200 px-4 text-sm outline-none focus:border-gray-400 transition bg-white"
+                    className="w-full h-11 rounded-xl border border-gray-200 px-4 text-sm font-medium outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all bg-gray-50 hover:bg-white focus:bg-white cursor-pointer"
                     dir={isArabic ? "rtl" : "ltr"}
                   >
                     <option value="">{t.selectCity}</option>
@@ -538,13 +552,13 @@ export default function CartClientPage({ store }: Props) {
 
                 {/* Address */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs font-bold text-gray-700 mb-2">
                     {t.fullAddress}
                   </label>
                   <textarea
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    className="w-full h-24 rounded-xs border border-gray-200 px-4 py-3 text-sm outline-none focus:border-gray-400 transition resize-none bg-white"
+                    className="w-full h-24 rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all resize-none bg-gray-50 hover:bg-white focus:bg-white"
                     placeholder={t.fullAddress}
                     dir={isArabic ? "rtl" : "ltr"}
                   />
@@ -552,16 +566,16 @@ export default function CartClientPage({ store }: Props) {
 
                 {/* Notes */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs font-bold text-gray-700 mb-2">
                     {t.orderNotes}{" "}
-                    <span className="text-gray-500 font-normal">
+                    <span className="text-gray-400 font-medium">
                       ({isArabic ? "اختياري" : "Optional"})
                     </span>
                   </label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full h-20 rounded-xs border border-gray-200 px-4 py-3 text-sm outline-none focus:border-gray-400 transition resize-none bg-white"
+                    className="w-full h-20 rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all resize-none bg-gray-50 hover:bg-white focus:bg-white"
                     placeholder={t.orderNotes}
                     dir={isArabic ? "rtl" : "ltr"}
                   />
@@ -569,19 +583,21 @@ export default function CartClientPage({ store }: Props) {
               </div>
             </div>
 
-            {/* Order Review */}
-            <div className="bg-gray-50 border border-gray-200 rounded-sm p-6">
-              <h2 className="font-bold text-gray-900 mb-4">{t.orderSummary}</h2>
+            {/* Quick Order Review */}
+            <div className="bg-gray-50/50 border border-gray-200 rounded-2xl p-6">
+              <h3 className="font-bold text-gray-900 mb-4">{t.orderSummary}</h3>
               <div className="space-y-3 text-sm mb-6">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t.subtotal}</span>
-                  <span className="font-semibold text-gray-900">
+                  <span className="text-gray-600 font-medium">
+                    {t.subtotal}
+                  </span>
+                  <span className="font-bold text-gray-900">
                     {currencySymbol}
                     {subtotal.toLocaleString()}
                   </span>
                 </div>
                 {appliedCoupon && (
-                  <div className="flex justify-between text-green-600 font-semibold">
+                  <div className="flex justify-between text-brand-primary font-bold">
                     <span>
                       {t.discount} ({appliedCoupon.code})
                     </span>
@@ -592,25 +608,33 @@ export default function CartClientPage({ store }: Props) {
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{t.shipping}</span>
-                  <span className="font-semibold text-gray-900">
-                    {currencySymbol}
-                    {shipping.toLocaleString()}
+                  <span className="text-gray-600 font-medium">
+                    {t.shipping}
+                  </span>
+                  <span className="font-bold text-gray-900">
+                    {shipping === 0 ? (
+                      "Free"
+                    ) : (
+                      <>
+                        {currencySymbol}
+                        {shipping.toLocaleString()}
+                      </>
+                    )}
                   </span>
                 </div>
-                <div className="h-px bg-gray-300" />
-                <div className="flex justify-between font-bold text-base">
+                <div className="h-px bg-gray-200" />
+                <div className="flex justify-between font-black text-lg">
                   <span className="text-gray-900">{t.total}</span>
-                  <span className="text-gray-900">
+                  <span className="text-brand-primary">
                     {currencySymbol}
                     {total.toLocaleString()}
                   </span>
                 </div>
               </div>
 
-              {/* Quick Review of Items */}
-              <div className="bg-white rounded-xs p-4 border border-gray-100">
-                <p className="text-xs font-semibold text-gray-700 mb-3">
+              {/* Minimal Items List */}
+              <div className="bg-white rounded-xl p-4 border border-gray-100">
+                <p className="text-xs font-bold text-gray-900 mb-3">
                   {t.products}
                 </p>
                 <div className="space-y-2">
@@ -619,10 +643,10 @@ export default function CartClientPage({ store }: Props) {
                       key={item.product.id}
                       className="flex justify-between text-xs"
                     >
-                      <span className="text-gray-600 truncate">
+                      <span className="text-gray-600 truncate font-medium">
                         {item.product.title}
                       </span>
-                      <span className="text-gray-900 font-semibold ml-2 flex-shrink-0">
+                      <span className="text-brand-primary font-bold ml-2 flex-shrink-0">
                         ×{item.qty}
                       </span>
                     </div>
@@ -632,24 +656,24 @@ export default function CartClientPage({ store }: Props) {
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-700 text-sm font-medium rounded-xs px-4 py-3 border border-red-200">
+              <div className="bg-red-50 text-red-600 text-sm font-bold rounded-xl px-4 py-4 border border-red-200 flex items-center justify-center">
                 {error}
               </div>
             )}
 
-            {/* Navigation */}
-            <div className="flex gap-3">
+            {/* Navigation - Enhanced UI */}
+            <div className="flex gap-4 pt-2">
               <button
                 onClick={() => setStep("cart")}
-                className="flex-1 h-11 rounded-xs border border-gray-300 text-gray-900 font-medium text-sm hover:bg-gray-50 transition flex items-center justify-center gap-2"
+                className="flex-1 h-12 rounded-xl border-2 border-brand-primary text-brand-primary bg-transparent font-bold text-sm hover:bg-brand-primary hover:text-white transition-colors flex items-center justify-center gap-2"
               >
                 <ArrowIcon className="w-4 h-4 rotate-180" />
-                {isArabic ? "العودة" : "Back"}
+                {isArabic ? "تعديل السلة" : "Back to Cart"}
               </button>
               <button
                 onClick={handleCheckout}
                 disabled={!canCheckout || loading}
-                className="flex-1 h-11 rounded-xs bg-gray-900 text-white font-medium text-sm hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+                className="flex-[2] h-12 rounded-xl bg-brand-primary text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -665,8 +689,8 @@ export default function CartClientPage({ store }: Props) {
               </button>
             </div>
 
-            <div className="text-center text-xs font-medium text-gray-500 flex items-center justify-center gap-2">
-              <StickyNote className="w-3 h-3" />
+            <div className="text-center text-xs font-bold text-gray-400 flex items-center justify-center gap-2">
+              <StickyNote className="w-3.5 h-3.5" />
               {t.secureCheckout}
             </div>
           </div>

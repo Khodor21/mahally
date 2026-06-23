@@ -61,7 +61,7 @@ export async function getStoreBySlug(slug: string) {
       location,
       phone,
       language, currency, currency_symbol,
-
+delivery_cost,
       store_type,
       created_at,
       is_active
@@ -77,3 +77,5 @@ export async function getStoreBySlug(slug: string) {
 
   return data ?? null;
 }
+
+

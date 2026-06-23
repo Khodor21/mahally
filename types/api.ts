@@ -41,10 +41,12 @@ export interface Product {
   title: string;
   description: string;
   price: number;
+  discount_price?: number | null;
   stock: number;
   images: string[];
   category_id?: string;
   variants?: VariantGroup[];
+  pin: boolean;
   created_at: string;
 }
 
@@ -52,10 +54,12 @@ export interface ProductFormData {
   title: string;
   description: string;
   price: string;
+  discount_price?: string;
   stock: string;
   images: string[];
   category_id: string;
   variants?: VariantGroup[];
+  pin?: boolean;
 }
 // ============================================
 // ORDERS

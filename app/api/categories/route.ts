@@ -1,3 +1,5 @@
+// app/api/categories/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { getServerSession } from "next-auth";
@@ -17,13 +19,13 @@ const CategorySchema = z.object({
 
 const UpdateCategorySchema = CategorySchema.extend({
   id: z.string().uuid("Invalid category ID"),
+  display_order: z.number().int().optional(),
 });
 
 // ── Read (GET) ──────────────────────────────────────────────────────────────
 // PUBLIC route: Anyone can fetch a store's categories if they pass the store_id
 export async function GET(req: NextRequest) {
   const store_id = req.nextUrl.searchParams.get("store_id");
-
   if (!store_id) {
     return NextResponse.json(
       { error: "Store ID is required" },
@@ -32,15 +34,33 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const { data, error } = await supabaseAdmin
+    // 👉 UPDATED: Select display_order for sorting
+    const { data: categories, error } = await supabaseAdmin
       .from("categories")
-      .select("*")
+      .select(
+        `
+        id,
+        title,
+        logo_url,
+        display_order,
+        products(id)
+      `,
+      )
       .eq("store_id", store_id)
-      .order("created_at", { ascending: true }); // Good practice to order them
+      .order("display_order", { ascending: true });
 
     if (error) throw error;
 
-    return NextResponse.json(data || []);
+    // 👉 ADDED: Calculate product_count for each category
+    const enrichedCategories = (categories || []).map((cat: any) => ({
+      id: cat.id,
+      title: cat.title,
+      logo_url: cat.logo_url,
+      display_order: cat.display_order || 0,
+      product_count: cat.products?.length || 0,
+    }));
+
+    return NextResponse.json(enrichedCategories);
   } catch (error: any) {
     console.error("GET Categories Error:", error);
     return NextResponse.json(
@@ -54,12 +74,10 @@ export async function GET(req: NextRequest) {
 // PROTECTED: Only the authenticated admin can create a category for their store
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Enforce tenant isolation: The store ID strictly equals the logged-in user ID
   const storeId = (session.user as any).id;
 
   try {
@@ -75,12 +93,26 @@ export async function POST(req: NextRequest) {
 
     const { title, logo_url } = parsed.data;
 
+    // 👉 ADDED: Get the next display_order (max + 1)
+    const { data: existingCategories } = await supabaseAdmin
+      .from("categories")
+      .select("display_order")
+      .eq("store_id", storeId)
+      .order("display_order", { ascending: false })
+      .limit(1);
+
+    const nextDisplayOrder =
+      (existingCategories && existingCategories.length > 0
+        ? existingCategories[0].display_order
+        : -1) + 1;
+
     const { data, error } = await supabaseAdmin
       .from("categories")
       .insert({
         title,
         logo_url,
-        store_id: storeId, // Forced by the server session, impossible to spoof
+        store_id: storeId,
+        display_order: nextDisplayOrder, // 👉 ADDED: Auto-increment order
       })
       .select()
       .single();
@@ -98,7 +130,6 @@ export async function POST(req: NextRequest) {
 // PROTECTED: Only the authenticated admin can edit their own categories
 export async function PUT(req: NextRequest) {
   const session = await getServerSession(authOptions);
-
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -116,12 +147,17 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const { id, title, logo_url } = parsed.data;
+    const { id, title, logo_url, display_order } = parsed.data;
 
-    // The dual .eq() check ensures the category exists AND belongs to the admin making the request
+    // 👉 UPDATED: Include display_order in update if provided
+    const updatePayload: any = { title, logo_url };
+    if (display_order !== undefined) {
+      updatePayload.display_order = display_order;
+    }
+
     const { data, error } = await supabaseAdmin
       .from("categories")
-      .update({ title, logo_url })
+      .update(updatePayload)
       .eq("id", id)
       .eq("store_id", storeId)
       .select()
@@ -136,11 +172,58 @@ export async function PUT(req: NextRequest) {
   }
 }
 
+// ── Reorder (PATCH) ─────────────────────────────────────────────────────────
+// 👉 NEW: Dedicated endpoint for reordering categories
+export async function PATCH(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const storeId = (session.user as any).id;
+
+  try {
+    const body = await req.json();
+    const { orders } = body; // Array of { id, display_order }
+
+    if (!Array.isArray(orders) || orders.length === 0) {
+      return NextResponse.json(
+        { error: "Invalid orders array" },
+        { status: 400 },
+      );
+    }
+
+    // 👉 BATCH UPDATE: Update all categories at once
+    const updates = orders.map((order: any) => ({
+      id: order.id,
+      display_order: order.display_order,
+    }));
+
+    // Perform individual updates (Supabase doesn't have a true batch update)
+    for (const update of updates) {
+      const { error } = await supabaseAdmin
+        .from("categories")
+        .update({ display_order: update.display_order })
+        .eq("id", update.id)
+        .eq("store_id", storeId);
+
+      if (error) throw error;
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Categories reordered",
+    });
+  } catch (error: any) {
+    console.error("PATCH Categories Error:", error);
+    return NextResponse.json({ error: "Reorder failed" }, { status: 500 });
+  }
+}
+
 // ── Delete (DELETE) ─────────────────────────────────────────────────────────
 // PROTECTED: Only the authenticated admin can delete their own categories
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions);
-
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -156,7 +239,6 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    // Again, we mandate that the store_id matches the session ID to prevent unauthorized deletes
     const { error } = await supabaseAdmin
       .from("categories")
       .delete()
