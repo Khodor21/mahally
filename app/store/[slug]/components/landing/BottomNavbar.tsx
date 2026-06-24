@@ -45,12 +45,12 @@ export default function BottomNavbar({
     {
       label: t.home,
       icon: <Home size={22} className="stroke-[1.5]" />,
-      href: base(""),
+      href: "",
     },
     {
       label: t.categories,
       icon: <LayoutGrid size={22} className="stroke-[1.5]" />,
-      href: base("/categories"),
+      href: "/categories",
     },
     {
       label: t.search,
@@ -60,7 +60,7 @@ export default function BottomNavbar({
     },
     {
       label: t.cart,
-      href: base("/cart"),
+      href: "/cart",
       icon: (
         <span className="relative flex items-center justify-center leading-none">
           <ShoppingBag size={22} className="stroke-[1.5]" />
@@ -75,7 +75,7 @@ export default function BottomNavbar({
     {
       label: t.profile,
       icon: <User size={22} className="stroke-[1.5]" />,
-      href: base("/profile"),
+      href: "/profile",
     },
   ];
 
