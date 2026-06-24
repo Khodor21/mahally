@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* =========================================================
-   FONT FACES - RELATIVE PATHS (Vercel will add CORS)
+   FONT FACES
 ========================================================= */
 
 /* --- Montserrat (English) --- */
@@ -12,7 +12,7 @@
   src: url("/fonts/Montserrat-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
-  font-display: fallback;
+  font-display: swap;
 }
 
 @font-face {
@@ -20,7 +20,7 @@
   src: url("/fonts/Montserrat-Medium.ttf") format("truetype");
   font-weight: 500;
   font-style: normal;
-  font-display: fallback;
+  font-display: swap;
 }
 
 @font-face {
@@ -28,7 +28,7 @@
   src: url("/fonts/Montserrat-Bold.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
-  font-display: fallback;
+  font-display: swap;
 }
 
 /* --- Lalezar (Arabic Titles) --- */
@@ -37,7 +37,7 @@
   src: url("/fonts/Lalezar-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
-  font-display: fallback;
+  font-display: swap;
 }
 
 /* --- IBM Plex Sans Arabic (Arabic Body) --- */
@@ -46,7 +46,7 @@
   src: url("/fonts/IBMPlexSansArabic-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
-  font-display: fallback;
+  font-display: swap;
 }
 
 @font-face {
@@ -54,7 +54,7 @@
   src: url("/fonts/IBMPlexSansArabic-Medium.ttf") format("truetype");
   font-weight: 500;
   font-style: normal;
-  font-display: fallback;
+  font-display: swap;
 }
 
 @font-face {
@@ -62,7 +62,7 @@
   src: url("/fonts/IBMPlexSansArabic-Bold.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
-  font-display: fallback;
+  font-display: swap;
 }
 
 /* =========================================================
