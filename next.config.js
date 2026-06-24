@@ -2,25 +2,33 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "placehold.co",
-        port: "",
-        pathname: "/**",
-      },
+      { protocol: "https", hostname: "placehold.co", pathname: "/**" },
       {
         protocol: "https",
         hostname: "icunicnvkchaumoynxhx.supabase.co",
-        port: "",
         pathname: "/**",
       },
       {
         protocol: "https",
         hostname: "encrypted-tbn0.gstatic.com",
-        port: "",
         pathname: "/**",
       },
     ],
+  },
+  async headers() {
+    return [
+      {
+        source: "/fonts/:filename",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Methods", value: "GET, HEAD, OPTIONS" },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ];
   },
 };
 

@@ -266,7 +266,7 @@ export default function CategoryPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 mt-1 mb-2">
+      <div className="max-w-7xl mx-auto px-4 mt-1">
         {/* Search & Filter Section */}
         {categoryData.products.length > 0 && (
           <div className="flex flex-col w-full lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
