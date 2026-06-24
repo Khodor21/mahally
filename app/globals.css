@@ -3,14 +3,13 @@
 @tailwind utilities;
 
 /* =========================================================
-   FONT FACES - HTTPS ABSOLUTE URLS
+   FONT FACES - RELATIVE PATHS (Vercel will add CORS)
 ========================================================= */
 
 /* --- Montserrat (English) --- */
 @font-face {
   font-family: "Montserrat";
-  src: url("https://mahally.app/fonts/Montserrat-Regular.ttf")
-    format("truetype");
+  src: url("/fonts/Montserrat-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: fallback;
@@ -18,7 +17,7 @@
 
 @font-face {
   font-family: "Montserrat";
-  src: url("https://mahally.app/fonts/Montserrat-Medium.ttf") format("truetype");
+  src: url("/fonts/Montserrat-Medium.ttf") format("truetype");
   font-weight: 500;
   font-style: normal;
   font-display: fallback;
@@ -26,7 +25,7 @@
 
 @font-face {
   font-family: "Montserrat";
-  src: url("https://mahally.app/fonts/Montserrat-Bold.ttf") format("truetype");
+  src: url("/fonts/Montserrat-Bold.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
   font-display: fallback;
@@ -35,7 +34,7 @@
 /* --- Lalezar (Arabic Titles) --- */
 @font-face {
   font-family: "Lalezar";
-  src: url("https://mahally.app/fonts/Lalezar-Regular.ttf") format("truetype");
+  src: url("/fonts/Lalezar-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: fallback;
@@ -44,8 +43,7 @@
 /* --- IBM Plex Sans Arabic (Arabic Body) --- */
 @font-face {
   font-family: "IBM Plex Sans Arabic";
-  src: url("https://mahally.app/fonts/IBMPlexSansArabic-Regular.ttf")
-    format("truetype");
+  src: url("/fonts/IBMPlexSansArabic-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: fallback;
@@ -53,8 +51,7 @@
 
 @font-face {
   font-family: "IBM Plex Sans Arabic";
-  src: url("https://mahally.app/fonts/IBMPlexSansArabic-Medium.ttf")
-    format("truetype");
+  src: url("/fonts/IBMPlexSansArabic-Medium.ttf") format("truetype");
   font-weight: 500;
   font-style: normal;
   font-display: fallback;
@@ -62,8 +59,7 @@
 
 @font-face {
   font-family: "IBM Plex Sans Arabic";
-  src: url("https://mahally.app/fonts/IBMPlexSansArabic-Bold.ttf")
-    format("truetype");
+  src: url("/fonts/IBMPlexSansArabic-Bold.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
   font-display: fallback;
@@ -125,7 +121,7 @@ body {
   background-color: rgb(var(--color-grey));
   color: rgb(var(--color-brand-primary));
   font-family: var(--font-body);
-  font-weight: 400; /* Fixed from 600 to map properly to your loaded 400/500/700 weights */
+  font-weight: 400;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -144,7 +140,6 @@ body {
     line-height: 1.2;
   }
 
-  /* English Defaults (Maps to Montserrat via var(--font-body)) */
   h3 {
     font-family: var(--font-body);
     font-weight: 700;
@@ -155,15 +150,14 @@ body {
     font-weight: 400;
   }
 
-  /* Specific Arabic Overrides (Maps to IBM Plex via var(--font-body)) */
   html[lang="ar"] h3,
   html[dir="rtl"] h3 {
-    font-weight: 700; /* Forces IBM Plex Bold */
+    font-weight: 700;
   }
 
   html[lang="ar"] p,
   html[dir="rtl"] p {
-    font-weight: 500; /* Forces IBM Plex Medium */
+    font-weight: 500;
   }
 }
 
