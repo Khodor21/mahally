@@ -80,6 +80,20 @@ export async function middleware(req: NextRequest) {
   }
 
   // ─────────────────────────────────────────────
+  // 4.5. STATIC FILES (FONTS, IMAGES, ETC)
+  // ─────────────────────────────────────────────
+  // Allow /fonts/, /images/, and other static assets to bypass store rewrite
+  if (
+    url.pathname.startsWith("/fonts") ||
+    url.pathname.startsWith("/images") ||
+    url.pathname.match(
+      /\.(ttf|woff|woff2|eot|svg|png|jpg|jpeg|gif|ico|css|js)$/,
+    )
+  ) {
+    return NextResponse.next();
+  }
+
+  // ─────────────────────────────────────────────
   // 5. STORE ROUTING (SUBDOMAIN REWRITING)
   // ─────────────────────────────────────────────
   // Rewrite store subdomains to internal routes
