@@ -7,6 +7,7 @@ type Props = {
   danger?: boolean;
   onClick?: () => void;
   disabled?: boolean;
+  badge?: string | number;
 };
 
 export default function SidebarItem({
@@ -16,21 +17,30 @@ export default function SidebarItem({
   danger,
   onClick,
   disabled,
+  badge,
 }: Props) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`h-11 px-4 rounded-2xl flex items-center gap-3 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+      className={`h-11 px-4 rounded-xl flex items-center justify-between gap-3 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
         active
-          ? "bg-brand-dark text-white"
+          ? "bg-brand-primary text-white"
           : danger
             ? "text-red-500 hover:bg-red-50"
-            : "text-brand-dark hover:bg-brand-grey"
+            : "text-gray-700 hover:bg-gray-100"
       }`}
     >
-      {icon}
-      <span>{label}</span>
+      <div className="flex items-center gap-3">
+        {icon}
+        <span>{label}</span>
+      </div>
+
+      {badge && (
+        <span className="ml-auto text-xs font-bold bg-brand-primary/20 text-brand-primary px-2 py-0.5 rounded-full">
+          {badge}
+        </span>
+      )}
     </button>
   );
 }

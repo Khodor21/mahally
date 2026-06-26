@@ -2,6 +2,7 @@
 "use client";
 
 import { useMemo, useRef, useEffect } from "react";
+import Link from "next/link";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import ProductCard from "./ProductCard";
 
@@ -10,6 +11,7 @@ type Product = {
   title: string;
   description?: string;
   price: number;
+  discount_price?: number | null;
   stock?: number;
   images?: string[];
   created_at?: string;
@@ -18,6 +20,8 @@ type Product = {
 
 type ProductGridProps = {
   title: string;
+  categoryName?: string;
+
   products: Product[];
   bannerSrc?: string;
   bannerType?: "wide" | "mono";
@@ -30,12 +34,16 @@ type MappedProduct = {
   title: string;
   image: string;
   price: number;
+  discount_price?: number | null;
+  stock?: number;
   rating: number;
   badge?: "New" | "Best Seller" | "Hot" | "Sale";
 };
 
 export default function ProductGrid({
   title,
+  categoryName,
+
   products,
   storeSlug,
   bannerSrc,
@@ -48,6 +56,8 @@ export default function ProductGrid({
   const isRtl = lang === "ar";
 
   const viewAllText = isRtl ? "عرض الكل" : "View All";
+  // Create URL-safe category link based on section title
+  const categoryLink = `/category/${encodeURIComponent(title)}?lang=${lang}`;
 
   const mappedProducts: MappedProduct[] = useMemo(() => {
     return (products || []).map((product) => ({
@@ -56,6 +66,8 @@ export default function ProductGrid({
       image:
         product.images?.[0] || "https://placehold.co/600x600/png?text=No+Image",
       price: product.price || 0,
+      discount_price: product.discount_price || null,
+      stock: product.stock ?? 1,
       rating: 5,
       badge:
         product.stock !== undefined
@@ -66,12 +78,23 @@ export default function ProductGrid({
     }));
   }, [products]);
 
+  // 👉 ADDED: Helper function to calculate exact scroll amount for exactly one card
+  const getSingleCardScrollAmount = (ref: HTMLDivElement) => {
+    const firstCard = ref.firstElementChild as HTMLElement;
+    if (!firstCard) return ref.clientWidth * 0.8; // Fallback
+
+    // Calculate exact width of one card plus the gap between cards
+    const gap = parseFloat(window.getComputedStyle(ref).gap) || 0;
+    return firstCard.offsetWidth + gap;
+  };
+
   // 👉 Robust Programmatic Scrolling with Boundary Loop Reset
   const scroll = (direction: "prev" | "next") => {
     const currentRef = isMono ? scrollRefMono.current : scrollRefWide.current;
 
     if (currentRef) {
-      const scrollAmount = currentRef.clientWidth * 0.8;
+      // 👉 UPDATED: Use exact single card measurement instead of arbitrary 80% container width
+      const scrollAmount = getSingleCardScrollAmount(currentRef);
       const { scrollLeft, scrollWidth, clientWidth } = currentRef;
 
       // Handle cyclic loop logic when clicking manual buttons
@@ -105,10 +128,11 @@ export default function ProductGrid({
     }
   };
 
-  // 👉 Dynamic 3-Second Auto-Scrolling (Active on all devices)
+  // 👉 Dynamic Auto-Scrolling (Active on all devices)
   useEffect(() => {
     if (!mappedProducts.length) return;
 
+    // 👉 UPDATED: Increased interval to 3.5s for a slower, easier-to-read pace
     const interval = setInterval(() => {
       const currentRef = isMono ? scrollRefMono.current : scrollRefWide.current;
       if (!currentRef) return;
@@ -122,11 +146,12 @@ export default function ProductGrid({
       if (isEnd) {
         currentRef.scrollTo({ left: 0, behavior: "smooth" });
       } else {
-        const scrollAmount = clientWidth * 0.8;
+        // 👉 UPDATED: Use exact single card measurement to ensure it only moves one card at a time
+        const scrollAmount = getSingleCardScrollAmount(currentRef);
         let moveBy = isRtl ? -scrollAmount : scrollAmount;
         currentRef.scrollBy({ left: moveBy, behavior: "smooth" });
       }
-    }, 3000);
+    }, 3500);
 
     return () => clearInterval(interval);
   }, [mappedProducts, isMono, isRtl]);
@@ -152,9 +177,12 @@ export default function ProductGrid({
               <p className="text-xl md:text-2xl font-bold text-brand-primary tracking-tight">
                 {title}
               </p>
-              <button className="flex items-center underline text-xs font-medium text-brand-black/80 hover:text-[#111827] transition-colors duration-200">
+              <Link
+                href={`/category/${encodeURIComponent(categoryName || title)}`}
+                className="flex items-center underline text-xs font-medium text-brand-black/80 hover:text-[#111827] transition-colors duration-200"
+              >
                 {viewAllText}
-              </button>
+              </Link>
             </div>
 
             {/* Carousel Container with Absolute Overlay Controls */}
@@ -212,21 +240,24 @@ export default function ProductGrid({
             </div>
           )}
 
-          <div className="flex items-center justify-between mb-4 px-2 md:px-0">
+          <div className="flex px-2 md:px-10 mx-auto w-full items-center justify-between mb-4">
             <p className="text-xl md:text-2xl font-black text-[#111827] tracking-tight">
               {title}
             </p>
-            <button className="flex items-center underline text-xs font-medium text-brand-black/80 hover:text-[#111827] transition-colors duration-200">
+            <Link
+              href={`/category/${encodeURIComponent(categoryName || title)}`}
+              className="flex items-center underline text-xs font-medium text-brand-black/80 hover:text-[#111827] transition-colors duration-200"
+            >
               {viewAllText}
-            </button>
+            </Link>
           </div>
 
           {/* Carousel Container with Absolute Overlay Controls */}
-          <div className="relative group/carousel w-full">
+          <div className="relative group/carousel px-2 md:px-10 mx-auto  w-full">
             {/* Left Edge Button: Previous in LTR, Next in RTL */}
             <button
               onClick={() => scroll(isRtl ? "next" : "prev")}
-              className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-md border border-gray-200 text-gray-600 hover:text-gray-900 transition-all hover:scale-105"
+              className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-xs border border-gray-200 text-gray-600 hover:text-gray-900 transition-all hover:scale-105"
               aria-label="Scroll Left"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -234,7 +265,7 @@ export default function ProductGrid({
 
             <div
               ref={scrollRefWide}
-              className="flex gap-2 md:gap-3 overflow-x-auto pb-4 px-2 md:px-0 items-stretch snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              className="flex gap-2 md:gap-3 overflow-x-auto pb-4 items-stretch snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
             >
               {mappedProducts.map((product) => (
                 <div

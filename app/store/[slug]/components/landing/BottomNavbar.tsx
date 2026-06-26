@@ -24,7 +24,7 @@ const translations = {
 
 export default function BottomNavbar({
   lang = "en",
-  storeSlug = "",
+  storeSlug = "", // Prop maintained to prevent breaking parent component signatures
 }: {
   lang?: "en" | "ar";
   storeSlug?: string;
@@ -33,12 +33,32 @@ export default function BottomNavbar({
   const { cartCount } = useShop();
   const t = translations[lang];
 
-  const base = (path: string) => `/store/${storeSlug}${path}?lang=${lang}`;
+  // 👉 FIX 1: Root-level URL generation (removing /store/${storeSlug})
+  const base = (path: string) => {
+    if (path === "") return `/?lang=${lang}`;
+    // 👉 FIX 2: Ensure hash links append properly after the query string
+    if (path.startsWith("#")) return `/?lang=${lang}${path}`;
+    return `${path}?lang=${lang}`;
+  };
 
-  // Emit a custom event so the Top Navbar knows to open the Search Modal
+  const decodedPathname = decodeURIComponent(pathname || "");
+  const normalizedPath = decodedPathname.replace(/\/$/, "") || "/";
+
   const handleOpenSearch = (e: React.MouseEvent) => {
     e.preventDefault();
     window.dispatchEvent(new CustomEvent("open-search-modal"));
+  };
+
+  // 👉 FIX 3: Update isActive for root-level and hash-based navigation
+  const isActive = (path: string) => {
+    if (path.startsWith("#")) return false; // Ignore hash and search modal for routing active states
+
+    if (!path || path === "/") {
+      return normalizedPath === "/";
+    }
+
+    // Match exact path OR any sub-route (e.g., /cart/checkout keeps /cart active)
+    return normalizedPath === path || normalizedPath.startsWith(`${path}/`);
   };
 
   const navItems = [
@@ -50,7 +70,8 @@ export default function BottomNavbar({
     {
       label: t.categories,
       icon: <LayoutGrid size={22} className="stroke-[1.5]" />,
-      href: "/categories",
+      // 👉 FIX 4: Changed to hash link to navigate to section on home page
+      href: "#categories",
     },
     {
       label: t.search,
@@ -81,32 +102,33 @@ export default function BottomNavbar({
 
   return (
     <nav
-      className="fixed md:hidden bottom-0 left-0 right-0 z-[60] bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] pb-safe"
+      className="fixed md:hidden bottom-0 left-0 right-0 z-[60] bg-white border-t border-brand-primary/30 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] pb-safe rounded-t-2xl overflow-hidden"
       dir={lang === "ar" ? "rtl" : "ltr"}
     >
       <div className="flex justify-around items-center rounded-t-xl h-20 px-2">
         {navItems.map((item) => {
-          const isActive = pathname === item.href && item.href !== "#";
+          const active = isActive(item.href);
 
           return (
             <Link
               key={item.label}
-              href={item.href}
+              href={item.href ? base(item.href) : base("")}
               onClick={item.onClick}
               className="flex flex-col items-center justify-center w-full h-full gap-1.5 tap-highlight-transparent group"
             >
               <div
-                className={`transition-colors duration-200 text-xl ${
-                  isActive
+                className={`transition-colors duration-200 text-lg ${
+                  active
                     ? "text-brand-primary"
                     : "text-gray-800 group-hover:text-gray-600"
                 }`}
               >
                 {item.icon}
               </div>
+
               <span
-                className={`text-sm font-medium transition-colors duration-200 ${
-                  isActive
+                className={`text-[16px] font-regular transition-colors duration-200 ${
+                  active
                     ? "text-brand-primary"
                     : "text-gray-800 group-hover:text-gray-700"
                 }`}

@@ -134,10 +134,7 @@ export default function Footer({
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 md:gap-12 mb-14">
           {/* BRAND SECTION */}
           <div className="flex flex-col gap-6">
-            <Link
-              href={buildUrl("")}
-              className="flex items-center gap-3 w-fit group"
-            >
+            <Link href={""} className="flex items-center gap-3 w-fit group">
               {logoUrl ? (
                 <img
                   src={logoUrl}
@@ -165,7 +162,7 @@ export default function Footer({
                 {t.links.map(({ label, href }) => (
                   <Link
                     key={label}
-                    href={buildUrl(href)}
+                    href={href}
                     className="text-sm text-white/90 hover:text-white transition-colors font-medium w-fit"
                   >
                     {label}

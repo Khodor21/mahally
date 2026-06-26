@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 
 type Props = {
   open: boolean;
@@ -34,18 +34,25 @@ export default function ConfirmModal({
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
       />
 
-      <div className="relative w-full max-w-md rounded-[28px] bg-white border border-brand-light shadow-2xl p-6 animate-in fade-in zoom-in duration-200">
-        <h2 className="text-xl font-bold text-brand-dark mb-3">{title}</h2>
+      <div className="relative w-full max-w-sm rounded-2xl sm:rounded-3xl bg-white shadow-2xl p-4 sm:p-6 animate-in fade-in zoom-in duration-200">
+        {danger && (
+          <div className="mb-4 flex justify-center">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+              <AlertCircle className="text-red-600" size={24} />
+            </div>
+          </div>
+        )}
 
-        <p className="text-sm leading-7 text-brand-dark/60 mb-6">
-          {description}
-        </p>
+        <h3 className="text-lg sm:text-xl font-bold text-gray-900 text-center mb-2">
+          {title}
+        </h3>
+        <p className="text-sm text-gray-600 text-center mb-6">{description}</p>
 
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex gap-3">
           <button
             onClick={onClose}
             disabled={loading}
-            className="h-11 px-5 rounded-2xl border border-brand-light text-sm font-medium text-brand-dark hover:bg-brand-grey transition-colors"
+            className="flex-1 h-10 rounded-lg sm:rounded-xl border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {cancelText}
           </button>
@@ -53,10 +60,10 @@ export default function ConfirmModal({
           <button
             onClick={onConfirm}
             disabled={loading}
-            className={`h-11 px-5 rounded-2xl text-sm font-medium text-white transition-opacity disabled:opacity-50 flex items-center gap-2 ${
+            className={`flex-1 h-10 rounded-lg sm:rounded-xl text-sm font-medium text-white transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
               danger
                 ? "bg-red-500 hover:bg-red-600"
-                : "bg-brand-dark hover:opacity-90"
+                : "bg-brand-primary hover:opacity-90"
             }`}
           >
             {loading && <Loader2 size={16} className="animate-spin" />}

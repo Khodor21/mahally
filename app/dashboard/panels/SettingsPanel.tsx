@@ -21,6 +21,7 @@ import {
   MessageCircle,
   Music,
   Camera,
+  Palette,
 } from "lucide-react";
 import AppearanceTab from "../settings-tabs/AppearanceTab";
 import FeaturesTab from "../components/Features";
@@ -35,10 +36,40 @@ import {
   useStoreUpdate,
   useHeroBanners,
   useHeroBannerCreate,
-  useHeroBannerDelete,
   useHeroBannerToggle,
 } from "@/hooks/useApi";
 import { useFeatures } from "@/hooks/useFeatures";
+
+// 👉 FIX: Moved hook to top and explicitly defined the fetch logic to hit the correct API route with the query param
+export function useHeroBannerDelete() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const execute = useCallback(async (bannerId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/hero?id=${bannerId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to delete banner");
+      }
+    } catch (err) {
+      const error =
+        err instanceof Error ? err : new Error("Failed to delete banner");
+      setError(error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { execute, loading, error };
+}
 
 export default function SettingsPanel() {
   const { tr, lang } = useDashboard();
@@ -58,6 +89,7 @@ export default function SettingsPanel() {
     language: "ar",
     primary_color: "#3C1C54",
     promo_text: "",
+    delivery_cost: 0,
     privacy_policy: "",
     shipping_policy: "",
     return_policy: "",
@@ -81,6 +113,7 @@ export default function SettingsPanel() {
       admin_email: data.admin_email || "",
       language: data.language || "ar",
       primary_color: data.primary_color || "#3C1C54",
+      delivery_cost: data.delivery_cost ?? 0,
       privacy_policy: data.privacy_policy || "",
       shipping_policy: data.shipping_policy || "",
       return_policy: data.return_policy || "",
@@ -119,22 +152,14 @@ export default function SettingsPanel() {
   const { execute: createHeroBanner, loading: isSavingBanner } =
     useHeroBannerCreate();
   const { execute: toggleHeroBanner } = useHeroBannerToggle();
+
+  // 👉 FIX: Use the local fixed hook instead of the imported one
   const { execute: deleteHeroBanner } = useHeroBannerDelete();
 
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
   } | null>(null);
-
-  const [appearanceActive, setAppearanceActive] = useState<
-    | "promo"
-    | "color"
-    | "language"
-    | "sections"
-    | "banners"
-    | "features"
-    | "testimonials"
-  >("promo");
 
   const [isAddingBanner, setIsAddingBanner] = useState(false);
   const [newBanner, setNewBanner] = useState<Partial<HeroBanner>>({
@@ -237,65 +262,57 @@ export default function SettingsPanel() {
           : "Banner published successfully!",
         "success",
       );
-      refetchBanners();
-    } catch (e) {
-      console.error(e);
+      await refetchBanners();
+    } catch (error: any) {
+      console.error(error);
       showToast(
-        lang === "ar"
-          ? "حدث خطأ أثناء نشر اللافتة."
-          : "Error publishing banner.",
+        lang === "ar" ? "فشل في نشر اللافتة" : "Failed to publish banner",
         "error",
       );
     }
   };
 
   const executeBannerAction = async () => {
-    const { action, banner } = bannerConfirm;
-    if (!banner) return;
+    if (!bannerConfirm.banner) return;
 
-    setBannerConfirm((prev) => ({ ...prev, loading: true }));
+    setBannerConfirm({ ...bannerConfirm, loading: true });
 
     try {
-      if (action === "delete") {
-        await deleteHeroBanner(banner.id);
-        showToast(
-          lang === "ar"
-            ? "تم حذف اللافتة بنجاح!"
-            : "Banner deleted successfully!",
-          "success",
-        );
-      } else if (action === "toggle") {
-        await toggleHeroBanner(banner.id, !banner.active);
-        showToast(
-          lang === "ar" ? "تم تحديث حالة اللافتة!" : "Banner status updated!",
-          "success",
+      if (bannerConfirm.action === "delete") {
+        await deleteHeroBanner(bannerConfirm.banner.id);
+      } else if (bannerConfirm.action === "toggle") {
+        await toggleHeroBanner(
+          bannerConfirm.banner.id,
+          !bannerConfirm.banner.active,
         );
       }
-      refetchBanners();
-    } catch (e) {
-      console.error(e);
+
       showToast(
-        lang === "ar"
-          ? "حدث خطأ، يرجى المحاولة مرة أخرى."
-          : "An error occurred.",
-        "error",
+        lang === "ar" ? "تم تنفيذ الإجراء بنجاح!" : "Action completed!",
+        "success",
       );
+      await refetchBanners();
+    } catch (error: any) {
+      console.error(error);
+      showToast(lang === "ar" ? "فشل الإجراء" : "Action failed", "error");
     } finally {
-      setBannerConfirm({
-        isOpen: false,
-        action: "delete",
-        banner: null,
-        loading: false,
-      });
+      setBannerConfirm({ ...bannerConfirm, isOpen: false, loading: false });
     }
   };
 
   const handleSendNotification = async () => {
+    if (!notificationTitle.trim() || !notificationMessage.trim()) {
+      showToast(
+        lang === "ar"
+          ? "الرجاء ملء العنوان والرسالة"
+          : "Please fill in title and message",
+        "error",
+      );
+      return;
+    }
+
+    setSendingNotification(true);
     try {
-      if (!notificationTitle.trim() || !notificationMessage.trim()) return;
-
-      setSendingNotification(true);
-
       const response = await fetch("/api/notifications/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -305,196 +322,104 @@ export default function SettingsPanel() {
         }),
       });
 
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to send notification");
-      }
+      if (!response.ok) throw new Error("Failed to send");
 
+      showToast(
+        lang === "ar"
+          ? "تم إرسال الإشعار بنجاح!"
+          : "Notification sent successfully!",
+        "success",
+      );
       setNotificationTitle("");
       setNotificationMessage("");
-
-      if (typeof window !== "undefined") {
-        alert(
-          lang === "ar"
-            ? `تم إرسال الإشعار بنجاح إلى ${result.sentCount ?? 0} عميل`
-            : `Notification sent successfully to ${result.sentCount ?? 0} customers`,
-        );
-      }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      if (typeof window !== "undefined") {
-        alert(
-          lang === "ar" ? "فشل إرسال الإشعار" : "Failed to send notification",
-        );
-      }
+      showToast(
+        lang === "ar" ? "فشل إرسال الإشعار" : "Failed to send notification",
+        "error",
+      );
     } finally {
       setSendingNotification(false);
     }
   };
 
   // ============================================
-  // UI CONFIGURATION
+  // COMPUTED VALUES
   // ============================================
-
-  const tabs = [
-    { id: "appearance" as const, label: tr.appearance, icon: Globe },
-    { id: "store" as const, label: tr.storeSettings, icon: Store },
-    { id: "account" as const, label: tr.accountSettings, icon: User },
-    {
-      id: "notifications" as const,
-      label: tr.notificationSettings,
-      icon: Bell,
-    },
-    {
-      id: "policies" as const,
-      label: lang === "ar" ? "روابط هامة" : "Important Links",
-      icon: ShieldCheck,
-    },
-  ];
-
-  const appearanceSections = [
-    {
-      id: "promo" as const,
-      label: lang === "ar" ? "الشريط الإعلاني" : "Promo Bar",
-    },
-    { id: "color" as const, label: lang === "ar" ? "الألوان" : "Colors" },
-    { id: "language" as const, label: lang === "ar" ? "اللغة" : "Language" },
-    {
-      id: "sections" as const,
-      label: lang === "ar" ? "أقسام الموقع" : "Site Sections",
-    },
-    {
-      id: "banners" as const,
-      label: lang === "ar" ? "اللافتات" : "Banners",
-    },
-    {
-      id: "features" as const,
-      label: lang === "ar" ? "المميزات" : "Features",
-    },
-    {
-      id: "testimonials" as const,
-      label: lang === "ar" ? "الشهادات" : "Testimonials",
-    },
-  ];
-
-  const socialMediaFields = [
-    {
-      label: lang === "ar" ? "واتساب" : "WhatsApp",
-      key: "whatsapp_number",
-      icon: <MessageCircle className="w-4 h-4" />,
-    },
-    {
-      label: lang === "ar" ? "إنستجرام" : "Instagram",
-      key: "instagram_url",
-      icon: <Instagram className="w-4 h-4" />,
-    },
-    {
-      label: lang === "ar" ? "فيسبوك" : "Facebook",
-      key: "facebook_url",
-      icon: <Facebook className="w-4 h-4" />,
-    },
-    {
-      label: lang === "ar" ? "تيك توك" : "TikTok",
-      key: "tiktok_url",
-      icon: <Music className="w-4 h-4" />,
-    },
-    {
-      label: lang === "ar" ? "تويتر (X)" : "Twitter (X)",
-      key: "twitter_url",
-      icon: <Twitter className="w-4 h-4" />,
-    },
-    {
-      label: lang === "ar" ? "سناب شات" : "Snapchat",
-      key: "snapchat_url",
-      icon: <Camera className="w-4 h-4" />,
-    },
-  ];
 
   const createdDate = store?.created_at
     ? new Date(store.created_at).toLocaleDateString(
         lang === "ar" ? "ar-SA" : "en-US",
-        {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        },
       )
     : "";
 
-  // ============================================
-  // LOADING & ERROR STATES
-  // ============================================
+  const socialMediaFields = [
+    { key: "whatsapp_number", label: "WhatsApp", icon: MessageCircle },
+    { key: "instagram_url", label: "Instagram", icon: Instagram },
+    { key: "facebook_url", label: "Facebook", icon: Facebook },
+    { key: "tiktok_url", label: "TikTok", icon: Music },
+    { key: "twitter_url", label: "Twitter", icon: Twitter },
+    { key: "snapchat_url", label: "Snapchat", icon: Camera },
+  ];
 
-  const SkeletonBox = ({ className }: { className: string }) => (
-    <div
-      className={`animate-pulse bg-[rgb(244_242_245)] rounded-sm ${className}`}
-    />
-  );
-
-  if (loading) {
-    return (
-      <div className="space-y-6 w-full" dir={dir}>
-        <div className="flex gap-1 bg-[rgb(244_242_245)] rounded-sm p-1">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <SkeletonBox key={i} className="h-10 flex-1" />
-          ))}
-        </div>
-        <div className="bg-white rounded-sm border border-[rgb(244_242_245)] shadow-sm p-6 space-y-6">
-          <SkeletonBox className="h-5 w-48" />
-          <div className="grid md:grid-cols-2 gap-5">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="space-y-2">
-                <SkeletonBox className="h-3 w-20" />
-                <SkeletonBox className="h-10 w-full" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!store) {
-    return (
-      <div
-        className="bg-white rounded-sm border border-[rgb(244_242_245)] p-10 text-center text-sm text-red-500"
-        dir={dir}
-      >
-        Failed to load store data
-      </div>
-    );
-  }
+  const tabs = [
+    {
+      id: "appearance" as const,
+      label: lang === "ar" ? "الظهور" : "Appearance",
+      icon: Palette,
+    },
+    {
+      id: "store" as const,
+      label: lang === "ar" ? "المتجر" : "Store",
+      icon: Store,
+    },
+    {
+      id: "account" as const,
+      label: lang === "ar" ? "الحساب" : "Account",
+      icon: User,
+    },
+    {
+      id: "notifications" as const,
+      label: lang === "ar" ? "الإشعارات" : "Notifications",
+      icon: Bell,
+    },
+    {
+      id: "policies" as const,
+      label: lang === "ar" ? "السياسات" : "Policies",
+      icon: ShieldCheck,
+    },
+  ];
 
   // ============================================
-  // REUSABLE COMPONENTS
+  // COMPONENTS
   // ============================================
 
   const SaveButton = () => (
     <button
       onClick={handleSave}
-      disabled={isSaving}
-      className={`flex items-center gap-2 px-6 py-2.5 rounded-sm text-sm font-semibold transition-all shadow-md disabled:opacity-50 ${
+      disabled={isSaving || saved}
+      className={`w-full flex items-center justify-center gap-2 px-5 py-3 rounded-sm text-sm font-semibold transition-all ${
         saved
-          ? "bg-emerald-500 text-white shadow-emerald-200"
-          : "bg-[rgb(60_28_84)] text-white hover:bg-[rgb(60_28_84)]/90 shadow-[rgb(60_28_84)]/20"
+          ? "bg-emerald-500 text-white"
+          : "bg-[rgb(60_28_84)] text-white hover:bg-[rgb(60_28_84)]/90 disabled:opacity-50"
       }`}
     >
       {isSaving ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          {lang === "ar" ? "جاري الحفظ..." : "Saving..."}
+        </>
       ) : saved ? (
-        <Check className="w-4 h-4" />
+        <>
+          <Check className="w-4 h-4" />
+          {lang === "ar" ? "تم الحفظ!" : "Saved!"}
+        </>
       ) : (
-        <Save className="w-4 h-4" />
+        <>
+          <Save className="w-4 h-4" />
+          {lang === "ar" ? "حفظ التغييرات" : "Save Changes"}
+        </>
       )}
-      {isSaving
-        ? lang === "ar"
-          ? "جاري الحفظ..."
-          : "Saving..."
-        : saved
-          ? lang === "ar"
-            ? "تم الحفظ!"
-            : "Saved!"
-          : tr.saveChanges}
     </button>
   );
 
@@ -507,7 +432,7 @@ export default function SettingsPanel() {
   }: {
     id: string;
     label: string;
-    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+    icon: any;
     isActive: boolean;
     onClick: () => void;
   }) => (
@@ -579,9 +504,6 @@ export default function SettingsPanel() {
         <AppearanceTab
           lang={lang}
           dir={dir}
-          appearanceActive={appearanceActive}
-          setAppearanceActive={setAppearanceActive}
-          appearanceSections={appearanceSections}
           formData={formData}
           setFormData={setFormData}
           isAddingBanner={isAddingBanner}

@@ -14,7 +14,8 @@ import {
   Category,
   StoreData,
   HeroBanner,
-  Testimonial, TestimonialFormData
+  Testimonial,
+  TestimonialFormData,
 } from "@/types/api";
 
 // ============================================
@@ -53,9 +54,7 @@ export async function getProducts(): Promise<Product[]> {
   return json.data || [];
 }
 
-export async function createProduct(
-  form: ProductFormData,
-): Promise<Product> {
+export async function createProduct(form: ProductFormData): Promise<Product> {
   const res = await fetch("/api/products", {
     method: "POST",
     headers: {
@@ -79,6 +78,19 @@ export async function updateProduct(
   id: string,
   form: ProductFormData,
 ): Promise<Product> {
+  // Parse discount_price: empty string or null → null, otherwise parse as float
+  let parsedDiscountPrice: number | null = null;
+  if (
+    form.discount_price !== "" &&
+    form.discount_price !== null &&
+    form.discount_price !== undefined
+  ) {
+    parsedDiscountPrice = parseFloat(form.discount_price);
+    if (isNaN(parsedDiscountPrice)) {
+      parsedDiscountPrice = null;
+    }
+  }
+
   const res = await fetch("/api/products", {
     method: "PATCH",
     headers: {
@@ -89,10 +101,12 @@ export async function updateProduct(
       title: form.title.trim(),
       description: form.description.trim(),
       price: parseFloat(form.price) || 0,
+      discount_price: parsedDiscountPrice,
       stock: parseInt(form.stock) || 0,
       images: form.images,
       category_id: form.category_id,
       variants: form.variants,
+      pin: form.pin ?? false,
     }),
   });
 
@@ -444,10 +458,11 @@ export async function reorderHeroBanners(
 
 // Testimonial
 
-
-export async function getTestimonials(storeSlug?: string): Promise<Testimonial[]> {
+export async function getTestimonials(
+  storeSlug?: string,
+): Promise<Testimonial[]> {
   const params = new URLSearchParams();
-  
+
   if (storeSlug) {
     params.append("store_slug", storeSlug);
     params.append("public", "true");
@@ -458,9 +473,12 @@ export async function getTestimonials(storeSlug?: string): Promise<Testimonial[]
 
   const fetchOptions: RequestInit = storeSlug
     ? { next: { revalidate: 60 } } // Cache public queries for 60 seconds at Edge
-    : { cache: "no-store" };       // Instruct Next.js server to skip cache
+    : { cache: "no-store" }; // Instruct Next.js server to skip cache
 
-  const res = await fetch(`/api/testimonials?${params.toString()}`, fetchOptions);
+  const res = await fetch(
+    `/api/testimonials?${params.toString()}`,
+    fetchOptions,
+  );
   const data = await res.json();
 
   if (!data.success) {
@@ -480,7 +498,7 @@ export async function createTestimonial(
       name: form.name,
       role: form.role,
       content: form.content,
-      rating: Math.floor(form.rating), 
+      rating: Math.floor(form.rating),
     }),
   });
 

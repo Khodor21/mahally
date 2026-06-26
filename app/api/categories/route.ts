@@ -239,15 +239,43 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    const { error } = await supabaseAdmin
+    // 1. SECURITY CHECK: Ensure the category belongs to the authenticated admin's store
+    // before performing any deletion, preventing IDOR attacks on the products table.
+    const { data: categoryCheck, error: checkError } = await supabaseAdmin
+      .from("categories")
+      .select("id")
+      .eq("id", categoryId)
+      .eq("store_id", storeId)
+      .single();
+
+    if (checkError || !categoryCheck) {
+      return NextResponse.json(
+        { error: "Category not found or unauthorized" },
+        { status: 404 },
+      );
+    }
+
+    // 2. CHILD DELETION: Delete all associated products first to clear foreign key dependencies
+    const { error: productsError } = await supabaseAdmin
+      .from("products")
+      .delete()
+      .eq("category_id", categoryId);
+
+    if (productsError) throw productsError;
+
+    // 3. PARENT DELETION: Now safe to delete the category itself
+    const { error: categoryError } = await supabaseAdmin
       .from("categories")
       .delete()
       .eq("id", categoryId)
       .eq("store_id", storeId);
 
-    if (error) throw error;
+    if (categoryError) throw categoryError;
 
-    return NextResponse.json({ success: true, message: "Category deleted" });
+    return NextResponse.json({
+      success: true,
+      message: "Category and associated products deleted",
+    });
   } catch (error: any) {
     console.error("DELETE Category Error:", error);
     return NextResponse.json({ error: "Deletion failed" }, { status: 500 });

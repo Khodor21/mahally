@@ -60,30 +60,45 @@ export const getCachedSectionsAndProducts = unstable_cache(
       .eq("store_id", storeId)
       .eq("status", "active")
       .order("section_order", { ascending: true });
-
     if (sectionsError || !sections || sections.length === 0) {
       return { sections: [], products: [] };
     }
-
     const categoryIds = sections.map((section) => section.category_id);
 
-    // 2. جلب المنتجات
+    // 2. جلب بيانات الفئات (للحصول على أسماء الفئات)
+    const { data: categories, error: categoriesError } = await supabaseAdmin
+      .from("categories")
+      .select("id, title")
+      .in("id", categoryIds);
+
+    if (categoriesError) {
+      console.error("Failed to fetch categories:", categoriesError);
+    }
+
+    // 3. دمج أسماء الفئات مع الأقسام
+    const categoryMap = new Map(
+      categories?.map((cat) => [cat.id, cat.title]) || [],
+    );
+    const sectionsWithCategoryNames = sections.map((section) => ({
+      ...section,
+      category_title: categoryMap.get(section.category_id) || section.title,
+    }));
+
+    // 4. جلب المنتجات
     const { data: products, error: productsError } = await supabaseAdmin
       .from("products")
       .select("*")
       .eq("store_id", storeId)
       .in("category_id", categoryIds);
-
     if (productsError) {
       console.error("Failed to fetch section products:", productsError);
-      return { sections, products: [] };
+      return { sections: sectionsWithCategoryNames, products: [] };
     }
-
-    return { sections, products };
+    return { sections: sectionsWithCategoryNames, products };
   },
-  ["store-sections-products"], // المفتاح الأساسي للكاش
+  ["store-sections-products"],
   {
-    revalidate: 60, // تحديث الكاش كل 60 ثانية
+    revalidate: 60,
     tags: ["sections", "products"],
   },
 );

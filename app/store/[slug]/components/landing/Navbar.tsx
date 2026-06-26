@@ -113,8 +113,8 @@ export default function Navbar({
         dir={dir}
         className="relative md:sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 transition-all duration-200"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20 gap-3 md:gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-auto py-auto">
+          <div className="flex items-center justify-between h-14 md:h-14 my-auto gap-3 md:gap-8">
             {/* 1. START (Logo) */}
             <Link
               href={"/"}
@@ -136,18 +136,7 @@ export default function Navbar({
               )}
             </Link>
 
-            {/* 2. MOBILE CENTER (Search Bar - Fake Input to open Modal) */}
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="flex-1 md:hidden flex items-center gap-2.5 bg-gray-100/80 hover:bg-gray-100 transition-colors px-3.5 py-2.5 rounded-full text-gray-500 text-sm overflow-hidden"
-            >
-              <Search className="w-4 h-4 stroke-[2] flex-shrink-0 text-gray-400" />
-              <span className="truncate whitespace-nowrap opacity-90">
-                {t.search}
-              </span>
-            </button>
-
-            {/* 3. DESKTOP CENTER (Categories) */}
+            {/* 2. DESKTOP CENTER (Categories) */}
             <nav className="hidden md:flex items-center justify-center gap-6 lg:gap-8 flex-1 px-4">
               {loadingCategories ? (
                 Array.from({ length: 3 }).map((_, i) => (
@@ -162,7 +151,7 @@ export default function Navbar({
                     <Link
                       key={cat.id}
                       href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
-                      className="text-[15px] font-medium text-gray-800 hover:text-brand-primary transition-colors whitespace-nowrap"
+                      className="text-[18px] font-medium text-gray-800 hover:text-brand-primary transition-colors whitespace-nowrap"
                     >
                       {cat.title}
                     </Link>
@@ -180,15 +169,15 @@ export default function Navbar({
               )}
             </nav>
 
-            {/* 4. END (Icons) */}
-            <div className="flex items-center justify-end gap-3 sm:gap-4 flex-shrink-0">
-              {/* Desktop Search Icon */}
+            {/* 3. END (Icons) */}
+            <div className="flex items-center justify-end gap-3 sm:gap-3 flex-shrink-0">
+              {/* Search Icon (Mobile & Desktop) */}
               <button
                 onClick={() => setSearchOpen(true)}
-                className="hidden md:flex transition-colors text-gray-700 hover:text-brand-primary"
+                className="flex transition-colors text-gray-700 hover:text-brand-primary"
                 aria-label={t.search}
               >
-                <Search className="w-[24px] h-[24px] stroke-[1.5]" />
+                <Search className="w-[23px] h-[23px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
               </button>
 
               {/* Profile (Desktop Only) */}
@@ -197,7 +186,7 @@ export default function Navbar({
                 className="hidden md:flex transition-colors text-gray-700 hover:text-brand-primary"
                 aria-label={t.profile}
               >
-                <User className="w-[24px] h-[24px] stroke-[1.5]" />
+                <User className="w-[26px] h-[26px] stroke-[1.5]" />
               </Link>
 
               {/* Favorites (Mobile & Desktop) */}
@@ -206,7 +195,7 @@ export default function Navbar({
                 className="relative transition-colors text-gray-700 hover:text-brand-primary"
                 aria-label={t.favorites}
               >
-                <Heart className="w-[24px] h-[24px] stroke-[1.5]" />
+                <Heart className="w-[23px] h-[23px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
                 {favCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center text-[9px] font-bold bg-brand-primary text-white rounded-full ring-2 ring-white">
                     {favCount > 99 ? "99+" : favCount}
@@ -220,7 +209,7 @@ export default function Navbar({
                 className="hidden md:flex relative transition-colors text-gray-700 hover:text-brand-primary"
                 aria-label={t.cart}
               >
-                <ShoppingBag className="w-[24px] h-[24px] stroke-[1.5]" />
+                <ShoppingBag className="w-[25px] h-[25px] stroke-[1.5]" />
                 {cartCount > 0 && (
                   <span
                     className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center text-[9px] font-bold text-white rounded-full ring-2 ring-white"

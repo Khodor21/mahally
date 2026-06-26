@@ -1,20 +1,61 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Lock, MapPin, Phone, User } from "lucide-react";
+import { useState } from "react";
+import { Eye, EyeOff, MapPin, Phone, User } from "lucide-react";
 import Toast from "../components/Toast";
 import { authTranslations } from "../i18n";
 import { useRouter } from "next/navigation";
 
 const governorates = [
-  "Beirut",
-  "Mount Lebanon",
-  "North",
-  "Akkar",
-  "Bekaa",
-  "Baalbek-Hermel",
-  "South",
-  "Nabatieh",
+  { en: "Beirut", ar: "بيروت" },
+  { en: "Mount Lebanon", ar: "جبل لبنان" },
+  { en: "North", ar: "الشمال" },
+  { en: "Akkar", ar: "عكار" },
+  { en: "Bekaa", ar: "البقاع" },
+  { en: "Baalbek-Hermel", ar: "بعلبك - الهرمل" },
+  { en: "South", ar: "الجنوب" },
+  { en: "Nabatieh", ar: "النبطية" },
+];
+
+const countries = [
+  {
+    code: "LB",
+    dial: "+961",
+    flag: "🇱🇧",
+    name: { en: "Lebanon", ar: "لبنان" },
+  },
+  { code: "SY", dial: "+963", flag: "🇸🇾", name: { en: "Syria", ar: "سوريا" } },
+  {
+    code: "JO",
+    dial: "+962",
+    flag: "🇯🇴",
+    name: { en: "Jordan", ar: "الأردن" },
+  },
+  { code: "AE", dial: "+971", flag: "🇦🇪", name: { en: "UAE", ar: "الإمارات" } },
+  {
+    code: "SA",
+    dial: "+966",
+    flag: "🇸🇦",
+    name: { en: "Saudi Arabia", ar: "السعودية" },
+  },
+  {
+    code: "KW",
+    dial: "+965",
+    flag: "🇰🇼",
+    name: { en: "Kuwait", ar: "الكويت" },
+  },
+  { code: "QA", dial: "+974", flag: "🇶🇦", name: { en: "Qatar", ar: "قطر" } },
+  {
+    code: "BH",
+    dial: "+973",
+    flag: "🇧🇭",
+    name: { en: "Bahrain", ar: "البحرين" },
+  },
+  { code: "OM", dial: "+968", flag: "🇴🇲", name: { en: "Oman", ar: "عمان" } },
+  { code: "EG", dial: "+20", flag: "🇪🇬", name: { en: "Egypt", ar: "مصر" } },
+  { code: "IQ", dial: "+964", flag: "🇮🇶", name: { en: "Iraq", ar: "العراق" } },
+  { code: "US", dial: "+1", flag: "🇺🇸", name: { en: "USA", ar: "أمريكا" } },
+  { code: "FR", dial: "+33", flag: "🇫🇷", name: { en: "France", ar: "فرنسا" } },
 ];
 
 type Props = {
@@ -34,6 +75,9 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
     type: "success" | "error";
   } | null>(null);
 
+  const [selectedCountry, setSelectedCountry] = useState(countries[0]);
+  const [phoneNumber, setPhoneNumber] = useState("");
+
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -42,17 +86,13 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
     password: "",
   });
 
-  const title = useMemo(() => {
-    return mode === "signup" ? tr.signup : tr.welcomeBack;
-  }, [mode, tr]);
-
   async function handleSubmit() {
     try {
-      if (!form.phone || form.phone === "+961" || !form.password) {
+      const fullPhone = `${selectedCountry.dial}${phoneNumber}`;
+      if (!fullPhone || fullPhone === selectedCountry.dial || !form.password) {
         setToast({ message: tr.missingFields, type: "error" });
         return;
       }
-
       if (
         mode === "signup" &&
         (!form.firstName.trim() || !form.lastName.trim() || !form.governorate)
@@ -62,27 +102,21 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
       }
 
       setLoading(true);
-
       const endpoint =
         mode === "signup"
           ? "/api/store-customers"
           : "/api/store-customers/login";
-
       const payload =
         mode === "signup"
           ? {
               storeId,
               firstName: form.firstName.trim(),
               lastName: form.lastName.trim(),
-              phone: form.phone.trim(),
+              phone: fullPhone,
               governorate: form.governorate,
               password: form.password,
             }
-          : {
-              storeId,
-              phone: form.phone.trim(),
-              password: form.password,
-            };
+          : { storeId, phone: fullPhone, password: form.password };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -91,7 +125,6 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
       });
 
       const data = await res.json();
-
       if (!data.success) {
         setToast({
           message:
@@ -103,33 +136,27 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
         return;
       }
 
-      // IMPORTANT: keep cookie logic ONLY in backend (you already do that)
-
       localStorage.setItem("store_customer", JSON.stringify(data.customer));
-
       setToast({
         message: mode === "signup" ? tr.successSignup : tr.successLogin,
         type: "success",
       });
-
       setTimeout(() => {
-        // ✅ FIXED: correct tenant redirect instead of /profile
-        router.push(`/store/${storeId}`);
+        router.push(``);
         router.refresh();
       }, 1200);
     } catch (error) {
-      console.error("Auth error:", error);
-      setToast({
-        message: tr.invalidCredentials,
-        type: "error",
-      });
+      setToast({ message: tr.invalidCredentials, type: "error" });
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <>
+    <div
+      dir={dir}
+      className="w-full mx-auto bg-white py-12 px-6 lg:px-12 min-h-screen"
+    >
       {toast && (
         <Toast
           message={toast.message}
@@ -138,140 +165,161 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
         />
       )}
 
-      <div
-        dir={dir}
-        className="relative overflow-hidden bg-brand-white border border-brand-light rounded-[32px] shadow-[0_10px_40px_rgba(0,0,0,0.04)] p-6 md:p-8 max-w-xl mx-auto mb-24"
-      >
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,rgba(60,28,84,0.03),transparent_50%)]" />
+      <div className="mb-10 text-center">
+        <h3 className="text-3xl font-bold text-gray-900 mb-3">
+          {mode === "signup" ? tr.createAccount : tr.login}
+        </h3>
+        <p className="text-gray-500 text-sm">
+          {mode === "signup"
+            ? tr.authSubtitle
+            : lang === "ar"
+              ? "سجّل دخولك لمتابعة التسوق بسهولة وأمان"
+              : "Log in to continue shopping easily and securely"}
+        </p>
+      </div>
 
-        <div className="relative mb-8 text-center">
-          <div className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-brand-light text-brand-dark text-xs font-medium mb-5">
-            {title}
+      <div className="flex p-1 bg-gray-100 rounded-lg mb-8 max-w-sm mx-auto">
+        <button
+          onClick={() => setMode("signup")}
+          className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all ${mode === "signup" ? "bg-white text-[rgb(var(--color-brand-primary))] shadow-sm" : "text-gray-500"}`}
+        >
+          {tr.signup}
+        </button>
+        <button
+          onClick={() => setMode("login")}
+          className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all ${mode === "login" ? "bg-white text-[rgb(var(--color-brand-primary))] shadow-sm" : "text-gray-500"}`}
+        >
+          {tr.login}
+        </button>
+      </div>
+
+      <div className="space-y-6 max-w-3xl mx-auto">
+        {mode === "signup" && (
+          <div className="grid grid-cols-2 gap-4">
+            <InputField
+              icon={<User className="w-4 h-4" />}
+              label={tr.firstName}
+              value={form.firstName}
+              onChange={(v) => setForm({ ...form, firstName: v })}
+            />
+            <InputField
+              icon={<User className="w-4 h-4" />}
+              label={tr.lastName}
+              value={form.lastName}
+              onChange={(v) => setForm({ ...form, lastName: v })}
+            />
           </div>
+        )}
 
-          <h2
-            className="text-[30px] md:text-[42px] leading-[1.1] text-brand-dark mb-4"
-            style={{ fontFamily: "Lalezar, cursive" }}
-          >
-            {mode === "signup" ? tr.createAccount : tr.login}
-          </h2>
-
-          <p className="text-brand-dark/60 text-sm leading-7 max-w-md mx-auto">
-            {tr.authSubtitle}
-          </p>
-        </div>
-
-        <div className="flex bg-brand-light rounded-2xl p-1 mb-7">
-          <button
-            onClick={() => setMode("signup")}
-            className={`flex-1 h-11 rounded-xl text-sm font-semibold transition-all ${
-              mode === "signup"
-                ? "bg-brand-dark text-white shadow-sm"
-                : "text-brand-dark"
-            }`}
-          >
-            {tr.signup}
-          </button>
-
-          <button
-            onClick={() => setMode("login")}
-            className={`flex-1 h-11 rounded-xl text-sm font-semibold transition-all ${
-              mode === "login"
-                ? "bg-brand-dark text-white shadow-sm"
-                : "text-brand-dark"
-            }`}
-          >
-            {tr.login}
-          </button>
-        </div>
-
-        <div className="space-y-5">
-          {mode === "signup" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InputField
-                icon={<User className="w-4 h-4" />}
-                label={tr.firstName}
-                value={form.firstName}
-                onChange={(v) => setForm({ ...form, firstName: v })}
-              />
-              <InputField
-                icon={<User className="w-4 h-4" />}
-                label={tr.lastName}
-                value={form.lastName}
-                onChange={(v) => setForm({ ...form, lastName: v })}
-              />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {tr.phone}
+          </label>
+          <div className="flex border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[rgb(var(--color-brand-primary))] focus-within:border-transparent transition-all">
+            <div className="relative shrink-0">
+              <select
+                value={selectedCountry.code}
+                onChange={(e) => {
+                  const country = countries.find(
+                    (c) => c.code === e.target.value,
+                  );
+                  if (country) setSelectedCountry(country);
+                }}
+                className="h-full py-2.5 pl-2 pr-1 bg-gray-50 border-r border-gray-300 appearance-none cursor-pointer focus:outline-none text-sm"
+              >
+                {countries.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.flag} {country.dial} {country.name[lang]}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
 
-          <InputField
-            icon={<Phone className="w-4 h-4" />}
-            label={tr.phone}
-            value={form.phone}
-            onChange={(v) => setForm({ ...form, phone: v })}
-            placeholder="+96170123456"
-          />
+            <input
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              className="flex-1 min-w-0 px-4 py-2.5 outline-none bg-white text-black"
+              placeholder="XX XXX XXX"
+            />
+          </div>
+        </div>
 
-          {mode === "signup" && (
-            <div>
-              <label className="text-sm font-semibold text-brand-dark mb-2 block">
-                {tr.governorate}
-              </label>
-              <div className="relative">
-                <MapPin className="w-4 h-4 absolute top-1/2 -translate-y-1/2 left-4 text-brand-dark/40" />
-                <select
-                  value={form.governorate}
-                  onChange={(e) =>
-                    setForm({ ...form, governorate: e.target.value })
-                  }
-                  className="w-full h-12 rounded-2xl bg-brand-grey border border-brand-light px-12 text-sm outline-none focus:border-brand-dark transition-all"
+        {mode === "signup" && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {tr.governorate}
+            </label>
+            <div className="relative">
+              <MapPin
+                className={`absolute top-3 w-4 h-4 text-gray-400 pointer-events-none ${
+                  dir === "rtl" ? "right-3" : "left-3"
+                }`}
+              />
+              <select
+                value={form.governorate}
+                onChange={(e) =>
+                  setForm({ ...form, governorate: e.target.value })
+                }
+                className={`w-full bg-white text-black border border-gray-300 rounded-lg py-2.5 focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))] outline-none transition-all appearance-none ${
+                  dir === "rtl" ? "pr-10 pl-8" : "pl-10 pr-8"
+                }`}
+              >
+                <option value="">{tr.selectGovernorate}</option>
+                {governorates.map((gov) => (
+                  <option key={gov.en} value={gov.en}>
+                    {gov[lang]}
+                  </option>
+                ))}
+              </select>
+              <div
+                className={`absolute top-3 pointer-events-none text-gray-400 ${
+                  dir === "rtl" ? "left-3" : "right-3"
+                }`}
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <option value="">{tr.selectGovernorate}</option>
-                  {governorates.map((gov) => (
-                    <option key={gov} value={gov}>
-                      {gov}
-                    </option>
-                  ))}
-                </select>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          <InputField
-            type="password"
-            icon={<Lock className="w-4 h-4" />}
-            label={tr.password}
-            value={form.password}
-            onChange={(v) => setForm({ ...form, password: v })}
-          />
+        <InputField
+          type="password"
+          icon={<User className="w-4 h-4" />}
+          label={tr.password}
+          value={form.password}
+          onChange={(v) => setForm({ ...form, password: v })}
+        />
 
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full h-12 rounded-2xl bg-brand-dark hover:opacity-95 text-white text-sm font-semibold transition-all disabled:opacity-50"
-          >
-            {loading
-              ? mode === "signup"
-                ? tr.creating
-                : tr.logging
-              : mode === "signup"
-                ? tr.createAccount
-                : tr.loginNow}
-          </button>
-        </div>
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full py-3.5 bg-[rgb(var(--color-brand-primary))] hover:opacity-90 text-white font-semibold rounded-lg transition-all disabled:opacity-50"
+        >
+          {loading
+            ? mode === "signup"
+              ? tr.creating
+              : tr.logging
+            : mode === "signup"
+              ? tr.createAccount
+              : tr.loginNow}
+        </button>
       </div>
-    </>
+    </div>
   );
 }
-
-// --- InputField Subcomponent ---
-type InputFieldProps = {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  icon: React.ReactNode;
-  type?: string;
-  placeholder?: string;
-};
 
 function InputField({
   label,
@@ -280,23 +328,48 @@ function InputField({
   icon,
   type = "text",
   placeholder,
-}: InputFieldProps) {
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  icon: React.ReactNode;
+  type?: string;
+  placeholder?: string;
+}) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === "password";
+
   return (
     <div>
-      <label className="text-sm font-semibold text-brand-dark mb-2 block">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
         {label}
       </label>
       <div className="relative">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-dark/40">
-          {icon}
-        </div>
+        {!isPassword && (
+          <div className="absolute left-3 top-3 text-gray-400">{icon}</div>
+        )}
         <input
-          type={type}
+          type={isPassword ? (showPassword ? "text" : "password") : type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full h-12 rounded-2xl bg-brand-grey border border-brand-light px-12 text-sm outline-none focus:border-brand-dark transition-all text-brand-dark placeholder:text-brand-dark/40"
+          className={`w-full bg-white border border-gray-300 rounded-lg text-black focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))] outline-none transition-all ${
+            isPassword ? "px-4 pr-10" : "pl-10 pr-4"
+          } py-2.5`}
         />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            {showPassword ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

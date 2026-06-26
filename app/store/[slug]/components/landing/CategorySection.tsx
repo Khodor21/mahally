@@ -62,8 +62,8 @@ export default function CategoriesSection({
     return (
       <section className="w-full py-4 px-2">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
+          <div className="grid grid-cols-2 md:flex md:justify-between w-full gap-4">
+            {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
                 className="w-[90%] md:w-full mx-auto aspect-[3/4] rounded-2xl bg-gray-100 animate-pulse"
@@ -78,7 +78,7 @@ export default function CategoriesSection({
   if (!categories.length) return null;
 
   return (
-    <section className="w-full bg-white px-2">
+    <section id="categories" className="w-full px-2 md:px-10 mx-auto bg-white">
       <div className="w-full mx-auto">
         {/* HEADER */}
         <div className="text-center mb-4">
@@ -88,20 +88,19 @@ export default function CategoriesSection({
           <p className="text-sm md:text-base text-brand-black/90 font-medium">
             {t.subtitle}
           </p>
-          {/* UPDATED COLOR */}
           <div className="w-12 h-[3px] bg-[rgb(var(--color-brand-primary))] mx-auto rounded-full mt-3" />
         </div>
 
         {/* GRID */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-[repeat(auto-fit,minmax(0,1fr))] gap-4 md:gap-6">
           {categories.map((cat) => (
             <Link
               key={cat.id}
               href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
-              className="group flex flex-col items-center gap-3"
+              className="group flex flex-col justify-between h-full gap-3"
             >
-              {/* IMAGE */}
-              <div className="relative w-[90%] md:w-full aspect-[3/4] rounded-lg overflow-hidden bg-[rgb(244_242_245)] border border-[rgb(207_195_223)]">
+              {/* IMAGE WRAPPER */}
+              <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-[rgb(244_242_245)] border border-[rgb(207_195_223)]">
                 {cat.logo_url ? (
                   <Image
                     src={cat.logo_url}
@@ -117,7 +116,7 @@ export default function CategoriesSection({
                 <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors duration-300" />
               </div>
 
-              {/* TITLE - UPDATED COLOR */}
+              {/* TITLE */}
               <p className="text-sm md:text-base font-medium text-brand-black group-hover:text-[rgb(var(--color-brand-primary))] transition-colors text-center">
                 {cat.title}
               </p>

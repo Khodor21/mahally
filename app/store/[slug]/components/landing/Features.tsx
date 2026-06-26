@@ -48,7 +48,7 @@ export default function FeaturesSection({
         {/* Title Section matching image_8e8947.png */}
 
         <div className="text-center mb-4">
-          <p className="text-2xl md:text-4xl font-bold text-brand-black mb-2">
+          <p className="text-2xl md:text-3xl font-bold text-brand-black mb-2">
             {lang === "ar" ? "لماذا يفضلنا عملاؤنا؟" : "Store Features"}
           </p>
           <p className="text-sm md:text-base text-brand-black/90 font-medium">
@@ -69,16 +69,19 @@ export default function FeaturesSection({
             return (
               <div
                 key={feature.id}
-                className="flex flex-col items-center text-center space-y-4"
+                className="flex flex-col items-center text-center space-y-4 mt-3"
               >
-                <div className="w-16 h-16 flex items-center justify-center text-[rgb(60_28_84)]">
-                  <IconComponent className="w-10 h-10" strokeWidth={1.5} />
+                <div className="flex items-center justify-center text-brand-primary">
+                  <IconComponent
+                    className="w-8 h-8 md:w-10 md:h-10"
+                    strokeWidth={1.5}
+                  />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="font-bold text-[rgb(60_28_84)] text-sm md:text-base leading-tight">
+                  <h3 className="font-bold text-black text-base md:text-lg leading-tight">
                     {feature.title}
                   </h3>
-                  <p className="text-[rgb(60_28_84)]/70 text-xs md:text-sm">
+                  <p className="text-brand-primary/80 text-sm md:text-base">
                     {feature.description}
                   </p>
                 </div>

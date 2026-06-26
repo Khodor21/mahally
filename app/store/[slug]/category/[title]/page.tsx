@@ -251,17 +251,15 @@ export default function CategoryPage() {
       {/* Header & Breadcrumbs */}
       <div className="py-4 px-4 md:px-8">
         <div className="max-w-7xl mx-auto flex flex-col items-start gap-2">
-          <p className="text-sm font-medium text-gray-400 flex items-center flex-wrap">
+          <p className="font-medium text-gray-400 flex items-center flex-wrap gap-2">
             <Link
               href={`/?lang=${lang}`}
               className="hover:text-brand-black transition-colors"
             >
               {t.home}
             </Link>
-            <BreadcrumbIcon className="w-4 h-4 mx-2" />
-            <span className="text-brand-black text-sm">
-              {categoryData.title}
-            </span>
+            <BreadcrumbIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <span className="text-brand-black">{categoryData.title}</span>
           </p>
         </div>
       </div>

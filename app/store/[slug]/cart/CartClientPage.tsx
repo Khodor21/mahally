@@ -220,8 +220,8 @@ export default function CartClientPage({ store }: Props) {
   // ── Empty Cart ──────────────────────────────────────
   if (cartItems.length === 0) {
     return (
-      <div className="w-full bg-white flex flex-col items-center justify-center pt-8 px-4">
-        <div className="bg-white rounded-xl p-8 max-w-md w-full text-center border border-gray-100 shadow-sm">
+      <div className="w-full flex flex-col items-center justify-center pt-[40%] px-4">
+        <div className="p-8 max-w-md w-full text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <h3 className="text-2xl font-bold text-gray-900">
               {t.emptyCartTitle}
@@ -234,7 +234,7 @@ export default function CartClientPage({ store }: Props) {
           </p>
           <button
             onClick={() => router.push(`/`)}
-            className="w-full h-12 rounded-xl bg-brand-primary text-white font-bold transition-all hover:opacity-90 active:scale-95 flex items-center justify-center gap-2"
+            className="w-full h-12 rounded-xl text-brand-primary font-bold transition-all hover:opacity-90 active:scale-95 flex items-center justify-center gap-2"
           >
             <ArrowRight className="w-4 h-4" />
             {t.continueShopping}
@@ -283,7 +283,7 @@ export default function CartClientPage({ store }: Props) {
                   >
                     {/* Product Image */}
                     {item.product.image && (
-                      <div className="flex-shrink-0 w-24 h-24 bg-gray-50 rounded-xl border border-gray-100 overflow-hidden relative">
+                      <div className="flex-shrink-0 w-24 h-auto bg-gray-50 rounded-xl border border-gray-100 overflow-hidden relative">
                         <Image
                           src={item.product.image}
                           alt={item.product.title}
@@ -312,7 +312,7 @@ export default function CartClientPage({ store }: Props) {
                         </div>
                         <button
                           onClick={() => removeFromCart(item.product.id)}
-                          className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 p-1"
+                          className="text-red-500 hover:text-red-800 transition-colors flex-shrink-0 p-1"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -443,7 +443,7 @@ export default function CartClientPage({ store }: Props) {
                     </div>
                     <button
                       onClick={handleRemoveCoupon}
-                      className="w-9 h-9 flex items-center justify-center text-brand-primary hover:bg-brand-primary/20 rounded-lg transition-colors"
+                      className="w-9 h-9 flex items-center justify-center text-brand-primary hover:bg-brand-primary/20 rounded transition-colors"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -466,17 +466,17 @@ export default function CartClientPage({ store }: Props) {
             {/* Navigation - Enhanced UI */}
             <div className="flex gap-4 pt-2">
               <button
+                onClick={() => setStep("shipping")}
+                className="flex-[2] h-12 rounded bg-brand-primary text-white font-bold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              >
+                <ArrowIcon className="w-4 h-4" />
+                {isArabic ? "المتابعة للعنوان" : "Continue to Shipping"}
+              </button>{" "}
+              <button
                 onClick={() => router.back()}
-                className="flex-1 h-12 rounded-xl border-2 border-brand-primary text-brand-primary bg-transparent font-bold text-sm hover:bg-brand-primary hover:text-white transition-colors flex items-center justify-center"
+                className="flex-1 h-12 rounded border border-brand-primary text-brand-primary bg-transparent font-bold text-sm hover:bg-brand-primary hover:text-white transition-colors flex items-center justify-center"
               >
                 {isArabic ? "العودة" : "Back"}
-              </button>
-              <button
-                onClick={() => setStep("shipping")}
-                className="flex-[2] h-12 rounded-xl bg-brand-primary text-white font-bold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-              >
-                {isArabic ? "المتابعة للعنوان" : "Continue to Shipping"}
-                <ArrowIcon className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -486,7 +486,7 @@ export default function CartClientPage({ store }: Props) {
         {step === "shipping" && (
           <div className="space-y-6 animate-fade-in">
             {/* Customer Info Form */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+            <div className="bg-white">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="font-bold text-gray-900 text-lg">
                   {isArabic ? " تفاصيل الطلب" : " Order Details"}
@@ -664,16 +664,9 @@ export default function CartClientPage({ store }: Props) {
             {/* Navigation - Enhanced UI */}
             <div className="flex gap-4 pt-2">
               <button
-                onClick={() => setStep("cart")}
-                className="flex-1 h-12 rounded-xl border-2 border-brand-primary text-brand-primary bg-transparent font-bold text-sm hover:bg-brand-primary hover:text-white transition-colors flex items-center justify-center gap-2"
-              >
-                <ArrowIcon className="w-4 h-4 rotate-180" />
-                {isArabic ? "تعديل السلة" : "Back to Cart"}
-              </button>
-              <button
                 onClick={handleCheckout}
                 disabled={!canCheckout || loading}
-                className="flex-[2] h-12 rounded-xl bg-brand-primary text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
+                className="flex-[2] h-12 rounded bg-brand-primary text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -686,6 +679,13 @@ export default function CartClientPage({ store }: Props) {
                     {t.completeCheckout}
                   </>
                 )}
+              </button>{" "}
+              <button
+                onClick={() => setStep("cart")}
+                className="flex-1 h-12 rounded border border-brand-primary text-brand-primary bg-transparent font-bold text-sm hover:bg-brand-primary hover:text-white transition-colors flex items-center justify-center gap-2"
+              >
+                {isArabic ? "تعديل السلة" : "Back to Cart"}
+                <ArrowIcon className="w-4 h-4 rotate-180" />
               </button>
             </div>
 

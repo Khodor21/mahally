@@ -9,10 +9,7 @@ export default async function AccountPage({
   params: { slug: string };
 }) {
   const cookieStore = cookies();
-  const langCookie = cookieStore.get("lang")?.value;
-  const lang = (langCookie === "ar" ? "ar" : "en") as "en" | "ar";
 
-  // 1. Read the session cookie directly
   const sessionCookie = cookieStore.get("store_customer_session")?.value;
 
   if (!sessionCookie) {
@@ -20,11 +17,11 @@ export default async function AccountPage({
   }
 
   let customer = null;
+  let lang: "en" | "ar" = "ar";
 
   try {
     const sessionData = JSON.parse(sessionCookie);
 
-    // 2. Fetch customer directly from the database (No HTTP fetch required)
     const { data, error } = await supabaseAdmin
       .from("store_customers")
       .select("id, first_name, last_name, phone, governorate, store_id")
@@ -36,12 +33,21 @@ export default async function AccountPage({
     }
 
     customer = data;
+
+    // Fetch store settings to get the explicit store language, matching StorePage logic
+    const { data: storeData } = await supabaseAdmin
+      .from("stores")
+      .select("language")
+      .eq("id", data.store_id)
+      .single();
+
+    if (storeData?.language) {
+      lang = storeData.language === "en" ? "en" : "ar";
+    }
   } catch (error) {
     console.error("Failed to parse session or fetch customer:", error);
-    // If anything fails (tampered cookie, deleted user), send them to login
     redirect("/auth");
   }
 
-  // Pass data to client component
   return <ProfileClient customer={customer} lang={lang} slug={params.slug} />;
 }

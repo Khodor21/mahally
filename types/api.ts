@@ -149,6 +149,7 @@ export interface StoreData {
   phone: string | null;
   store_type: string | null;
   created_at: string;
+  delivery_cost?: number | null;
   is_active: boolean;
 
   // store_settings table fields - Branding

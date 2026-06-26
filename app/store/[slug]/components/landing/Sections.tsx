@@ -35,6 +35,7 @@ export default async function StorefrontSections({
           <ProductGrid
             key={section.id}
             title={section.title}
+            categoryName={section.category_title}
             bannerSrc={hasBanner ? section.banner_url : undefined}
             bannerType="wide"
             products={sectionProducts}

@@ -1,5 +1,7 @@
 import { Store, Loader2 } from "lucide-react";
 import { StoreData } from "@/types/api";
+import { ComponentType } from "react";
+import { LucideProps } from "lucide-react";
 
 interface StoreTabProps {
   lang: string;
@@ -7,14 +9,14 @@ interface StoreTabProps {
   tr: any;
   formData: any;
   setFormData: (data: any) => void;
-  store: StoreData;
+  store: StoreData | null;
   isUploadingLogo: boolean;
   setIsUploadingLogo: (value: boolean) => void;
   handleImageUpload: (file: File) => Promise<string | null>;
   socialMediaFields: Array<{
     label: string;
     key: string;
-    icon: React.ReactNode;
+    icon: ComponentType<LucideProps>;
   }>;
   createdDate: string;
   SaveButton: React.ComponentType;
@@ -73,26 +75,25 @@ export default function StoreTab({
             <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
               {lang === "ar" ? "شعار المتجر (Logo)" : "Store Logo"}
             </label>
-            <div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setIsUploadingLogo(true);
-                    const url = await handleImageUpload(file);
-                    if (url)
-                      setFormData((prev: any) => ({
-                        ...prev,
-                        logo_url: url,
-                      }));
-                    setIsUploadingLogo(false);
-                  }
-                }}
-                className="w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2 text-sm text-[rgb(60_28_84)] file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[rgb(60_28_84)] file:text-white hover:file:bg-[rgb(60_28_84)]/90 outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all cursor-pointer"
-              />
-            </div>
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setIsUploadingLogo(true);
+                  const url = await handleImageUpload(file);
+                  if (url)
+                    setFormData((prev: any) => ({
+                      ...prev,
+                      logo_url: url,
+                    }));
+                  setIsUploadingLogo(false);
+                }
+              }}
+              className="w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2 text-sm text-[rgb(60_28_84)] file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[rgb(60_28_84)] file:text-white hover:file:bg-[rgb(60_28_84)]/90 outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all cursor-pointer"
+            />
 
             {isUploadingLogo && (
               <div className="mt-2 text-xs font-semibold text-emerald-600 flex items-center gap-1.5">
@@ -116,6 +117,7 @@ export default function StoreTab({
             <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
               {tr.storeType}
             </label>
+
             <select
               value={formData.store_type}
               onChange={(e) =>
@@ -140,6 +142,7 @@ export default function StoreTab({
             <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
               {lang === "ar" ? "وصف المتجر" : "Store Description"}
             </label>
+
             <textarea
               rows={3}
               value={formData.description}
@@ -161,37 +164,43 @@ export default function StoreTab({
         </div>
 
         <div className="space-y-3 pt-4 border-t border-[rgb(244_242_245)]">
-          <h4 className="text-sm font-bold text-[rgb(60_28_84)]">
+          <h3 className="text-sm font-bold text-[rgb(60_28_84)]">
             {lang === "ar" ? "وسائل التواصل الاجتماعي" : "Social Media"}
-          </h4>
+          </h3>
+
           <div className="grid md:grid-cols-2 gap-5">
-            {socialMediaFields.map((social) => (
-              <div key={social.key}>
-                <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2 flex items-center gap-2">
-                  {social.icon}
-                  {social.label}
-                </label>
-                <input
-                  type="text"
-                  value={formData[social.key]}
-                  onChange={(e) =>
-                    setFormData((prev: any) => ({
-                      ...prev,
-                      [social.key]: e.target.value,
-                    }))
-                  }
-                  placeholder={
-                    social.key === "whatsapp_number"
-                      ? lang === "ar"
-                        ? "رقم الهاتف..."
-                        : "Phone number..."
-                      : "https://..."
-                  }
-                  className="w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
-                  dir="ltr"
-                />
-              </div>
-            ))}
+            {socialMediaFields.map((social) => {
+              const Icon = social.icon;
+
+              return (
+                <div key={social.key}>
+                  <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2 flex items-center gap-2">
+                    <Icon className="w-4 h-4" />
+                    {social.label}
+                  </label>
+
+                  <input
+                    type="text"
+                    value={formData[social.key]}
+                    onChange={(e) =>
+                      setFormData((prev: any) => ({
+                        ...prev,
+                        [social.key]: e.target.value,
+                      }))
+                    }
+                    placeholder={
+                      social.key === "whatsapp_number"
+                        ? lang === "ar"
+                          ? "رقم الهاتف..."
+                          : "Phone number..."
+                        : "https://..."
+                    }
+                    className="w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
+                    dir="ltr"
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -199,7 +208,7 @@ export default function StoreTab({
           <div className="bg-[rgb(244_242_245)] rounded-sm px-4 py-3">
             <p className="text-xs text-[rgb(60_28_84)]/40 mb-1">{tr.storeId}</p>
             <p className="text-sm font-bold text-[rgb(60_28_84)] font-mono">
-              #{store.id.slice(0, 8).toUpperCase()}
+              #{store?.id?.slice(0, 8).toUpperCase() ?? "N/A"}
             </p>
           </div>
 
