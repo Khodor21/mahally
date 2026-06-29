@@ -1,4 +1,3 @@
-// app/components/ProductClientUI.tsx
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -21,12 +20,24 @@ import { useShop } from "@/app/store/context";
 
 // --- Types & Interfaces ---
 
-export interface Variant {
+export interface VariantOption {
   id: string;
-  name: string;
-  stock: number;
-  attributes?: Record<string, string>;
-  price_override?: string | number;
+  value: string;
+  price?: number;
+  stock?: number;
+}
+
+export interface VariantGroup {
+  id: string;
+  title: string;
+  type: "select" | "text";
+  allowPrice: boolean;
+  allowStock: boolean;
+  options: VariantOption[];
+}
+
+export interface SelectedVariants {
+  [groupId: string]: VariantOption;
 }
 
 export interface Product {
@@ -37,7 +48,7 @@ export interface Product {
   stock?: number;
   images?: string[];
   categories?: { title: string };
-  variants?: string | Variant[];
+  variantGroups?: string | VariantGroup[];
 }
 
 export type ProductClientUIProps = {
@@ -115,7 +126,8 @@ export default function ProductClientUI({
       addedToCart: "تمت الإضافة إلى سلة التسوق",
       checkout: "اتمام الطلب",
       cart: "عرض السلة",
-      variants: "الأنواع المتاحة",
+      options: "الخيارات المتاحة",
+      selectOption: "اختر الخيار",
     },
     en: {
       home: "Home",
@@ -135,7 +147,8 @@ export default function ProductClientUI({
       addedToCart: "Added to cart",
       checkout: "Checkout",
       cart: "View Cart",
-      variants: "Available Variants",
+      options: "Available Options",
+      selectOption: "Select option",
     },
   }[lang];
 
@@ -144,23 +157,35 @@ export default function ProductClientUI({
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [activeTab, setActiveTab] = useState("details");
 
-  // --- Variants Logic ---
-  const parsedVariants: Variant[] = useMemo(() => {
-    if (!product.variants) return [];
-    if (typeof product.variants === "string") {
+  // --- Variant Groups Logic ---
+  const variantGroups: VariantGroup[] = useMemo(() => {
+    if (!product.variantGroups) return [];
+    if (typeof product.variantGroups === "string") {
       try {
-        return JSON.parse(product.variants) as Variant[];
+        return JSON.parse(product.variantGroups) as VariantGroup[];
       } catch (err) {
-        console.error("Failed to parse variants JSON", err);
+        console.error("Failed to parse variantGroups JSON", err);
         return [];
       }
     }
-    return product.variants as Variant[];
-  }, [product.variants]);
+    return product.variantGroups as VariantGroup[];
+  }, [product.variantGroups]);
 
-  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(
-    parsedVariants.length > 0 ? parsedVariants[0] : null,
+  // Track selected option for each variant group
+  const [selectedVariants, setSelectedVariants] = useState<SelectedVariants>(
+    {},
   );
+
+  // Initialize selected variants
+  useEffect(() => {
+    const initialSelected: SelectedVariants = {};
+    variantGroups.forEach((group) => {
+      if (group.options.length > 0) {
+        initialSelected[group.id] = group.options[0];
+      }
+    });
+    setSelectedVariants(initialSelected);
+  }, [variantGroups]);
 
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useAddedFlash(5000);
@@ -169,21 +194,51 @@ export default function ProductClientUI({
   const productId = String(product.id);
   const favorited = isFavorite(productId);
 
-  // Derive active price and stock based on variant selection
-  const activePrice = selectedVariant?.price_override
-    ? Number(selectedVariant.price_override)
-    : Number(product.price || 0);
+  // Calculate active price based on selected variant options
+  const calculatePrice = (): number => {
+    let totalPrice = Number(product.price || 0);
 
-  const activeStock = selectedVariant
-    ? selectedVariant.stock
-    : product.stock || 0;
+    variantGroups.forEach((group) => {
+      const variantPrice = selectedVariants[group.id]?.price;
+      if (group.allowPrice && variantPrice !== undefined) {
+        totalPrice = variantPrice;
+      }
+    });
+
+    return totalPrice;
+  };
+
+  // Calculate active stock based on selected variant options
+  const calculateStock = (): number => {
+    const stockTrackingGroups = variantGroups.filter((g) => g.allowStock);
+    if (stockTrackingGroups.length === 0) return product.stock || 0;
+
+    let minStock = 99999;
+    stockTrackingGroups.forEach((group) => {
+      const stock = selectedVariants[group.id]?.stock ?? 0;
+      minStock = Math.min(minStock, stock);
+    });
+
+    return minStock === 99999 ? 0 : minStock;
+  };
+
+  const activePrice = calculatePrice();
+  const activeStock = calculateStock();
+
+  // Build variant description for cart
+  const variantDescription = variantGroups
+    .map(
+      (group) =>
+        `${group.title}: ${selectedVariants[group.id]?.value || "N/A"}`,
+    )
+    .join(", ");
 
   const normalizedProduct = {
     ...product,
     id: productId,
     quantity: quantity,
     price: activePrice,
-    variant: selectedVariant || undefined,
+    variantDescription: variantDescription || undefined,
   };
 
   // --- Handlers ---
@@ -192,12 +247,11 @@ export default function ProductClientUI({
     setQuantity((q) => Math.min(q + 1, activeStock || 99));
   const decrement = () => setQuantity((q) => Math.max(q - 1, 1));
 
-  // Reset quantity if variant changes to prevent exceeding new variant stock
   useEffect(() => {
     if (quantity > activeStock) {
       setQuantity(Math.max(1, activeStock));
     }
-  }, [selectedVariant, activeStock, quantity]);
+  }, [selectedVariants, activeStock, quantity]);
 
   const handleAddToCart = () => {
     addToCart(normalizedProduct);
@@ -227,6 +281,16 @@ export default function ProductClientUI({
 
   const handleThumbnailClick = (idx: number) => {
     setCurrentImgIndex(idx);
+  };
+
+  const handleVariantOptionChange = (
+    groupId: string,
+    option: VariantOption,
+  ) => {
+    setSelectedVariants((prev) => ({
+      ...prev,
+      [groupId]: option,
+    }));
   };
 
   // --- Effects ---
@@ -277,7 +341,7 @@ export default function ProductClientUI({
 
         {/* MAIN TOP SECTION */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
-          {/* RIGHT SIDE: IMAGE GALLERY */}
+          {/* IMAGE GALLERY */}
           <div className="flex flex-col-reverse md:flex-row gap-4 h-auto md:h-[600px]">
             {hasMultipleImages && (
               <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-y-auto hidden-scrollbar w-full md:w-24 shrink-0 pb-2 md:pb-0">
@@ -324,7 +388,7 @@ export default function ProductClientUI({
             </div>
           </div>
 
-          {/* LEFT SIDE: PRODUCT DETAILS */}
+          {/* PRODUCT DETAILS */}
           <div className="flex flex-col">
             <div className="flex justify-end gap-2 mb-4">
               <button
@@ -364,31 +428,61 @@ export default function ProductClientUI({
               )}
             </div>
 
-            {/* Variants Selector */}
-            {parsedVariants.length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-sm font-bold text-gray-900 mb-3">
-                  {t.variants}
-                </h4>
-                <div className="flex flex-wrap gap-3">
-                  {parsedVariants.map((variant) => (
-                    <button
-                      key={variant.id}
-                      onClick={() => setSelectedVariant(variant)}
-                      className={`px-4 py-2 border-2 rounded-xl text-sm font-medium transition-colors ${
-                        selectedVariant?.id === variant.id
-                          ? "border-brand-primary bg-[rgb(244_242_245)] text-brand-primary"
-                          : "border-gray-200 text-gray-600 hover:border-gray-300"
-                      }`}
-                    >
-                      {variant.name}
-                    </button>
-                  ))}
-                </div>
+            {/* Variant Groups Selector */}
+            {variantGroups.length > 0 && (
+              <div className="mb-6 space-y-5">
+                <h4 className="text-sm font-bold text-gray-900">{t.options}</h4>
+                {variantGroups.map((group) => (
+                  <div key={group.id}>
+                    <label className="text-sm font-semibold text-gray-800 mb-2.5 block">
+                      {group.title}
+                    </label>
+
+                    {/* Select Type (Dropdown Buttons) */}
+                    {group.type === "select" ? (
+                      <div className="flex flex-wrap gap-2">
+                        {group.options.map((option) => (
+                          <button
+                            key={option.id}
+                            onClick={() =>
+                              handleVariantOptionChange(group.id, option)
+                            }
+                            className={`px-4 py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
+                              selectedVariants[group.id]?.id === option.id
+                                ? "border-brand-primary bg-[rgb(244_242_245)] text-brand-primary"
+                                : "border-gray-200 text-gray-600 hover:border-gray-300"
+                            }`}
+                          >
+                            {option.value}
+                            {group.allowPrice && option.price && (
+                              <span className="text-xs ml-1.5 opacity-70">
+                                (+${option.price.toFixed(2)})
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      /* Text Type (Free Input) */
+                      <input
+                        type="text"
+                        placeholder={`${t.selectOption}: ${group.title}`}
+                        defaultValue={selectedVariants[group.id]?.value || ""}
+                        onChange={(e) => {
+                          handleVariantOptionChange(group.id, {
+                            id: `custom-${group.id}`,
+                            value: e.target.value,
+                          });
+                        }}
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 outline-none transition-all"
+                      />
+                    )}
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* Quantity & Price Summary Row */}
+            {/* Quantity & Price Summary */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8 py-4">
               <div className="flex items-center justify-between sm:justify-start gap-4">
                 <span className="text-black font-medium">{t.quantity}</span>
@@ -421,12 +515,12 @@ export default function ProductClientUI({
               </div>
             </div>
 
-            {/* Buttons */}
+            {/* Action Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-auto">
               <button
                 onClick={handleAddToCart}
                 disabled={activeStock < 1}
-                className="flex items-center justify-center gap-2 bg-brand-primary text-white py-4 rounded-sm font-medium hover:bg-[rgb(244_242_245)] hover:text-brand-primary hover:border hover:border-brand-primary  transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 bg-brand-primary text-white py-4 rounded-sm font-medium hover:bg-[rgb(244_242_245)] hover:text-brand-primary hover:border hover:border-brand-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShoppingBag className="w-5 h-5" />
                 {t.addToCart}
@@ -481,7 +575,7 @@ export default function ProductClientUI({
                   </p>
                 </div>
               ) : (
-                <div className="text-black/90 py-10 text-center ">
+                <div className="text-black/90 py-10 text-center">
                   {t.noReviews}
                 </div>
               )}
@@ -491,7 +585,7 @@ export default function ProductClientUI({
         {children}
       </div>
 
-      {/* PREMIUM ADD TO CART TOAST */}
+      {/* ADD TO CART TOAST */}
       {added && (
         <div
           dir={dir}
@@ -516,7 +610,7 @@ export default function ProductClientUI({
             </button>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-gray-900">
-                {t.addedToCart}{" "}
+                {t.addedToCart}
               </span>
               <CheckCircle className="text-emerald-500" size={18} />
             </div>
@@ -535,11 +629,18 @@ export default function ProductClientUI({
                 {product.title}
               </h4>
               <p className="text-sm font-bold text-brand-primary mt-1.5">
-                {formattedPrice}{" "}
+                {formattedPrice}
                 {quantity > 1 && (
-                  <span className="text-xs text-gray-500">({quantity}x)</span>
+                  <span className="text-xs text-gray-500 ml-2">
+                    ({quantity}x)
+                  </span>
                 )}
               </p>
+              {variantDescription && (
+                <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                  {variantDescription}
+                </p>
+              )}
             </div>
           </div>
           <div className="px-4 pb-4 flex gap-3">
@@ -551,7 +652,7 @@ export default function ProductClientUI({
               className="flex-1 py-2.5 bg-brand-primary rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
             >
               <CreditCard size={18} />
-              {t.checkout}{" "}
+              {t.checkout}
             </button>
             <button
               onClick={() => {
@@ -561,7 +662,7 @@ export default function ProductClientUI({
               className="flex-1 py-2.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
             >
               <ShoppingBag size={18} />
-              {t.cart}{" "}
+              {t.cart}
             </button>
           </div>
         </div>

@@ -21,6 +21,7 @@ type NavbarProps = {
   primaryColor?: string | null;
   promoText?: string | null;
   popularSearches?: string[];
+  recommendedProducts?: { id: string; title: string }[];
 };
 
 export default function Navbar({
@@ -32,6 +33,7 @@ export default function Navbar({
   primaryColor,
   popularSearches = [],
   promoText = "",
+  recommendedProducts,
 }: NavbarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -94,7 +96,13 @@ export default function Navbar({
     cart: isRTL ? "السلة" : "Cart",
     shopAll: isRTL ? "تسوق الكل" : "Shop All",
     profile: isRTL ? "الحساب" : "Profile",
+    popularSearches: isRTL ? "عمليات بحث شائعة" : "Popular Searches",
+    recommended: isRTL ? "مقترحات لك" : "Recommended",
   };
+
+  const hasPopularSearches = popularSearches.length > 0;
+  const hasRecommended = recommendedProducts && recommendedProducts.length > 0;
+  const hasEmptyStateContent = hasPopularSearches || hasRecommended;
 
   return (
     <>
@@ -256,26 +264,54 @@ export default function Navbar({
             {/* Quick Links / Empty State Area */}
             <div className="p-4 bg-gray-50/50 min-h-[200px]">
               {searchQuery.trim() === "" ? (
-                <div className="text-sm text-gray-500">
-                  {popularSearches.length > 0 ? (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {popularSearches.map((term, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setSearchQuery(term)}
-                          className="px-3.5 py-1.5 bg-white border border-gray-200 rounded-full text-[13px] hover:border-gray-400 text-gray-700 transition-colors shadow-sm"
-                        >
-                          {term}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-[120px] gap-2 opacity-60">
-                      <Search className="w-8 h-8 text-gray-300 stroke-[1.5]" />
-                      <span>{t.search}</span>
-                    </div>
-                  )}
-                </div>
+                hasEmptyStateContent ? (
+                  <div className="space-y-4">
+                    {/* Popular Searches */}
+                    {hasPopularSearches && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+                          {t.popularSearches}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {popularSearches.map((term, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setSearchQuery(term)}
+                              className="px-3.5 py-1.5 bg-white border border-gray-200 rounded-full text-[13px] hover:border-gray-400 text-gray-700 transition-colors shadow-sm"
+                            >
+                              {term}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recommended Products */}
+                    {hasRecommended && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+                          {t.recommended}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {recommendedProducts!.map((product) => (
+                            <button
+                              key={product.id}
+                              onClick={() => setSearchQuery(product.title)}
+                              className="px-3.5 py-1.5 bg-white border border-gray-200 rounded-full text-[13px] hover:border-gray-400 text-gray-700 transition-colors shadow-sm"
+                            >
+                              {product.title}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[120px] gap-2 opacity-60">
+                    <Search className="w-8 h-8 text-gray-300 stroke-[1.5]" />
+                    <span>{t.search}</span>
+                  </div>
+                )
               ) : (
                 <div className="flex items-center justify-center h-[120px] text-sm text-gray-500">
                   {t.noResults}

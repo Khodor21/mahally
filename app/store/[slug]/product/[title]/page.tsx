@@ -35,7 +35,7 @@ export default async function ProductPage({
       stock, 
       images, 
       categories(title),
-      variants
+      variantGroups
     `,
     )
     .eq("store_id", store.id)

@@ -1,4 +1,3 @@
-// app/[slug]/components/ProductCard.tsx
 "use client";
 import Image from "next/image";
 import Link from "next/link";
@@ -68,6 +67,11 @@ export default function ProductCard({
   const [added, setAdded] = useAddedFlash(5000);
   const [progress, setProgress] = useState(100);
 
+  // 👉 Favorite toast state
+  const [favToast, setFavToast] = useAddedFlash(3000);
+  const [favProgress, setFavProgress] = useState(100);
+  const [favAction, setFavAction] = useState<"added" | "removed">("added");
+
   // 👉 Check if out of stock
   const isOutOfStock = (product.stock ?? 1) === 0;
   const hasDiscount =
@@ -83,6 +87,8 @@ export default function ProductCard({
       viewCart: "View Cart",
       checkout: "Checkout",
       outOfStock: "Out of Stock",
+      addedToFav: "Added to favorites",
+      removedFromFav: "Removed from favorites",
     },
     ar: {
       addToCart: "إضافـة إلـى السلّـة",
@@ -90,6 +96,8 @@ export default function ProductCard({
       viewCart: "عرض السلة",
       checkout: "اتمام الطلب",
       outOfStock: "غير متوفر",
+      addedToFav: "تمت الإضافة إلى المفضلة",
+      removedFromFav: "تمت الإزالة من المفضلة",
     },
   };
 
@@ -108,7 +116,10 @@ export default function ProductCard({
   };
 
   const handleToggleFavorite = () => {
+    const wasFavorited = isFavorite(productId);
     toggleFavorite(normalizedProduct);
+    setFavAction(wasFavorited ? "removed" : "added");
+    setFavToast(true);
   };
 
   useEffect(() => {
@@ -120,6 +131,16 @@ export default function ProductCard({
       setProgress(100);
     }
   }, [added]);
+
+  useEffect(() => {
+    if (favToast) {
+      setFavProgress(100);
+      const timer = setTimeout(() => setFavProgress(0), 50);
+      return () => clearTimeout(timer);
+    } else {
+      setFavProgress(100);
+    }
+  }, [favToast]);
 
   const originalPrice = formatPrice(product.price ?? 0);
   const displayPrice = hasDiscount
@@ -397,6 +418,73 @@ export default function ProductCard({
                   <CreditCard size={18} />
                   {t.checkout}
                 </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* FAVORITE TOAST */}
+      {favToast && (
+        <div
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
+          dir={lang === "ar" ? "rtl" : "ltr"}
+        >
+          {/* PROGRESS BAR */}
+          <div
+            className={`h-1 ease-linear ${favAction === "added" ? "bg-rose-500" : "bg-gray-400"}`}
+            style={{
+              width: `${favProgress}%`,
+              transitionDuration: favToast ? "2950ms" : "0ms",
+              transitionProperty: "width",
+            }}
+          />
+          <div className="flex items-center justify-between px-4 py-3">
+            {lang === "ar" ? (
+              <>
+                <div className="flex items-center gap-2.5">
+                  <Heart
+                    className={`flex-shrink-0 ${
+                      favAction === "added"
+                        ? "text-rose-500 fill-rose-500"
+                        : "text-gray-400"
+                    }`}
+                    size={18}
+                  />
+                  <span className="text-sm font-medium text-gray-900">
+                    {favAction === "added" ? t.addedToFav : t.removedFromFav}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setFavToast(false)}
+                  className="text-gray-400 hover:text-gray-700 transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setFavToast(false)}
+                  className="text-gray-400 hover:text-gray-700 transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-sm font-medium text-gray-900">
+                    {favAction === "added" ? t.addedToFav : t.removedFromFav}
+                  </span>
+                  <Heart
+                    className={`flex-shrink-0 ${
+                      favAction === "added"
+                        ? "text-rose-500 fill-rose-500"
+                        : "text-gray-400"
+                    }`}
+                    size={18}
+                  />
+                </div>
               </>
             )}
           </div>

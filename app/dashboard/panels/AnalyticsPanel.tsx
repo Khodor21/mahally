@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import {
   AreaChart,
   Area,
@@ -36,9 +36,36 @@ export default function AnalyticsPanel({ store }: AnalyticsPanelProps) {
   // Fetch real data via hooks
   const { data: ordersData, loading: ordersLoading } = useOrders(store?.id);
   const { data: customersData, loading: customersLoading } = useCustomers();
-  const { data: visitorsData, loading: visitorsLoading } = useVisitors(
-    store?.id,
-  );
+
+  // Fetch visitor data directly from API (fresh data, not cached)
+  const [visitorsData, setVisitorsData] = useState<any[]>([]);
+  const [visitorsLoading, setVisitorsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!store?.id) return;
+
+    const fetchVisitors = async () => {
+      try {
+        setVisitorsLoading(true);
+        const response = await fetch(`/api/visitors?storeId=${store.id}`);
+        if (!response.ok) throw new Error("Failed to fetch visitors");
+
+        const data = await response.json();
+        setVisitorsData(data.data || []);
+      } catch (error) {
+        console.error("Error fetching visitors:", error);
+        setVisitorsData([]);
+      } finally {
+        setVisitorsLoading(false);
+      }
+    };
+
+    fetchVisitors();
+
+    // Refresh every 10 seconds for real-time updates
+    const interval = setInterval(fetchVisitors, 10000);
+    return () => clearInterval(interval);
+  }, [store?.id]);
 
   const orders = ordersData ?? [];
   const customers = customersData ?? [];
@@ -253,66 +280,64 @@ export default function AnalyticsPanel({ store }: AnalyticsPanelProps) {
 
   const conversionRate =
     totalVisitsCount > 0
-      ? ((totalOrdersCount / totalVisitsCount) * 100).toFixed(2)
-      : "0.00";
+      ? Number(((totalOrdersCount / totalVisitsCount) * 100).toFixed(1))
+      : 0;
 
   const avgOrderValue =
     totalOrdersCount > 0
-      ? (totalRevenueSum / totalOrdersCount).toFixed(2)
-      : "0.00";
+      ? Number((totalRevenueSum / totalOrdersCount).toFixed(2))
+      : 0;
 
   const tooltipStyle = {
-    background: "white",
-    border: "1px solid rgb(244,242,245)",
-    borderRadius: "12px",
-    fontSize: "12px",
-    fontFamily: "Cairo, sans-serif",
-    color: "rgb(60,28,84)",
-    boxShadow: "0 4px 24px rgba(60,28,84,0.08)",
+    backgroundColor: "rgba(60, 28, 84, 0.95)",
+    border: "none",
+    borderRadius: "0.5rem",
+    padding: "0.75rem",
+    color: "#fff",
+    fontFamily: "Cairo, system-ui",
   };
 
   return (
     <div className="space-y-6" dir={dir}>
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up">
-        {kpis.map((kpi, i) => (
-          <div
-            key={i}
-            className="bg-white rounded-2xl border border-[rgb(244_242_245)] p-5 shadow-sm hover:shadow-md transition-all"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[rgb(244_242_245)] flex items-center justify-center">
-                <kpi.icon className="w-5 h-5 text-[rgb(60_28_84)]" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-up">
+        {kpis.map((kpi, idx) => {
+          const Icon = kpi.icon;
+          const changeIsPositive = kpi.good;
+
+          return (
+            <div
+              key={idx}
+              className="bg-white rounded-2xl border border-[rgb(244_242_245)] p-5 shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-xs text-[rgb(60_28_84)]/60 font-medium">
+                    {kpi.label}
+                  </p>
+                  {loading ? (
+                    <div className="h-8 w-24 bg-gray-100 rounded-lg animate-pulse mt-2" />
+                  ) : (
+                    <p className="text-2xl font-bold text-[rgb(60_28_84)] mt-2">
+                      {kpi.value}
+                      <span className="text-sm ms-1">{kpi.unit}</span>
+                    </p>
+                  )}
+                  <p
+                    className={`text-xs mt-2 font-medium ${
+                      changeIsPositive ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {kpi.change}
+                  </p>
+                </div>
+                <div className="bg-[rgb(60_28_84)]/10 rounded-lg p-2.5 ms-3">
+                  <Icon className="w-5 h-5 text-[rgb(60_28_84)]" />
+                </div>
               </div>
-              {loading ? (
-                <div className="h-6 w-12 bg-gray-100 rounded-lg animate-pulse" />
-              ) : (
-                <span
-                  className={`text-xs font-bold px-2 py-1 rounded-lg ${
-                    kpi.good
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-red-50 text-red-600"
-                  }`}
-                >
-                  {kpi.change}
-                </span>
-              )}
             </div>
-            {loading ? (
-              <div className="h-8 w-24 bg-gray-100 rounded-lg animate-pulse mb-1 mt-2" />
-            ) : (
-              <p className="text-2xl font-bold text-[rgb(60_28_84)]">
-                {kpi.value}
-                {kpi.unit && (
-                  <span className="text-sm font-normal ms-1 text-[rgb(60_28_84)]/50">
-                    {kpi.unit}
-                  </span>
-                )}
-              </p>
-            )}
-            <p className="text-xs text-[rgb(60_28_84)]/50 mt-1">{kpi.label}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Revenue Area Chart */}

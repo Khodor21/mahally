@@ -1,10 +1,60 @@
+// types/api.ts - UPDATED VARIANT TYPES
+
+export interface VariantOption {
+  id: string;
+  value: string; // e.g., "100ml", "Red", "John Doe", "2024"
+  price?: number; // Optional: price override for this option
+  stock?: number; // Optional: stock for this option
+}
+
+export interface VariantGroup {
+  id: string;
+  title: string; // e.g., "Volume", "Color", "Author", "Year"
+  description?: string; // Optional help text for admins
+  type: "select" | "text"; // "select" = fixed options, "text" = free-form input
+  allowPrice: boolean; // Whether to show price input for options
+  allowStock: boolean; // Whether to track stock per option
+  options: VariantOption[];
+}
+
+export interface Product {
+  id: string;
+  store_id: string;
+  title: string;
+  description: string;
+  price: number;
+  discount_price?: number | null;
+  stock: number;
+  images: string[];
+  category_id?: string;
+  variantGroups?: VariantGroup[]; // NEW: Renamed from variants
+  pin: boolean;
+  created_at: string;
+}
+
+export interface ProductFormData {
+  title: string;
+  description: string;
+  price: string;
+  discount_price?: string;
+  stock: string;
+  images: string[];
+  category_id: string;
+  variantGroups?: VariantGroup[]; // NEW: Renamed from variants
+  pin?: boolean;
+}
+
+// ============================================
+// REST OF TYPES (copied from your api.ts)
+// ============================================
+
 export interface Testimonial {
   id: number;
   name: string;
   role?: string | null;
   content: string;
-  rating: number; // 1-5
-  avatar?: string; // Optional image URL
+  rating: number;
+  avatar?: string;
 }
 
 export interface TestimonialFormData {
@@ -19,51 +69,6 @@ export interface TestimonialsList {
   testimonials: Testimonial[];
 }
 
-// ============================================
-// PRODUCTS
-// ============================================
-export interface VariantOption {
-  id: string;
-  name: string;
-  price?: number;
-  stock?: number;
-}
-
-export interface VariantGroup {
-  id: string;
-  title: string;
-  options: VariantOption[];
-}
-
-export interface Product {
-  id: string;
-  store_id: string;
-  title: string;
-  description: string;
-  price: number;
-  discount_price?: number | null;
-  stock: number;
-  images: string[];
-  category_id?: string;
-  variants?: VariantGroup[];
-  pin: boolean;
-  created_at: string;
-}
-
-export interface ProductFormData {
-  title: string;
-  description: string;
-  price: string;
-  discount_price?: string;
-  stock: string;
-  images: string[];
-  category_id: string;
-  variants?: VariantGroup[];
-  pin?: boolean;
-}
-// ============================================
-// ORDERS
-// ============================================
 export interface OrderItem {
   id: string;
   qty: number;
@@ -88,9 +93,6 @@ export interface Order {
   order_items: OrderItem[];
 }
 
-// ============================================
-// CUSTOMERS
-// ============================================
 export interface Customer {
   id: string;
   first_name: string;
@@ -100,9 +102,6 @@ export interface Customer {
   created_at: string;
 }
 
-// ============================================
-// COUPONS
-// ============================================
 export interface Coupon {
   id: string;
   store_id: string;
@@ -121,9 +120,6 @@ export interface Coupon {
   last_used_at?: string;
 }
 
-// ============================================
-// CATEGORIES
-// ============================================
 export interface Category {
   id: string;
   store_id?: string;
@@ -133,11 +129,7 @@ export interface Category {
   created_at: string;
 }
 
-// ============================================
-// STORE
-// ============================================
 export interface StoreData {
-  // Store table fields
   id: string;
   admin_name: string;
   admin_email: string;
@@ -152,18 +144,15 @@ export interface StoreData {
   delivery_cost?: number | null;
   is_active: boolean;
 
-  // store_settings table fields - Branding
   primary_color?: string;
   promo_text?: string;
   logo_url?: string;
   description?: string;
 
-  // store_settings table fields - Policies
   privacy_policy?: string;
   shipping_policy?: string;
   return_policy?: string;
 
-  // store_settings table fields - Social Media
   whatsapp_number?: string;
   instagram_url?: string;
   facebook_url?: string;
@@ -171,13 +160,9 @@ export interface StoreData {
   twitter_url?: string;
   snapchat_url?: string;
 
-  // ✅ NEW: Testimonials
   testimonials?: TestimonialsList;
 }
 
-// ============================================
-// HERO BANNERS
-// ============================================
 export interface HeroBanner {
   id: string;
   store_id?: string;
@@ -188,7 +173,6 @@ export interface HeroBanner {
   updated_at?: string;
 }
 
-// Features
 export interface Feature {
   id: number;
   store_id: string;
@@ -222,14 +206,6 @@ export interface FeatureResponse {
   data?: Feature | Feature[];
   error?: string;
 }
-
-// ============================================
-// TESTIMONIALS
-// ============================================
-
-// ============================================
-// GENERAL TYPES
-// ============================================
 
 export interface ApiResponse<T> {
   success: boolean;

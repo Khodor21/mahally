@@ -64,20 +64,26 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
   // Store Config State
   const [currencySymbol, setCurrencySymbol] = useState<string>("$");
   const [deliveryCost, setDeliveryCost] = useState<number>(0);
-  const [paymentMethods, setPaymentMethods] = useState<string[]>(["cash_on_delivery"]);
+  const [paymentMethods, setPaymentMethods] = useState<string[]>([
+    "cash_on_delivery",
+  ]);
   const [isConfigLoading, setIsConfigLoading] = useState(true);
 
   // ── Fetch Store Configuration ────────────────────────────
   useEffect(() => {
     async function fetchStoreConfig() {
       try {
-        // NOTE: Adjust this URL to your public endpoint if fetching for storefront customers
-        const res = await fetch("/api/store"); 
+        // Use public storefront endpoint (no auth required)
+        const res = await fetch("/api/storefront/config");
         if (res.ok) {
           const body = await res.json();
           setCurrencySymbol(body.store?.currency_symbol || "$");
           setDeliveryCost(Number(body.store?.delivery_cost) || 0);
-          setPaymentMethods(body.store?.payment_methods || ["cash_on_delivery"]);
+          setPaymentMethods(
+            body.store?.payment_methods || ["cash_on_delivery"],
+          );
+        } else {
+          console.error("Failed to fetch store config:", res.status);
         }
       } catch (error) {
         console.error("Failed to fetch store configuration:", error);
@@ -165,7 +171,7 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     (sum, i) => sum + (i.product.price ?? 0) * i.qty,
     0,
   );
-  
+
   // Final total matching delivery fee configuration
   const orderTotal = cartTotal + deliveryCost;
 
@@ -205,7 +211,7 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         removeFromCart,
         updateCartQty,
         clearCart,
-        
+
         // Favorites
         favorites,
         favCount,

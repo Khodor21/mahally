@@ -14,8 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
     const storeName = storeData?.store_name || "متجرك";
     const description =
-      storeData?.description ||
-      "سياسة الشحن والتوصيل - Shipping & Delivery Policy - توصيل سريع وآمن";
+      "سياسة الشحن والتوصيل - Shipping & Delivery - توصيل سريع وآمن";
 
     return {
       title: `الشحن والتوصيل | Shipping & Delivery - ${storeName}`,
@@ -46,13 +45,12 @@ export async function generateMetadata(): Promise<Metadata> {
 async function getStoreByDomain(domain: string | null) {
   if (!domain) return null;
 
-  // Extract subdomain (e.g., "storename.mahally.app" -> "storename")
   const subdomain = domain.split(".")[0];
 
   try {
     const { data: store, error } = await supabaseAdmin
       .from("stores")
-      .select("id, store_name, language, description")
+      .select("id, store_name, language, slug")
       .eq("slug", subdomain)
       .maybeSingle();
 
@@ -75,9 +73,7 @@ async function getStoreSettings(storeId: string) {
   try {
     const { data: settings, error } = await supabaseAdmin
       .from("store_settings")
-      .select(
-        "shipping_policy, primary_color, logo_url, description, updated_at",
-      )
+      .select("shipping_policy, primary_color")
       .eq("store_id", storeId)
       .maybeSingle();
 
@@ -115,8 +111,16 @@ export default async function ShippingPage() {
 
   const storeName = storeData?.store_name || "متجرك";
   const language = (storeData?.language as "en" | "ar") || "ar";
-  const primaryColor = storeSettings?.primary_color || "#131944";
+  const primaryColor = storeSettings?.primary_color || "#1F2937";
   const shippingContent = storeSettings?.shipping_policy || null;
+
+  console.log("🔍 ShippingPage Debug:", {
+    storeId: storeData?.id,
+    storeName,
+    shippingContent: shippingContent
+      ? `✅ ${shippingContent.substring(0, 50)}...`
+      : "❌ null",
+  });
 
   return (
     <PolicyPage
@@ -125,7 +129,6 @@ export default async function ShippingPage() {
       storeName={storeName}
       primaryColor={primaryColor}
       dbContent={shippingContent}
-      isLoading={false}
     />
   );
 }

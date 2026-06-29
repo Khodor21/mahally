@@ -1,8 +1,26 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, ImageIcon, Package, Loader2, Trash2, Plus, Info, Pin, Star } from "lucide-react";
-import type { Product, ProductFormData } from "../types";
+import {
+  X,
+  ImageIcon,
+  Package,
+  Loader2,
+  Trash2,
+  Plus,
+  Info,
+  Pin,
+  Star,
+  ChevronDown,
+  ToggleLeft,
+  ToggleRight,
+} from "lucide-react";
+import type {
+  Product,
+  ProductFormData,
+  VariantGroup,
+  VariantOption,
+} from "@/types/api";
 import type { Translations } from "../i18n";
 import { uploadImages } from "@/lib/image-upload";
 import { useCategories } from "@/hooks/useApi";
@@ -26,7 +44,7 @@ const EMPTY_FORM: any = {
   stock: "",
   images: [],
   category_id: "",
-  variants: [],
+  variantGroups: [],
   pin: false,
 };
 
@@ -46,6 +64,9 @@ export default function ProductFormModal({
   >({});
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>("");
+  const [expandedVariantGroup, setExpandedVariantGroup] = useState<
+    string | null
+  >(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
   const { data: rawCategoriesData } = useCategories(storeId);
@@ -62,13 +83,14 @@ export default function ProductFormModal({
         description: product.description ?? "",
         price: String(product.price),
         discount_price:
-          product.discount_price !== null && product.discount_price !== undefined
+          product.discount_price !== null &&
+          product.discount_price !== undefined
             ? String(product.discount_price)
             : "",
         stock: String(product.stock),
         images: product.images ?? [],
         category_id: (product as any).category_id ?? "",
-        variants: (product as any).variants ?? [],
+        variantGroups: (product as any).variantGroups ?? [],
         pin: Boolean((product as any).pin),
       });
     } else {
@@ -83,22 +105,27 @@ export default function ProductFormModal({
   }, []);
 
   function validate(): boolean {
-    const errs: Partial<Record<keyof ProductFormData | "discount_price", string>> = {};
+    const errs: Partial<
+      Record<keyof ProductFormData | "discount_price", string>
+    > = {};
 
     if (!form.title.trim()) errs.title = tr.titleRequired;
 
     const p = parseFloat(form.price);
-    if (isNaN(p) || p < 0) errs.price = tr.priceRequired || "Valid price required";
+    if (isNaN(p) || p < 0)
+      errs.price = tr.priceRequired || "Valid price required";
 
     if (form.discount_price !== "" && form.discount_price !== null) {
       const dp = parseFloat(form.discount_price);
       if (isNaN(dp) || dp < 0) {
-        errs.discount_price = dir === "rtl" ? "سعر خصم غير صالح" : "Invalid discount price";
+        errs.discount_price =
+          dir === "rtl" ? "سعر خصم غير صالح" : "Invalid discount price";
       }
     }
 
     const s = parseInt(form.stock);
-    if (form.stock !== "" && (isNaN(s) || s < 0)) errs.stock = tr.stockInvalid || "Invalid stock";
+    if (form.stock !== "" && (isNaN(s) || s < 0))
+      errs.stock = tr.stockInvalid || "Invalid stock";
 
     setErrors(errs as any);
     return Object.keys(errs).length === 0;
@@ -108,9 +135,17 @@ export default function ProductFormModal({
     e.preventDefault();
     if (!validate() || uploading) return;
 
+    // Filter out empty variant groups and options
+    const cleanedVariantGroups = form.variantGroups
+      .map((group: any) => ({
+        ...group,
+        options: group.options.filter((opt: any) => opt.value.trim() !== ""),
+      }))
+      .filter((group: any) => group.options.length > 0);
+
     const cleanedForm = {
       ...form,
-      variants: form.variants.filter((v: any) => v.name.trim() !== ""),
+      variantGroups: cleanedVariantGroups,
     };
 
     onSubmit(cleanedForm);
@@ -153,7 +188,7 @@ export default function ProductFormModal({
     setForm((f: any) => {
       const newImages = [...f.images];
       const [selected] = newImages.splice(idx, 1);
-      newImages.unshift(selected); // Move to front
+      newImages.unshift(selected);
       return { ...f, images: newImages };
     });
   }
@@ -165,402 +200,689 @@ export default function ProductFormModal({
     }
   }
 
-  const addVariant = () => {
-    const newVariant = {
-      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-      name: "",
-      price_override: "",
-      stock: 0,
-      attributes: {},
+  // ============================================
+  // VARIANT GROUP FUNCTIONS
+  // ============================================
+
+  const addVariantGroup = () => {
+    const newGroup: VariantGroup = {
+      id: crypto.randomUUID?.() || Date.now().toString(),
+      title: "",
+      type: "select",
+      allowPrice: true,
+      allowStock: true,
+      options: [
+        {
+          id: crypto.randomUUID?.() || Date.now().toString(),
+          value: "",
+        },
+      ],
     };
+
     setForm((f: any) => ({
       ...f,
-      variants: [...(f.variants || []), newVariant],
+      variantGroups: [...(f.variantGroups || []), newGroup],
     }));
+
+    // Auto-expand new group
+    setExpandedVariantGroup(newGroup.id);
   };
 
-  const updateVariant = (id: string, updateField: string, value: string | number) => {
+  const updateVariantGroup = (groupId: string, field: string, value: any) => {
     setForm((f: any) => ({
       ...f,
-      variants: f.variants.map((v: any) =>
-        v.id === id ? { ...v, [updateField]: value } : v,
+      variantGroups: f.variantGroups.map((group: any) =>
+        group.id === groupId ? { ...group, [field]: value } : group,
       ),
     }));
   };
 
-  const removeVariant = (id: string) => {
+  const removeVariantGroup = (groupId: string) => {
     setForm((f: any) => ({
       ...f,
-      variants: f.variants.filter((v: any) => v.id !== id),
+      variantGroups: f.variantGroups.filter(
+        (group: any) => group.id !== groupId,
+      ),
+    }));
+  };
+
+  const addVariantOption = (groupId: string) => {
+    setForm((f: any) => ({
+      ...f,
+      variantGroups: f.variantGroups.map((group: any) =>
+        group.id === groupId
+          ? {
+              ...group,
+              options: [
+                ...group.options,
+                {
+                  id: crypto.randomUUID?.() || Date.now().toString(),
+                  value: "",
+                },
+              ],
+            }
+          : group,
+      ),
+    }));
+  };
+
+  const updateVariantOption = (
+    groupId: string,
+    optionId: string,
+    field: string,
+    value: any,
+  ) => {
+    setForm((f: any) => ({
+      ...f,
+      variantGroups: f.variantGroups.map((group: any) =>
+        group.id === groupId
+          ? {
+              ...group,
+              options: group.options.map((opt: any) =>
+                opt.id === optionId ? { ...opt, [field]: value } : opt,
+              ),
+            }
+          : group,
+      ),
+    }));
+  };
+
+  const removeVariantOption = (groupId: string, optionId: string) => {
+    setForm((f: any) => ({
+      ...f,
+      variantGroups: f.variantGroups.map((group: any) =>
+        group.id === groupId
+          ? {
+              ...group,
+              options: group.options.filter((opt: any) => opt.id !== optionId),
+            }
+          : group,
+      ),
     }));
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4"
-      dir={dir}
-    >
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end md:items-center justify-center overflow-y-auto">
       <div
-        className="absolute inset-0 bg-[rgb(60_28_84)]/20 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      />
-
-      <div className="relative bg-white w-full rounded-t-2xl md:rounded-3xl shadow-2xl md:max-w-xl max-h-[95vh] md:max-h-[90vh] flex flex-col animate-fade-up md:animate-scale-in overflow-hidden border border-[rgb(244_242_245)]">
-        <div className="flex items-center justify-between px-6 py-4 md:py-5 border-b border-[rgb(244_242_245)] bg-white/50 backdrop-blur-md z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[rgb(60_28_84)] flex items-center justify-center shadow-md shadow-[rgb(60_28_84)]/20">
-              <Package className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-[rgb(60_28_84)] leading-tight">
-                {mode === "create" ? tr.addProductTitle || "Add Product" : tr.editProductTitle || "Edit Product"}
-              </h3>
-              <p className="text-[10px] text-[rgb(60_28_84)]/60 font-medium mt-0.5">
-                {dir === "rtl" ? "أدخل تفاصيل ومواصفات المنتج" : "Enter product details and specs"}
-              </p>
-            </div>
-          </div>
+        className="bg-white w-full md:max-w-2xl rounded-t-3xl md:rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col"
+        dir={dir}
+      >
+        {/* Header */}
+        <div className="sticky top-0 z-10 px-6 py-5 md:py-6 border-b border-[rgb(244_242_245)] bg-white flex items-center justify-between rounded-t-3xl">
+          <h2 className="text-lg md:text-xl font-bold text-[rgb(60_28_84)]">
+            {mode === "create"
+              ? dir === "rtl"
+                ? "إنشاء منتج جديد"
+                : "Create Product"
+              : dir === "rtl"
+                ? "تعديل المنتج"
+                : "Edit Product"}
+          </h2>
           <button
+            type="button"
             onClick={onClose}
             disabled={loading || uploading}
-            className="p-2.5 -mr-2 text-[rgb(60_28_84)]/40 hover:text-[rgb(60_28_84)] hover:bg-[rgb(244_242_245)] rounded-full transition-colors disabled:opacity-40"
+            className="p-2 text-gray-400 hover:text-[rgb(60_28_84)] hover:bg-[rgb(244_242_245)] rounded-lg transition-colors disabled:opacity-50"
           >
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
         </div>
 
+        {/* Form */}
         <form
-          onSubmit={handleSubmit}
           id="product-form"
-          className="overflow-y-auto flex-1 px-6 py-6 space-y-7"
+          onSubmit={handleSubmit}
+          className="flex-1 overflow-y-auto"
         >
-          {/* Title Section */}
-          <div>
-            <label className="block text-xs font-bold text-[rgb(60_28_84)] mb-2 uppercase tracking-wide">
-              {tr.productName} <span className="text-red-500">*</span>
-            </label>
-            <input
-              ref={firstInputRef}
-              type="text"
-              value={form.title}
-              onChange={(e) => field("title", e.target.value)}
-              placeholder={tr.productNamePlaceholder}
-              dir={dir}
-              className={`w-full px-4 py-3.5 rounded-xl border text-sm text-[rgb(60_28_84)] placeholder-[rgb(60_28_84)]/30 outline-none transition-all
-                ${errors.title ? "border-red-400 bg-red-50 focus:ring-2 focus:ring-red-300" : "border-[rgb(207_195_223)] bg-[rgb(244_242_245)] focus:border-[rgb(60_28_84)] focus:bg-white focus:ring-2 focus:ring-[rgb(60_28_84)]/10"}`}
-            />
-            {errors.title && (
-              <p className="text-xs font-medium text-red-500 mt-1.5">{errors.title}</p>
-            )}
-          </div>
-
-          {/* Pricing Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="px-6 py-6 space-y-8">
+            {/* Title */}
             <div>
-              <label className="block text-xs font-bold text-[rgb(60_28_84)] mb-2 uppercase tracking-wide">
-                {tr.priceLabel || "Price"} <span className="text-red-500">*</span>
+              <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-2.5">
+                {tr.title || "Product Title"}
               </label>
-              <div className="relative">
+              <input
+                ref={firstInputRef}
+                type="text"
+                value={form.title}
+                onChange={(e) => field("title", e.target.value)}
+                placeholder={dir === "rtl" ? "اسم المنتج" : "Product name"}
+                className={`w-full px-4 py-3 rounded-xl border bg-white text-sm text-[rgb(60_28_84)] outline-none transition-all ${
+                  errors.title
+                    ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                    : "border-[rgb(207_195_223)] focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10"
+                }`}
+              />
+              {errors.title && (
+                <p className="text-xs text-red-600 mt-1">{errors.title}</p>
+              )}
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-2.5">
+                {tr.description || "Description"}
+              </label>
+              <textarea
+                value={form.description}
+                onChange={(e) => field("description", e.target.value)}
+                placeholder={
+                  dir === "rtl" ? "وصف المنتج" : "Product description"
+                }
+                rows={3}
+                className="w-full px-4 py-3 rounded-xl border border-[rgb(207_195_223)] bg-white text-sm text-[rgb(60_28_84)] outline-none focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10 transition-all resize-none"
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-2.5">
+                {tr.category || "Category"}
+              </label>
+              <select
+                value={form.category_id}
+                onChange={(e) => field("category_id", e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-[rgb(207_195_223)] bg-white text-sm text-[rgb(60_28_84)] outline-none focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10 transition-all"
+              >
+                <option value="">
+                  {dir === "rtl" ? "اختر فئة" : "Select a category"}
+                </option>
+                {categories.map((cat: any) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Pricing */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-2.5">
+                  {tr.price || "Price"} *
+                </label>
                 <input
                   type="number"
-                  min="0"
                   step="0.01"
                   value={form.price}
                   onChange={(e) => field("price", e.target.value)}
                   placeholder="0.00"
-                  className={`w-full px-4 py-3.5 rounded-xl border text-sm text-[rgb(60_28_84)] placeholder-[rgb(60_28_84)]/30 outline-none transition-all
-                    ${errors.price ? "border-red-400 bg-red-50 focus:ring-2 focus:ring-red-300" : "border-[rgb(207_195_223)] bg-[rgb(244_242_245)] focus:border-[rgb(60_28_84)] focus:bg-white focus:ring-2 focus:ring-[rgb(60_28_84)]/10"}`}
+                  className={`w-full px-4 py-3 rounded-xl border bg-white text-sm text-[rgb(60_28_84)] outline-none transition-all ${
+                    errors.price
+                      ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                      : "border-[rgb(207_195_223)] focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10"
+                  }`}
                 />
+                {errors.price && (
+                  <p className="text-xs text-red-600 mt-1">{errors.price}</p>
+                )}
               </div>
-              {errors.price && (
-                <p className="text-xs font-medium text-red-500 mt-1.5">{errors.price}</p>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-xs font-bold text-[rgb(60_28_84)] mb-2 uppercase tracking-wide">
-                {dir === "rtl" ? "سعر الخصم (اختياري)" : "Discount Price (Opt)"}
-              </label>
-              <div className="relative">
+
+              <div>
+                <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-2.5">
+                  {dir === "rtl" ? "سعر الخصم" : "Discount Price"}
+                </label>
                 <input
                   type="number"
-                  min="0"
                   step="0.01"
                   value={form.discount_price}
                   onChange={(e) => field("discount_price", e.target.value)}
                   placeholder="0.00"
-                  className={`w-full px-4 py-3.5 rounded-xl border text-sm text-emerald-700 font-semibold placeholder-[rgb(60_28_84)]/30 outline-none transition-all
-                    ${errors.discount_price ? "border-red-400 bg-red-50 focus:ring-2 focus:ring-red-300" : "border-[rgb(207_195_223)] bg-[rgb(244_242_245)] focus:border-emerald-500 focus:bg-emerald-50/30 focus:ring-2 focus:ring-emerald-500/10"}`}
+                  className={`w-full px-4 py-3 rounded-xl border bg-white text-sm text-[rgb(60_28_84)] outline-none transition-all ${
+                    errors.discount_price
+                      ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                      : "border-[rgb(207_195_223)] focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10"
+                  }`}
                 />
+                {errors.discount_price && (
+                  <p className="text-xs text-red-600 mt-1">
+                    {errors.discount_price}
+                  </p>
+                )}
               </div>
-              {errors.discount_price && (
-                <p className="text-xs font-medium text-red-500 mt-1.5">{errors.discount_price as string}</p>
-              )}
             </div>
-          </div>
 
-          {/* Stock & Pinning Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Stock */}
             <div>
-              <label className="block text-xs font-bold text-[rgb(60_28_84)] mb-2 uppercase tracking-wide">
-                {tr.stockLabel || "Stock"}
+              <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-2.5">
+                {tr.stock || "Stock"}
               </label>
               <input
                 type="number"
-                min="0"
-                step="1"
                 value={form.stock}
                 onChange={(e) => field("stock", e.target.value)}
-                placeholder={tr.stockPlaceholder || "0"}
-                className={`w-full px-4 py-3.5 rounded-xl border text-sm text-[rgb(60_28_84)] placeholder-[rgb(60_28_84)]/30 outline-none transition-all
-                  ${errors.stock ? "border-red-400 bg-red-50 focus:ring-2 focus:ring-red-300" : "border-[rgb(207_195_223)] bg-[rgb(244_242_245)] focus:border-[rgb(60_28_84)] focus:bg-white focus:ring-2 focus:ring-[rgb(60_28_84)]/10"}`}
+                placeholder="0"
+                className={`w-full px-4 py-3 rounded-xl border bg-white text-sm text-[rgb(60_28_84)] outline-none transition-all ${
+                  errors.stock
+                    ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                    : "border-[rgb(207_195_223)] focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10"
+                }`}
               />
               {errors.stock && (
-                <p className="text-xs font-medium text-red-500 mt-1.5">{errors.stock}</p>
+                <p className="text-xs text-red-600 mt-1">{errors.stock}</p>
               )}
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-[rgb(60_28_84)] mb-2 uppercase tracking-wide opacity-0 hidden md:block">
-                Pin Action
-              </label>
-              <div
-                onClick={() => field("pin", !form.pin)}
-                className={`w-full px-4 py-3.5 rounded-xl border cursor-pointer flex items-center justify-between transition-all select-none
-                  ${form.pin ? "border-[rgb(60_28_84)] bg-[rgb(60_28_84)]/5 shadow-sm" : "border-[rgb(207_195_223)] bg-[rgb(244_242_245)] hover:bg-white"}`}
+            {/* Pin */}
+            <div className="flex items-center gap-3 p-3 bg-[rgb(244_242_245)] rounded-xl">
+              <input
+                type="checkbox"
+                id="pin-checkbox"
+                checked={form.pin}
+                onChange={(e) => field("pin", e.target.checked)}
+                className="w-5 h-5 rounded cursor-pointer"
+              />
+              <label
+                htmlFor="pin-checkbox"
+                className="text-sm font-medium text-[rgb(60_28_84)] cursor-pointer flex-1"
               >
-                <div className="flex items-center gap-2.5">
-                  <Pin className={`w-4 h-4 ${form.pin ? "text-[rgb(60_28_84)]" : "text-[rgb(60_28_84)]/40"}`} />
-                  <span className={`text-sm font-semibold ${form.pin ? "text-[rgb(60_28_84)]" : "text-[rgb(60_28_84)]/60"}`}>
-                    {dir === "rtl" ? "تثبيت في المتجر" : "Pin in store"}
-                  </span>
-                </div>
-                
-                {/* Premium Tailwind Toggle Switch */}
-                <button
-                  type="button"
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.pin ? "bg-[rgb(60_28_84)]" : "bg-gray-300"}`}
-                >
-                  <span
-                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                      form.pin
-                        ? dir === "rtl" ? "-translate-x-4" : "translate-x-4"
-                        : dir === "rtl" ? "-translate-x-1" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
+                {dir === "rtl"
+                  ? "تثبيت هذا المنتج في المتجر"
+                  : "Pin this product to storefront"}
+              </label>
             </div>
-          </div>
 
-          {/* Description */}
-          <div>
-            <label className="block text-xs font-bold text-[rgb(60_28_84)] mb-2 uppercase tracking-wide">
-              {tr.description || "Description"}
-            </label>
-            <textarea
-              value={form.description}
-              onChange={(e) => field("description", e.target.value)}
-              placeholder={tr.descriptionPlaceholder || "Describe your product..."}
-              rows={3}
-              dir={dir}
-              className="w-full px-4 py-3.5 rounded-xl border border-[rgb(207_195_223)] bg-[rgb(244_242_245)] text-sm text-[rgb(60_28_84)] placeholder-[rgb(60_28_84)]/30 outline-none resize-none transition-all focus:border-[rgb(60_28_84)] focus:bg-white focus:ring-2 focus:ring-[rgb(60_28_84)]/10"
-            />
-          </div>
+            {/* Images */}
+            <div>
+              <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-3">
+                {dir === "rtl" ? "صور المنتج" : "Product Images"}
+              </label>
 
-          {/* Category Dropdown */}
-          <div className="space-y-2 pt-2">
-            <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide">
-              {dir === "rtl" ? "ربط بتصنيف المنتجات *" : "Link to Category *"}
-            </label>
-            <select
-              required
-              value={form.category_id}
-              onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-              className="w-full px-4 py-3.5 bg-[rgb(244_242_245)] border border-[rgb(207_195_223)] rounded-xl text-sm text-[rgb(60_28_84)] font-medium outline-none focus:bg-white focus:ring-2 focus:ring-[rgb(60_28_84)]/10 focus:border-[rgb(60_28_84)] transition-all cursor-pointer"
-              dir={dir}
-            >
-              <option value="" disabled>
-                {dir === "rtl" ? "اختر تصنيفاً..." : "Select category..."}
-              </option>
-              {categories?.map((c: any) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Images Section with Cover Image Merchandising */}
-          <div className="pt-4 border-t border-[rgb(244_242_245)]">
-            <label className="block text-xs font-bold text-[rgb(60_28_84)] mb-3 uppercase tracking-wide">
-              {tr.imagesLabel || "Product Images"}
-            </label>
-
-            {/* Main Image Explainer - Only visible when multiple images exist */}
-            {form.images.length > 1 && (
-              <div className="mb-4 flex items-start gap-3 p-3.5 bg-[rgb(60_28_84)]/5 border border-[rgb(60_28_84)]/10 rounded-xl">
-                <Info className="w-5 h-5 text-[rgb(60_28_84)] shrink-0" />
-                <p className="text-xs font-medium text-[rgb(60_28_84)]/80 leading-relaxed">
+              {form.images.length > 0 && (
+                <p className="text-[10px] text-[rgb(60_28_84)]/60 mb-3">
                   {dir === "rtl"
-                    ? "الصورة الأولى التي تحمل شارة 'الغلاف الرئيسي' هي التي ستظهر كواجهة للمنتج. انقر على 'تعيين كغلاف' على أي صورة أخرى لتغييرها."
+                    ? "الصورة الأولى سيتم استخدامها كغلاف في المتجر"
                     : "The first image with the 'Main Cover' badge will be used as the product card thumbnail. Click 'Make Cover' on any image to change it."}
                 </p>
-              </div>
-            )}
+              )}
 
-            {uploading && uploadProgress && (
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 text-blue-600 animate-spin shrink-0" />
-                  <p className="text-xs text-blue-700 font-medium">{uploadProgress}</p>
+              {uploading && uploadProgress && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 text-blue-600 animate-spin shrink-0" />
+                    <p className="text-xs text-blue-700 font-medium">
+                      {uploadProgress}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {form.images.map((url: string, idx: number) => (
-                <div
-                  key={idx}
-                  className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all
-                    ${idx === 0 ? "border-[rgb(60_28_84)] shadow-md" : "border-[rgb(207_195_223)] bg-[rgb(244_242_245)]"}`}
-                >
-                  <img
-                    src={url}
-                    alt={`Product ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  
-                  {/* Badge for Main Cover Image */}
-                  {idx === 0 && (
-                    <div className="absolute top-2 left-2 right-2 flex justify-center">
-                      <div className="bg-[rgb(60_28_84)]/90 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5">
-                        <Star className="w-3 h-3 fill-white" />
-                        {dir === "rtl" ? "الغلاف الرئيسي" : "Main Cover"}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {form.images.map((url: string, idx: number) => (
+                  <div
+                    key={idx}
+                    className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all ${
+                      idx === 0
+                        ? "border-[rgb(60_28_84)] shadow-md"
+                        : "border-[rgb(207_195_223)] bg-[rgb(244_242_245)]"
+                    }`}
+                  >
+                    <img
+                      src={url}
+                      alt={`Product ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+
+                    {idx === 0 && (
+                      <div className="absolute top-2 left-2 right-2 flex justify-center">
+                        <div className="bg-[rgb(60_28_84)]/90 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5">
+                          <Star className="w-3 h-3 fill-white" />
+                          {dir === "rtl" ? "الغلاف الرئيسي" : "Main Cover"}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Hover Controls */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/0 group-hover:bg-black/50 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-[1px]">
-                    {idx !== 0 && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/0 group-hover:bg-black/50 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-[1px]">
+                      {idx !== 0 && (
+                        <button
+                          type="button"
+                          onClick={() => makeMainImage(idx)}
+                          className="bg-white text-[rgb(60_28_84)] text-[10px] font-bold px-4 py-2 rounded-lg shadow-lg hover:bg-gray-100 transition-transform hover:scale-105"
+                        >
+                          {dir === "rtl" ? "تعيين كغلاف" : "Make Cover"}
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={() => makeMainImage(idx)}
-                        className="bg-white text-[rgb(60_28_84)] text-[10px] font-bold px-4 py-2 rounded-lg shadow-lg hover:bg-gray-100 transition-transform hover:scale-105"
+                        onClick={() => removeImage(idx)}
+                        disabled={uploading || loading}
+                        className="bg-red-500 text-white rounded-full p-2.5 shadow-lg hover:bg-red-600 transition-colors disabled:opacity-50"
                       >
-                        {dir === "rtl" ? "تعيين كغلاف" : "Make Cover"}
+                        <Trash2 className="w-4 h-4" />
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => removeImage(idx)}
-                      disabled={uploading || loading}
-                      className="bg-red-500 text-white rounded-full p-2.5 shadow-lg hover:bg-red-600 transition-colors disabled:opacity-50"
-                      title={dir === "rtl" ? "حذف الصورة" : "Delete image"}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {/* Upload Button */}
-              {form.images.length < 5 && (
-                <label
-                  className={`flex flex-col items-center justify-center aspect-square rounded-xl border-2 border-dashed transition-all bg-[rgb(244_242_245)]
-                    ${uploading || loading ? "border-[rgb(60_28_84)]/40 cursor-not-allowed opacity-50" : "border-[rgb(207_195_223)] hover:border-[rgb(60_28_84)] hover:bg-white cursor-pointer"}`}
-                >
-                  {uploading ? (
-                    <Loader2 className="w-6 h-6 text-[rgb(60_28_84)] animate-spin" />
-                  ) : (
-                    <>
-                      <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center mb-2 border border-[rgb(207_195_223)]">
-                        <Plus className="w-5 h-5 text-[rgb(60_28_84)]" />
-                      </div>
-                      <span className="text-[11px] font-bold text-[rgb(60_28_84)]/60">
-                        {tr.addImageUrl || "Add Image"}
-                      </span>
-                    </>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    multiple
-                    disabled={uploading || loading}
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                </label>
-              )}
-            </div>
-            <p className="text-[10px] font-medium text-[rgb(60_28_84)]/50 mt-3 flex items-center gap-1.5">
-              <Info className="w-3.5 h-3.5" />
-              {tr.imageUploadHint || "Max 5 images. Supported: JPEG, PNG, WebP (max 5MB each)."}
-            </p>
-          </div>
-
-          {/* Variants Section */}
-          <div className="pt-4 border-t border-[rgb(244_242_245)]">
-            <div className="flex items-center justify-between mb-4">
-              <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide">
-                {dir === "rtl"
-                  ? "خيارات المنتج (ألوان، مقاسات...)"
-                  : "Product Variants (Colors, Sizes...)"}
-              </label>
-              <button
-                type="button"
-                onClick={addVariant}
-                className="flex items-center gap-1.5 text-xs font-bold text-[rgb(60_28_84)] bg-[rgb(244_242_245)] px-3.5 py-2 rounded-xl hover:bg-[rgb(207_195_223)] transition-colors border border-[rgb(207_195_223)]/50"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                {dir === "rtl" ? "إضافة خيار" : "Add Variant"}
-              </button>
-            </div>
-
-            {form.variants?.length > 0 && (
-              <div className="space-y-3">
-                {form.variants.map((variant: any) => (
-                  <div
-                    key={variant.id}
-                    className="flex flex-col md:flex-row gap-3 items-start bg-[rgb(244_242_245)]/50 p-4 rounded-xl border border-[rgb(207_195_223)]/50"
-                  >
-                    <div className="flex-1 space-y-3 w-full">
-                      <input
-                        type="text"
-                        value={variant.name}
-                        onChange={(e) => updateVariant(variant.id, "name", e.target.value)}
-                        placeholder={dir === "rtl" ? "الاسم (مثال: أحمر / XL)" : "Name (e.g., Red / XL)"}
-                        className="w-full px-4 py-3 rounded-xl border border-[rgb(207_195_223)] bg-white text-sm text-[rgb(60_28_84)] outline-none focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10 transition-all"
-                      />
-                      <div className="flex gap-3">
-                        <input
-                          type="number"
-                          placeholder={dir === "rtl" ? "سعر مختلف (اختياري)" : "Custom Price (Opt)"}
-                          value={variant.price_override || ""}
-                          onChange={(e) => updateVariant(variant.id, "price_override", e.target.value)}
-                          className="w-1/2 px-4 py-3 rounded-xl border border-[rgb(207_195_223)] bg-white text-sm text-[rgb(60_28_84)] outline-none focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10 transition-all"
-                        />
-                        <input
-                          type="number"
-                          placeholder={dir === "rtl" ? "الكمية" : "Stock"}
-                          value={variant.stock || ""}
-                          onChange={(e) => updateVariant(variant.id, "stock", parseInt(e.target.value) || 0)}
-                          className="w-1/2 px-4 py-3 rounded-xl border border-[rgb(207_195_223)] bg-white text-sm text-[rgb(60_28_84)] outline-none focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10 transition-all"
-                        />
-                      </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeVariant(variant.id)}
-                      className="p-3 text-red-500 bg-white hover:bg-red-50 rounded-xl border border-[rgb(207_195_223)] transition-colors self-end md:self-start md:mt-0"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
                   </div>
                 ))}
+
+                {form.images.length < 5 && (
+                  <label
+                    className={`flex flex-col items-center justify-center aspect-square rounded-xl border-2 border-dashed transition-all bg-[rgb(244_242_245)] ${
+                      uploading || loading
+                        ? "border-[rgb(60_28_84)]/40 cursor-not-allowed opacity-50"
+                        : "border-[rgb(207_195_223)] hover:border-[rgb(60_28_84)] hover:bg-white cursor-pointer"
+                    }`}
+                  >
+                    {uploading ? (
+                      <Loader2 className="w-6 h-6 text-[rgb(60_28_84)] animate-spin" />
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center mb-2 border border-[rgb(207_195_223)]">
+                          <Plus className="w-5 h-5 text-[rgb(60_28_84)]" />
+                        </div>
+                        <span className="text-[11px] font-bold text-[rgb(60_28_84)]/60">
+                          {tr.addImageUrl || "Add Image"}
+                        </span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      multiple
+                      disabled={uploading || loading}
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                )}
               </div>
-            )}
+              <p className="text-[10px] font-medium text-[rgb(60_28_84)]/50 mt-3 flex items-center gap-1.5">
+                <Info className="w-3.5 h-3.5" />
+                {tr.imageUploadHint ||
+                  "Max 5 images. Supported: JPEG, PNG, WebP (max 5MB each)."}
+              </p>
+            </div>
+
+            {/* ============================================ */}
+            {/* VARIANT GROUPS SECTION - UPDATED */}
+            {/* ============================================ */}
+            <div className="pt-4 border-t border-[rgb(244_242_245)]">
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide">
+                  {dir === "rtl"
+                    ? "خيارات المنتج (الألوان، الأحجام، المؤلف...)"
+                    : "Product Variants (Colors, Sizes, Author...)"}
+                </label>
+                <button
+                  type="button"
+                  onClick={addVariantGroup}
+                  className="flex items-center gap-1.5 text-xs font-bold text-[rgb(60_28_84)] bg-[rgb(244_242_245)] px-3.5 py-2 rounded-xl hover:bg-[rgb(207_195_223)] transition-colors border border-[rgb(207_195_223)]/50"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  {dir === "rtl" ? "إضافة مجموعة" : "Add Group"}
+                </button>
+              </div>
+
+              {form.variantGroups?.length > 0 && (
+                <div className="space-y-3">
+                  {form.variantGroups.map((group: VariantGroup) => (
+                    <div
+                      key={group.id}
+                      className="border border-[rgb(207_195_223)]/50 rounded-xl overflow-hidden bg-[rgb(244_242_245)]/30"
+                    >
+                      {/* Group Header */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedVariantGroup(
+                            expandedVariantGroup === group.id ? null : group.id,
+                          )
+                        }
+                        className="w-full flex items-center justify-between p-4 hover:bg-[rgb(244_242_245)]/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <ChevronDown
+                            className={`w-5 h-5 text-[rgb(60_28_84)]/60 transition-transform shrink-0 ${
+                              expandedVariantGroup === group.id
+                                ? "rotate-180"
+                                : ""
+                            }`}
+                          />
+                          <div className="text-left min-w-0 flex-1">
+                            <p className="font-semibold text-[rgb(60_28_84)] truncate">
+                              {group.title || "(untitled group)"}
+                            </p>
+                            <p className="text-xs text-[rgb(60_28_84)]/60">
+                              {group.options?.length || 0}{" "}
+                              {dir === "rtl" ? "خيار" : "option"}
+                              {group.type === "text" &&
+                                ` • ${dir === "rtl" ? "نص حر" : "Free text"}`}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeVariantGroup(group.id);
+                          }}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-2 shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </button>
+
+                      {/* Group Content */}
+                      {expandedVariantGroup === group.id && (
+                        <div className="border-t border-[rgb(207_195_223)]/50 p-4 space-y-4 bg-white">
+                          {/* Group Settings */}
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-xs font-bold text-[rgb(60_28_84)] mb-2">
+                                {dir === "rtl" ? "اسم المجموعة" : "Group Title"}
+                              </label>
+                              <input
+                                type="text"
+                                value={group.title}
+                                onChange={(e) =>
+                                  updateVariantGroup(
+                                    group.id,
+                                    "title",
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder={
+                                  dir === "rtl"
+                                    ? "مثال: الحجم، اللون، المؤلف"
+                                    : "e.g., Volume, Color, Author"
+                                }
+                                className="w-full px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-[rgb(60_28_84)] mb-2">
+                                {dir === "rtl" ? "نوع الخيار" : "Option Type"}
+                              </label>
+                              <select
+                                value={group.type}
+                                onChange={(e) =>
+                                  updateVariantGroup(
+                                    group.id,
+                                    "type",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
+                              >
+                                <option value="select">
+                                  {dir === "rtl"
+                                    ? "قائمة منسدلة (خيارات محددة)"
+                                    : "Dropdown (Fixed options)"}
+                                </option>
+                                <option value="text">
+                                  {dir === "rtl"
+                                    ? "نص حر (إدخال مخصص)"
+                                    : "Free Text (Custom input)"}
+                                </option>
+                              </select>
+                            </div>
+
+                            {/* Toggles */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-medium text-[rgb(60_28_84)]">
+                                  {dir === "rtl"
+                                    ? "السماح بتجاوز السعر"
+                                    : "Allow price override"}
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updateVariantGroup(
+                                      group.id,
+                                      "allowPrice",
+                                      !group.allowPrice,
+                                    )
+                                  }
+                                  className="transition-colors"
+                                >
+                                  {group.allowPrice ? (
+                                    <ToggleRight className="w-5 h-5 text-emerald-600" />
+                                  ) : (
+                                    <ToggleLeft className="w-5 h-5 text-gray-300" />
+                                  )}
+                                </button>
+                              </div>
+
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-medium text-[rgb(60_28_84)]">
+                                  {dir === "rtl"
+                                    ? "تتبع المخزون لكل خيار"
+                                    : "Track stock per option"}
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updateVariantGroup(
+                                      group.id,
+                                      "allowStock",
+                                      !group.allowStock,
+                                    )
+                                  }
+                                  className="transition-colors"
+                                >
+                                  {group.allowStock ? (
+                                    <ToggleRight className="w-5 h-5 text-emerald-600" />
+                                  ) : (
+                                    <ToggleLeft className="w-5 h-5 text-gray-300" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Options List */}
+                          <div className="border-t border-[rgb(244_242_245)] pt-4 space-y-2">
+                            <div className="flex items-center justify-between mb-3">
+                              <label className="text-xs font-bold text-[rgb(60_28_84)] uppercase">
+                                {dir === "rtl" ? "الخيارات" : "Options"}
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => addVariantOption(group.id)}
+                                className="flex items-center gap-1 text-[10px] font-bold text-[rgb(60_28_84)] bg-white px-2.5 py-1.5 rounded-md hover:bg-[rgb(244_242_245)] transition-colors border border-[rgb(207_195_223)]/50"
+                              >
+                                <Plus className="w-3 h-3" />
+                                {dir === "rtl" ? "إضافة" : "Add"}
+                              </button>
+                            </div>
+
+                            {group.options.map(
+                              (option: VariantOption, optIdx: number) => (
+                                <div
+                                  key={option.id}
+                                  className="flex flex-col gap-2 p-3 bg-[rgb(244_242_245)]/50 rounded-lg border border-[rgb(207_195_223)]/50"
+                                >
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      value={option.value}
+                                      onChange={(e) =>
+                                        updateVariantOption(
+                                          group.id,
+                                          option.id,
+                                          "value",
+                                          e.target.value,
+                                        )
+                                      }
+                                      placeholder={
+                                        dir === "rtl"
+                                          ? "مثال: 100ml، أحمر، John Doe"
+                                          : "e.g., 100ml, Red, John Doe"
+                                      }
+                                      className="flex-1 px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        removeVariantOption(group.id, option.id)
+                                      }
+                                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+
+                                  {/* Price and Stock rows - only show if enabled */}
+                                  {(group.allowPrice || group.allowStock) && (
+                                    <div className="flex gap-2">
+                                      {group.allowPrice && (
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={option.price ?? ""}
+                                          onChange={(e) =>
+                                            updateVariantOption(
+                                              group.id,
+                                              option.id,
+                                              "price",
+                                              e.target.value
+                                                ? parseFloat(e.target.value)
+                                                : undefined,
+                                            )
+                                          }
+                                          placeholder={
+                                            dir === "rtl"
+                                              ? "السعر (اختياري)"
+                                              : "Price (opt)"
+                                          }
+                                          className="flex-1 px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
+                                        />
+                                      )}
+                                      {group.allowStock && (
+                                        <input
+                                          type="number"
+                                          value={option.stock ?? ""}
+                                          onChange={(e) =>
+                                            updateVariantOption(
+                                              group.id,
+                                              option.id,
+                                              "stock",
+                                              e.target.value
+                                                ? parseInt(e.target.value)
+                                                : undefined,
+                                            )
+                                          }
+                                          placeholder={
+                                            dir === "rtl"
+                                              ? "الكمية (اختياري)"
+                                              : "Stock (opt)"
+                                          }
+                                          className="flex-1 px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
+                                        />
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              ),
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </form>
 

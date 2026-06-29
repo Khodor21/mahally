@@ -1,4 +1,3 @@
-// app/components/ProductGrid.tsx
 "use client";
 
 import { useMemo, useRef, useEffect } from "react";
@@ -16,6 +15,7 @@ type Product = {
   images?: string[];
   created_at?: string;
   storeSlug?: string;
+  pin?: boolean;
 };
 
 type ProductGridProps = {

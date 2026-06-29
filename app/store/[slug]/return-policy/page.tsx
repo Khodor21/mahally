@@ -14,8 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
     const storeName = storeData?.store_name || "متجرك";
     const description =
-      storeData?.description ||
-      "سياسة الإسترجاع والاستبدال - Returns & Exchange Policy - ضمان رضاك 100%";
+      "سياسة الإسترجاع والاستبدال - Returns & Exchange - ضمان رضاك 100%";
 
     return {
       title: `سياسة الإسترجاع | Returns & Exchange - ${storeName}`,
@@ -46,13 +45,12 @@ export async function generateMetadata(): Promise<Metadata> {
 async function getStoreByDomain(domain: string | null) {
   if (!domain) return null;
 
-  // Extract subdomain (e.g., "storename.mahally.app" -> "storename")
   const subdomain = domain.split(".")[0];
 
   try {
     const { data: store, error } = await supabaseAdmin
       .from("stores")
-      .select("id, store_name, language, description")
+      .select("id, store_name, language, slug")
       .eq("slug", subdomain)
       .maybeSingle();
 
@@ -75,7 +73,7 @@ async function getStoreSettings(storeId: string) {
   try {
     const { data: settings, error } = await supabaseAdmin
       .from("store_settings")
-      .select("return_policy, primary_color, logo_url, description, updated_at")
+      .select("return_policy, primary_color")
       .eq("store_id", storeId)
       .maybeSingle();
 
@@ -84,6 +82,7 @@ async function getStoreSettings(storeId: string) {
       return null;
     }
 
+    console.log("✅ Fetched store_settings:", { storeId, settings });
     return settings;
   } catch (err) {
     console.error("Exception fetching settings:", err);
@@ -111,11 +110,18 @@ export default async function ReturnPolicyPage() {
     console.error("Error in ReturnPolicyPage:", error);
   }
 
-  // Gracefully fallback to defaults if database fails
   const storeName = storeData?.store_name || "متجرك";
   const language = (storeData?.language as "en" | "ar") || "ar";
-  const primaryColor = storeSettings?.primary_color || "#131944";
+  const primaryColor = storeSettings?.primary_color || "#1F2937";
   const returnContent = storeSettings?.return_policy || null;
+
+  console.log("🔍 ReturnPolicyPage Debug:", {
+    storeId: storeData?.id,
+    storeName,
+    returnContent: returnContent
+      ? `✅ ${returnContent.substring(0, 50)}...`
+      : "❌ null",
+  });
 
   return (
     <PolicyPage

@@ -1,4 +1,3 @@
-// /app/store/[slug]/components/landing/Sections.tsx
 import ProductGrid from "./ProductGrid";
 import { getCachedSectionsAndProducts } from "@/lib/store-queries";
 
@@ -25,7 +24,9 @@ export default async function StorefrontSections({
       {sections.map((section) => {
         const sectionProducts =
           products?.filter(
-            (product) => product.category_id === section.category_id,
+            (product) =>
+              product.category_id === section.category_id &&
+              product.pin === true,
           ) || [];
 
         const hasBanner =

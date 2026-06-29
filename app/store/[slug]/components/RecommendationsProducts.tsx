@@ -1,19 +1,17 @@
-// app/components/RecommendationsProducts.tsx (Adjust path as needed)
-
 import { unstable_cache } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import ProductCard from "./landing/ProductCard"; // 👉 Ensure this import path matches your project structure
+import ProductCard from "./landing/ProductCard";
 
 // --- Types & Interfaces ---
 
-interface RecommendedProduct {
+export interface RecommendedProduct {
   id: string;
   title: string;
   images: string[];
   price: number;
 }
 
-interface RecommendationRecord {
+export interface RecommendationRecord {
   id: string;
   product_id: string;
   products: RecommendedProduct | RecommendedProduct[];
@@ -26,7 +24,7 @@ type Props = {
   lang: "en" | "ar";
 };
 
-const getCachedRecommendations = async (storeId: string) => {
+export const getCachedRecommendations = async (storeId: string) => {
   const fetchCached = unstable_cache(
     async () => {
       const { data } = await supabaseAdmin

@@ -67,7 +67,7 @@ export async function createProduct(form: ProductFormData): Promise<Product> {
       stock: parseInt(form.stock) || 0,
       images: form.images,
       category_id: form.category_id,
-      variants: form.variants,
+      variantGroups: form.variantGroups,
     }),
   });
 
@@ -78,7 +78,6 @@ export async function updateProduct(
   id: string,
   form: ProductFormData,
 ): Promise<Product> {
-  // Parse discount_price: empty string or null → null, otherwise parse as float
   let parsedDiscountPrice: number | null = null;
   if (
     form.discount_price !== "" &&
@@ -90,12 +89,12 @@ export async function updateProduct(
       parsedDiscountPrice = null;
     }
   }
-
   const res = await fetch("/api/products", {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
     },
+    credentials: "include", // ← ADD THIS for session cookies
     body: JSON.stringify({
       id,
       title: form.title.trim(),
@@ -105,11 +104,10 @@ export async function updateProduct(
       stock: parseInt(form.stock) || 0,
       images: form.images,
       category_id: form.category_id,
-      variants: form.variants,
+      variantGroups: form.variantGroups, // ← CHANGED from variants
       pin: form.pin ?? false,
     }),
   });
-
   return handleApiResponse(res);
 }
 

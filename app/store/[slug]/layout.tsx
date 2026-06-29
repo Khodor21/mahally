@@ -1,4 +1,3 @@
-// app/store/[slug]/layout.tsx
 export const revalidate = 3600;
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
@@ -10,6 +9,11 @@ import Footer from "./components/landing/Footer";
 import LangDomSetter from "./LangSetter";
 import ThemeClient from "./components/ThemeClient";
 import VisitorTracker from "./components/VisitorTracker";
+import FaviconInitializer from "./components/FaviconInitializer";
+import {
+  getCachedRecommendations,
+  RecommendationRecord,
+} from "./components/RecommendationsProducts";
 import NotificationInitializer from "./components/NotificationInitializer";
 import { getCachedStoreData } from "@/lib/store-queries";
 
@@ -19,14 +23,12 @@ export async function generateMetadata({
   params: { slug: string };
 }): Promise<Metadata> {
   const data = await getCachedStoreData(params.slug);
-
   if (!data) {
     return {
       title: "Store Not Found",
       description: "This store does not exist.",
     };
   }
-
   const { store, settings } = data;
   const lang = (store as { language?: "en" | "ar" }).language || "en";
   const storeName = store.store_name || "Store";
@@ -83,10 +85,28 @@ export default async function StoreLayout({
 
   const lang = (store as { language?: "en" | "ar" }).language || "en";
   const primaryColor = settings?.primary_color;
+  const recommendationsRaw = await getCachedRecommendations(store.id);
+  const recommendedTitles = recommendationsRaw
+    .slice(0, 5)
+    .map((rec: RecommendationRecord) => {
+      const product = Array.isArray(rec.products)
+        ? rec.products[0]
+        : rec.products;
+      return product ? { id: product.id, title: product.title } : null;
+    })
+    .filter((item): item is { id: string; title: string } => item !== null);
+
+  console.log("RECO_DEBUG", {
+    storeId: store.id,
+    rawCount: recommendationsRaw.length,
+    titles: recommendedTitles,
+  });
 
   return (
     <ShopProvider>
       <VisitorTracker storeId={store.id} />
+      {/* ✅ Dynamic Favicon Handler - adapts to any logo dimension */}
+      <FaviconInitializer logoUrl={settings?.logo_url} />
       {/* ✅ PRIMARY COLOR from backend */}
       <ThemeClient primaryColor={primaryColor} />
       {/* ✅ LANGUAGE from backend (READ-ONLY) */}
@@ -98,6 +118,7 @@ export default async function StoreLayout({
         storeId={store.id}
         storeName={store.store_name}
         storeSlug={store.slug}
+        recommendedProducts={recommendedTitles}
         logoUrl={settings?.logo_url}
         primaryColor={primaryColor}
         lang={lang}

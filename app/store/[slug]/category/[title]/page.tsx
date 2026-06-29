@@ -18,6 +18,7 @@ interface BackendProduct {
   id: string;
   title: string;
   price: string | number;
+  discount_price?: number | null;
   images: string[];
   stock: number;
 }
@@ -311,6 +312,13 @@ export default function CategoryPage() {
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
             {filteredProducts.map((product) => {
+              const badge: "New" | "Sale" | "Hot" =
+                product.stock === undefined
+                  ? "Hot"
+                  : product.stock > 0
+                    ? "New"
+                    : "Sale";
+
               const mappedProduct = {
                 id: product.id,
                 title: product.title,
@@ -318,7 +326,11 @@ export default function CategoryPage() {
                 image:
                   product.images && product.images.length > 0
                     ? product.images[0]
-                    : "",
+                    : "https://placehold.co/600x600/png?text=No+Image",
+                discount_price: product.discount_price || null,
+                stock: product.stock ?? 1,
+                rating: 5,
+                badge,
               };
 
               return (

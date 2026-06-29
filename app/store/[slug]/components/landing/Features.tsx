@@ -69,7 +69,7 @@ export default function FeaturesSection({
             return (
               <div
                 key={feature.id}
-                className="flex flex-col items-center text-center space-y-4 mt-3"
+                className="flex flex-col items-center text-center space-y-2 mt-3"
               >
                 <div className="flex items-center justify-center text-brand-primary">
                   <IconComponent
@@ -81,9 +81,9 @@ export default function FeaturesSection({
                   <h3 className="font-bold text-black text-base md:text-lg leading-tight">
                     {feature.title}
                   </h3>
-                  <p className="text-brand-primary/80 text-sm md:text-base">
+                  {/* <p className="text-brand-primary/80 text-sm md:text-base">
                     {feature.description}
-                  </p>
+                  </p> */}
                 </div>
               </div>
             );

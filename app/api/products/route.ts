@@ -2,39 +2,50 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { requireStoreSession } from "@/lib/store";
 
-function isValidVariants(variants: any): boolean {
-  if (!Array.isArray(variants)) return false;
+// ============================================
+// FLEXIBLE VARIANT VALIDATION
+// ============================================
 
-  return variants.every((group) => {
-    return (
-      typeof group === "object" &&
-      typeof group.id === "string" &&
-      typeof group.title === "string" &&
-      Array.isArray(group.options) &&
-      group.options.every(
-        (option: any) =>
-          typeof option === "object" &&
-          typeof option.id === "string" &&
-          typeof option.name === "string" &&
-          (option.price === undefined ||
-            typeof option.price === "number") &&
-          (option.stock === undefined ||
-            typeof option.stock === "number")
-      )
-    );
-  });
+function isValidVariantOption(option: any): boolean {
+  return (
+    typeof option === "object" &&
+    typeof option.id === "string" &&
+    typeof option.value === "string" &&
+    (option.price === undefined || typeof option.price === "number") &&
+    (option.stock === undefined || typeof option.stock === "number")
+  );
 }
+
+function isValidVariantGroup(group: any): boolean {
+  return (
+    typeof group === "object" &&
+    typeof group.id === "string" &&
+    typeof group.title === "string" &&
+    ["select", "text"].includes(group.type) &&
+    typeof group.allowPrice === "boolean" &&
+    typeof group.allowStock === "boolean" &&
+    Array.isArray(group.options) &&
+    group.options.every((opt: any) => isValidVariantOption(opt))
+  );
+}
+
+function isValidVariantGroups(variantGroups: any): boolean {
+  if (!Array.isArray(variantGroups)) return false;
+  return variantGroups.every((group) => isValidVariantGroup(group));
+}
+
+// ============================================
+// ROUTES
+// ============================================
 
 export async function GET() {
   try {
-    // 1. Get the authenticated store admin session securely
     const user = await requireStoreSession();
 
-    // 2. Fetch products only for this specific store (Replaced select("*") with explicit fields)
     const { data, error } = await supabaseAdmin
       .from("products")
       .select(
-        "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variants",
+        "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variants, variantGroups",
       )
       .eq("store_id", user.id)
       .order("created_at", { ascending: false });
@@ -45,8 +56,16 @@ export async function GET() {
         { status: 500 },
       );
     }
+    const data_with_renamed_variants = data.map((product: any) => ({
+      ...product,
+      variantGroups: product.variants, // Map old column to new field name
+      variants: undefined, // Remove old field
+    }));
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({
+      success: true,
+      data: data_with_renamed_variants,
+    });
   } catch (err: any) {
     const isAuth = err.message === "Unauthorized";
     return NextResponse.json(
@@ -71,11 +90,22 @@ export async function POST(req: Request) {
       );
     }
 
-    // Added variants, pin, and discount_price to destructuring
-    const { title, description, price, discount_price, stock, images, category_id, variants, pin } =
-      body;
+    const {
+      title,
+      description,
+      price,
+      discount_price,
+      stock,
+      images,
+      category_id,
+      variantGroups,
+      pin,
+    } = body;
 
-    // Validation
+    // ============================================
+    // VALIDATION
+    // ============================================
+
     if (!title || title.trim() === "") {
       return NextResponse.json(
         { success: false, message: "Title is required" },
@@ -91,15 +121,15 @@ export async function POST(req: Request) {
     }
 
     const parsedPrice = parseFloat(price);
-    const parsedStock =
-      stock !== undefined && stock !== null ? parseInt(stock) : 0;
-
     if (parsedPrice < 0) {
       return NextResponse.json(
         { success: false, message: "Price cannot be negative" },
         { status: 400 },
       );
     }
+
+    const parsedStock =
+      stock !== undefined && stock !== null ? parseInt(stock) : 0;
 
     if (parsedStock < 0) {
       return NextResponse.json(
@@ -109,7 +139,11 @@ export async function POST(req: Request) {
     }
 
     let parsedDiscountPrice = null;
-    if (discount_price !== undefined && discount_price !== null && discount_price !== "") {
+    if (
+      discount_price !== undefined &&
+      discount_price !== null &&
+      discount_price !== ""
+    ) {
       parsedDiscountPrice = parseFloat(discount_price);
       if (isNaN(parsedDiscountPrice) || parsedDiscountPrice < 0) {
         return NextResponse.json(
@@ -121,21 +155,28 @@ export async function POST(req: Request) {
 
     const isPinned = pin !== undefined ? Boolean(pin) : false;
 
-    // Ensure images and variants are arrays, defaulting to empty arrays if missing
     const imageArray = Array.isArray(images) ? images : [];
 
-    if (variants !== undefined && !isValidVariants(variants)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid variants structure",
-        },
-        { status: 400 },
-      );
+    // NEW: Validate variantGroups if provided
+    let variantGroupsArray: any[] = [];
+    if (variantGroups !== undefined) {
+      if (!isValidVariantGroups(variantGroups)) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "Invalid variant groups structure. Each group must have id, title, type (select|text), allowPrice, allowStock, and options array.",
+          },
+          { status: 400 },
+        );
+      }
+      variantGroupsArray = variantGroups;
     }
 
-    const variantsArray = Array.isArray(variants) ? variants : [];
-    
+    // ============================================
+    // INSERT
+    // ============================================
+
     const { data, error } = await supabaseAdmin
       .from("products")
       .insert({
@@ -147,12 +188,12 @@ export async function POST(req: Request) {
         stock: parsedStock,
         images: imageArray,
         category_id: category_id || null,
-        variants: variantsArray, // Handled dynamically
+        variantGroups: variantGroupsArray,
         pin: isPinned,
       })
       .select(
-        "id, title, description, price, discount_price, stock, images, category_id, variants, pin",
-      ) // Explicit select
+        "id, title, description, price, discount_price, stock, images, category_id, variantGroups, pin",
+      )
       .single();
 
     if (error) {
@@ -178,7 +219,6 @@ export async function PATCH(req: Request) {
   try {
     const user = await requireStoreSession();
 
-    // Parse body with error handling
     let body;
     try {
       body = await req.json();
@@ -190,7 +230,6 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // Added variants, pin, and discount_price to destructuring
     const {
       id,
       title,
@@ -200,7 +239,7 @@ export async function PATCH(req: Request) {
       stock,
       images,
       category_id,
-      variants,
+      variantGroups,
       pin,
     } = body;
 
@@ -211,7 +250,10 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // Build updates object with validation
+    // ============================================
+    // BUILD UPDATES
+    // ============================================
+
     const updates: any = {};
 
     if (title !== undefined) {
@@ -273,26 +315,25 @@ export async function PATCH(req: Request) {
       updates.pin = Boolean(pin);
     }
 
-    if (variants !== undefined) {
-      if (!isValidVariants(variants)) {
+    // NEW: Validate variantGroups if provided
+    if (variantGroups !== undefined) {
+      if (!isValidVariantGroups(variantGroups)) {
         return NextResponse.json(
           {
             success: false,
-            message: "Invalid variants structure",
+            message:
+              "Invalid variant groups structure. Each group must have id, title, type (select|text), allowPrice, allowStock, and options array.",
           },
           { status: 400 },
         );
       }
-
-      updates.variants = variants;
+      updates.variantGroups = variantGroups;
     }
 
     if (category_id !== undefined) {
-      // Allows clearing the category by passing an empty string or null
       updates.category_id = category_id === "" ? null : category_id;
     }
 
-    // Check if there are any updates
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(
         { success: false, message: "No updates provided" },
@@ -300,20 +341,23 @@ export async function PATCH(req: Request) {
       );
     }
 
+    // ============================================
+    // UPDATE
+    // ============================================
+
     const { data, error } = await supabaseAdmin
       .from("products")
       .update(updates)
       .eq("id", id)
-      .eq("store_id", user.id) // Security: ensure product belongs to this store
+      .eq("store_id", user.id)
       .select(
-        "id, title, description, price, discount_price, stock, images, category_id, variants, pin",
-      ) // Explicit select
+        "id, title, description, price, discount_price, stock, images, category_id, variantGroups, pin",
+      )
       .single();
 
     if (error) {
       console.error("UPDATE product error:", error);
 
-      // Handle case where product doesn't exist or doesn't belong to store
       if (error.code === "PGRST116") {
         return NextResponse.json(
           { success: false, message: "Product not found or access denied" },
@@ -355,7 +399,7 @@ export async function DELETE(req: Request) {
       .from("products")
       .delete()
       .eq("id", id)
-      .eq("store_id", user.id); // Security: ensure product belongs to this store
+      .eq("store_id", user.id);
 
     if (error) {
       console.error("DELETE product error:", error);
