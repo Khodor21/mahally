@@ -105,15 +105,11 @@ export default async function StoreLayout({
   return (
     <ShopProvider>
       <VisitorTracker storeId={store.id} />
-      {/* ✅ Dynamic Favicon Handler - adapts to any logo dimension */}
       <FaviconInitializer logoUrl={settings?.logo_url} />
-      {/* ✅ PRIMARY COLOR from backend */}
       <ThemeClient primaryColor={primaryColor} />
-      {/* ✅ LANGUAGE from backend (READ-ONLY) */}
       <LangDomSetter lang={lang} />
-      {/* <NotificationInitializer /> */}
+      <NotificationInitializer />
 
-      {/* ✅ Navbar moved to layout */}
       <Navbar
         storeId={store.id}
         storeName={store.store_name}

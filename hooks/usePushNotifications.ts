@@ -2,16 +2,47 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { getToken } from "firebase/messaging";
 import { getFirebaseMessaging } from "@/lib/firebase";
 
-export function usePushNotifications(enabled: boolean = true) {
+// Track registration per customer to prevent re-registration on refresh
+function isRegistrationCached(customerId: string): boolean {
+  const cached = localStorage.getItem(`push_reg_${customerId}`);
+  return cached === "true";
+}
+
+function markRegistrationCached(customerId: string): void {
+  localStorage.setItem(`push_reg_${customerId}`, "true");
+}
+
+function clearRegistrationCache(customerId: string): void {
+  localStorage.removeItem(`push_reg_${customerId}`);
+}
+
+export function usePushNotifications(
+  enabled: boolean = true,
+  customerId?: string,
+) {
+  const registeredRef = useRef(false);
+
   useEffect(() => {
-    if (!enabled) {
-      console.log("⚠️ usePushNotifications disabled");
+    if (!enabled || !customerId) {
+      if (!enabled) {
+        console.log("⚠️ usePushNotifications disabled (enabled=false)");
+      } else {
+        console.log("⚠️ usePushNotifications missing customerId");
+      }
       return;
     }
+
+    // Skip if already registered in this session
+    if (registeredRef.current) {
+      console.log("✅ Already registered this session, skipping");
+      return;
+    }
+
+    registeredRef.current = true;
 
     const register = async () => {
       try {
@@ -67,7 +98,11 @@ export function usePushNotifications(enabled: boolean = true) {
         // 5. Get FCM token
         console.log("🎫 Getting FCM token...");
         const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-        console.log("🔑 VAPID Key present:", !!vapidKey);
+        console.log("🔑 VAPID Key length:", vapidKey?.length);
+        console.log(
+          "🔑 VAPID Key (first 30 chars):",
+          vapidKey?.substring(0, 30),
+        );
 
         if (!vapidKey) {
           console.error("❌ VAPID key missing in environment variables");
@@ -75,13 +110,12 @@ export function usePushNotifications(enabled: boolean = true) {
         }
 
         const token = await getToken(messaging, { vapidKey });
+        console.log("🎫 Generated token:", token);
 
         if (!token) {
-          console.error("❌ Failed to get FCM token");
+          console.error("❌ No token generated");
           return;
         }
-
-        console.log("✅ FCM Token received:", token.substring(0, 50) + "...");
 
         // 6. Register token with backend
         console.log("📤 Sending token to backend...");
@@ -97,14 +131,19 @@ export function usePushNotifications(enabled: boolean = true) {
 
         if (data.success) {
           console.log("✅✅✅ TOKEN REGISTERED SUCCESSFULLY!");
+          markRegistrationCached(customerId);
         } else {
           console.error("❌ Token registration failed:", data.message);
+          // Clear cache so we retry next time
+          clearRegistrationCache(customerId);
         }
       } catch (error) {
         console.error("❌❌❌ ERROR in push notification flow:", error);
+        // Clear cache so we retry next time
+        clearRegistrationCache(customerId);
       }
     };
 
     register();
-  }, [enabled]);
+  }, [enabled, customerId]);
 }
