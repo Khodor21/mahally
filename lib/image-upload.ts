@@ -15,7 +15,7 @@ export interface UploadError {
 }
 
 // ─── Client-Side Validation ───────────────────────────────────────────────────
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 400 * 1024; // 400KB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 /**
@@ -29,7 +29,7 @@ function validateFile(file: File): string | null {
 
   // Check file size
   if (file.size > MAX_FILE_SIZE) {
-    return `File "${file.name}" is too large. Maximum size is 5MB.`;
+    return `File "${file.name}" is too large. Maximum size is 400KB.`;
   }
 
   if (file.size === 0) {

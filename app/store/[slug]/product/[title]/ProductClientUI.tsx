@@ -156,6 +156,7 @@ export default function ProductClientUI({
   const hasMultipleImages = images.length > 1;
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [activeTab, setActiveTab] = useState("details");
+  const [copied, setCopied] = useState(false);
 
   // --- Variant Groups Logic ---
   const variantGroups: VariantGroup[] = useMemo(() => {
@@ -272,10 +273,16 @@ export default function ProductClientUI({
           url: url,
         });
       } catch (err) {
-        console.error("Error sharing:", err);
+        // User cancelled or error — silently ignore
       }
     } else {
-      navigator.clipboard.writeText(url);
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error("Failed to copy link:", err);
+      }
     }
   };
 
@@ -393,10 +400,16 @@ export default function ProductClientUI({
             <div className="flex justify-end gap-2 mb-4">
               <button
                 onClick={handleShare}
-                className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 text-gray-600 transition"
-                aria-label="Share product"
+                className={`w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition ${
+                  copied ? "text-emerald-500" : "text-gray-600"
+                }`}
+                aria-label={copied ? t.copied : "Share product"}
               >
-                <Share2 className="w-4 h-4" />
+                {copied ? (
+                  <CheckCircle className="w-4 h-4" />
+                ) : (
+                  <Share2 className="w-4 h-4" />
+                )}
               </button>
               <button
                 onClick={handleToggleFavorite}

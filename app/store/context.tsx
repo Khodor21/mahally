@@ -69,7 +69,6 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
   ]);
   const [isConfigLoading, setIsConfigLoading] = useState(true);
 
-  // ── Fetch Store Configuration ────────────────────────────
   useEffect(() => {
     async function fetchStoreConfig() {
       try {

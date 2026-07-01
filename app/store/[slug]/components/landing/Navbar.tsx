@@ -12,6 +12,14 @@ interface Category {
   logo_url: string | null;
 }
 
+interface SearchResult {
+  id: string;
+  title: string;
+  price: number;
+  discount_price: number | null;
+  images: string[] | null;
+}
+
 type NavbarProps = {
   lang?: "en" | "ar";
   storeId?: string;
@@ -23,6 +31,15 @@ type NavbarProps = {
   popularSearches?: string[];
   recommendedProducts?: { id: string; title: string }[];
 };
+
+function formatPrice(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
 
 export default function Navbar({
   lang = "ar",
@@ -37,6 +54,8 @@ export default function Navbar({
 }: NavbarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const { cartCount, favCount } = useShop();
@@ -80,6 +99,44 @@ export default function Navbar({
 
     fetchNavbarCategories();
   }, [storeId, lang]);
+
+  // Debounced product search
+  useEffect(() => {
+    if (!searchOpen) return;
+
+    if (searchQuery.trim() === "") {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    if (!storeId) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    setSearchLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/search?q=${encodeURIComponent(searchQuery.trim())}&store_id=${storeId}`,
+        );
+        if (res.ok) {
+          const json = await res.json();
+          setSearchResults(json.data || []);
+        } else {
+          setSearchResults([]);
+        }
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, searchOpen, storeId]);
 
   // Prevent scroll when modals open
   useEffect(() => {
@@ -312,6 +369,54 @@ export default function Navbar({
                     <span>{t.search}</span>
                   </div>
                 )
+              ) : searchLoading ? (
+                <div className="flex items-center justify-center h-[120px]">
+                  <div className="w-5 h-5 border-2 border-gray-200 border-t-brand-primary rounded-full animate-spin" />
+                </div>
+              ) : searchResults.length > 0 ? (
+                <div className="space-y-0.5 max-h-[400px] overflow-y-auto">
+                  {searchResults.map((product) => {
+                    const hasDiscount =
+                      product.discount_price != null &&
+                      product.discount_price > 0 &&
+                      product.discount_price < product.price;
+                    const displayPrice = hasDiscount
+                      ? formatPrice(product.discount_price ?? product.price)
+                      : formatPrice(product.price);
+
+                    return (
+                      <Link
+                        key={product.id}
+                        href={`/product/${encodeURIComponent(product.title)}?lang=${lang}`}
+                        onClick={() => setSearchOpen(false)}
+                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 transition-colors"
+                      >
+                        {product.images && product.images.length > 0 && (
+                          <img
+                            src={product.images[0]}
+                            alt={product.title}
+                            className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm md:text-base font-medium text-gray-900 truncate">
+                            {product.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-sm md:text-base font-medium text-[rgb(var(--color-brand-primary))]">
+                              {displayPrice}
+                            </p>
+                            {hasDiscount && (
+                              <p className="text-xs md:text-sm font-medium text-gray-400 line-through">
+                                {formatPrice(product.price)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
               ) : (
                 <div className="flex items-center justify-center h-[120px] text-sm text-gray-500">
                   {t.noResults}

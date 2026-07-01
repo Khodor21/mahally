@@ -139,7 +139,7 @@ export default function Footer({
                 <img
                   src={logoUrl}
                   alt={storeName}
-                  className="h-10 sm:h-12 w-auto max-w-[140px] md:max-w-[180px] object-contain transition-opacity group-hover:opacity-80 drop-shadow-sm"
+                  className="h-10 sm:h-12 w-auto max-w-[140px] md:max-w-[180px] object-contain transition-opacity group-hover:opacity-80 drop-shadow-sm bg-white px-2 py-1 rounded-sm"
                 />
               ) : (
                 <div className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-sm bg-white/10 border border-white/20 text-white transition-colors group-hover:bg-white/20">

@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
-/**
- * PUBLIC endpoint for storefront clients to fetch store config by subdomain
- * GET /api/storefront/config
- *
- * No authentication required - this is read-only public data
- */
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // Extract subdomain from the request host

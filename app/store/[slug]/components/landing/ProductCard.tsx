@@ -378,7 +378,14 @@ export default function ProductCard({
                 <button
                   onClick={() => {
                     setAdded(false);
-                    router.push(`/checkout?lang=${lang}`);
+                    sessionStorage.setItem(
+                      "TEMP_BUY_NOW_ITEM",
+                      JSON.stringify({
+                        product: product,
+                        qty: 1, // Or whatever your local state quantity is
+                      }),
+                    );
+                    router.push(`/cart?lang=${lang}`);
                   }}
                   className="flex-1 py-2.5 bg-[rgb(var(--color-brand-primary))] rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                 >

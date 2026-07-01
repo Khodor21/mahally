@@ -138,7 +138,7 @@ function AccordionSection({
         onClick={onToggle}
         className="w-full px-5 py-4 flex items-center justify-between hover:bg-[rgb(244_242_245)] transition-colors group"
       >
-        <div className="flex items-center gap-3 text-left flex-1">
+        <div className="flex items-center gap-3 flex-1">
           {SectionIcon && (
             <div className="w-9 h-9 rounded-md bg-[rgb(60_28_84)]/5 flex items-center justify-center flex-shrink-0 group-hover:bg-[rgb(60_28_84)]/10 transition-colors">
               <SectionIcon className="w-5 h-5 text-[rgb(60_28_84)]" />

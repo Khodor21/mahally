@@ -96,12 +96,6 @@ export default async function StoreLayout({
     })
     .filter((item): item is { id: string; title: string } => item !== null);
 
-  console.log("RECO_DEBUG", {
-    storeId: store.id,
-    rawCount: recommendationsRaw.length,
-    titles: recommendedTitles,
-  });
-
   return (
     <ShopProvider>
       <VisitorTracker storeId={store.id} />

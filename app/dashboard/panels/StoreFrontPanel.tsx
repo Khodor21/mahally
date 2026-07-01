@@ -85,7 +85,7 @@ export default function StorefrontPanel() {
         banner_url: result.urls[0],
       }));
     } catch (error: any) {
-      alert(error.message || "Failed to upload image");
+      showToast(error.message || "Failed to upload image", "error");
     } finally {
       setUploading(false);
       if (e.target) e.target.value = "";
@@ -431,6 +431,9 @@ export default function StorefrontPanel() {
                 <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
                   لافتة إعلانية (Banner)
                 </label>
+                <p className="text-[11px] text-amber-600">
+                  الحد الأقصى لحجم الصورة: 400 كيلوبايت / Max image size: 400KB
+                </p>
 
                 {formData.banner_url ? (
                   <div className="relative w-full h-40 rounded-xl overflow-hidden border">
@@ -543,8 +546,8 @@ export default function StorefrontPanel() {
 
       {/* Delete Modal */}
       {deleteOpen && selectedSection && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center animate-in slide-in-from-bottom md:zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <Trash2 className="w-8 h-8 text-red-500" />
             </div>

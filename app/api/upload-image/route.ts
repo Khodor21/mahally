@@ -5,8 +5,7 @@ import { requireStoreSession } from "@/lib/store";
 import crypto from "crypto";
 
 // ─── Security Constants ───────────────────────────────────────────────────────
-// Fixed to actually be 5MB (5 * 1024 * 1024 bytes) to match the error message and practical use cases
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 400 * 1024;
 const MAX_FILES_PER_REQUEST = 7;
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
@@ -136,7 +135,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            message: `File too large: ${file.name}. Maximum size is 5MB.`,
+            message: `File too large: ${file.name}. Maximum size is 400KB.`,
           },
           { status: 400 },
         );

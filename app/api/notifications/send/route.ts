@@ -1,4 +1,4 @@
-// app/api/notifications/send/route.ts
+// app/api/notifications/send/route.ts - WITH DETAILED ERROR LOGGING
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
@@ -56,7 +56,6 @@ export async function POST(req: NextRequest) {
     if (!subscriptions || subscriptions.length === 0) {
       console.log("⚠️ No subscriptions found");
 
-      // Save notification even if no subscribers
       await supabaseAdmin.from("notifications").insert({
         store_id: storeId,
         title: title.trim(),
@@ -77,23 +76,60 @@ export async function POST(req: NextRequest) {
     const tokens: string[] = subscriptions.map((sub: any) => sub.fcm_token);
     console.log(`🎫 Sending to ${tokens.length} tokens`);
 
+    // Log first token for debugging
+    console.log(
+      `🔍 First token (first 50 chars): ${tokens[0].substring(0, 50)}`,
+    );
+
     // Get Firebase messaging instance
     const messaging = admin.messaging();
     console.log("🔥 Calling Firebase messaging.sendEachForMulticast...");
 
     // Send notifications using sendEachForMulticast
-    const response = await messaging.sendEachForMulticast({
-      notification: {
-        title: title.trim(),
-        body: body.trim(),
-      },
-      tokens,
-    });
+    let response;
+    try {
+      response = await messaging.sendEachForMulticast({
+        notification: {
+          title: title.trim(),
+          body: body.trim(),
+        },
+        tokens,
+      });
 
-    console.log(`✅ Firebase response:`, {
-      successCount: response.successCount,
-      failureCount: response.failureCount,
-    });
+      console.log(`✅ Firebase response:`, {
+        successCount: response.successCount,
+        failureCount: response.failureCount,
+      });
+
+      // DETAILED ERROR LOGGING - Log why tokens failed
+      if (response.failureCount > 0) {
+        console.log("\n🔍 FAILURE ANALYSIS:");
+        response.responses.forEach((resp: any, idx: number) => {
+          if (!resp.success) {
+            console.log(`   Token ${idx}:`);
+            console.log(`      Error Code: ${resp.error?.code}`);
+            console.log(`      Error Message: ${resp.error?.message}`);
+            console.log(
+              `      Token (first 50): ${tokens[idx].substring(0, 50)}`,
+            );
+          }
+        });
+        console.log("");
+      }
+    } catch (firebaseError: any) {
+      console.error("❌ Firebase sendEachForMulticast error:");
+      console.error("   Code:", firebaseError.code);
+      console.error("   Message:", firebaseError.message);
+      console.error("   Full error:", firebaseError);
+
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Firebase error: ${firebaseError.message}`,
+        },
+        { status: 500 },
+      );
+    }
 
     // Handle failures - delete invalid tokens
     if (response.failureCount > 0) {
