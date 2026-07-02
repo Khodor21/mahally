@@ -1,3 +1,5 @@
+"use client";
+
 import { Edit2, Trash2, Package, Layers } from "lucide-react";
 import type { Translations } from "../i18n";
 
@@ -10,7 +12,8 @@ interface Product {
   stock: number;
   images: string[];
   created_at: string;
-  variants?: any[]; // Added optional variants array
+  variants?: any[];
+  sales_count?: number; // Added field to support sales data
 }
 
 interface Props {
@@ -120,7 +123,9 @@ export default function ProductCard({
 
         <div className="text-center p-2 bg-[rgb(244_242_245)] rounded-xl">
           <p className="text-[10px] text-[rgb(60_28_84)]/40">{t.sales}</p>
-          <p className="text-sm font-bold text-[rgb(60_28_84)]">—</p>
+          <p className="text-sm font-bold text-[rgb(60_28_84)]">
+            {product.sales_count ?? 0}
+          </p>
         </div>
       </div>
 

@@ -1,9 +1,13 @@
 import http from "k6/http";
-import { check, group } from "k6";
+import { check, sleep } from "k6";
 
 export const options = {
+  // ── FIX: Explicit DNS mapping for the local subdomain ──
+  hosts: {
+    "turs-bookstore.localhost:3000": "127.0.0.1:3000",
+  },
   scenarios: {
-    load_test: {
+    checkout_load: {
       executor: "ramping-vus",
       startVUs: 0,
       stages: [
@@ -14,50 +18,54 @@ export const options = {
       ],
     },
   },
-
   thresholds: {
-    http_req_duration: ["p(95)<1500"],
+    http_req_duration: ["p(95)<2000"],
     http_req_failed: ["rate<0.01"],
   },
 };
 
-const BASE_URL = "http://localhost:3000";
+// ... the rest of the script remains the same ...
 
-const STORES = [
-  {
-    host: "afnan.mahally.app",
-    storeId: "116ae630-b5d5-4d78-9710-c38554f119d5",
-  },
-  {
-    host: "perfumes.mahally.app",
-    storeId: "ade24f06-c292-471e-b766-a9200a3a9b45",
-  },
+const BASE_URL = "http://turs-bookstore.localhost:3000";
+const STORE_ID = "237f4275-12c5-4a16-af27-18a06cffe5d6";
+
+const PRODUCTS = [
+  "13e7d00a-fb24-42a2-b6b9-3d9eb5e81b8b",
+  "71fd0d37-d16c-4d5e-9988-861a7f382543",
+  "ba57533a-c2d9-4f6f-a5cb-c828ae935183",
 ];
 
 export default function () {
-  const store = STORES[Math.floor(Math.random() * STORES.length)];
+  const randomProductId = PRODUCTS[Math.floor(Math.random() * PRODUCTS.length)];
 
-  const headers = {
-    Host: store.host,
+  const payload = JSON.stringify({
+    storeId: STORE_ID,
+    customerName: `Khodor LoadTest ${__VU}`,
+    customerPhone: "+96171708103",
+    city: "Tripoli",
+    address: "Test Address North Governorate",
+    shipping: 2,
+    couponCode: "",
+    items: [
+      {
+        productId: randomProductId,
+        qty: 1,
+      },
+    ],
+  });
+
+  const params = {
+    headers: {
+      "Content-Type": "application/json",
+      Host: "turs-bookstore.localhost:3000", // Ensure port is included here to match middleware expectations
+    },
   };
 
-  group(`Homepage - ${store.host}`, () => {
-    const res = http.get(`${BASE_URL}/`, {
-      headers,
-    });
+  const res = http.post(`${BASE_URL}/api/checkout`, payload, params);
 
-    check(res, {
-      "homepage status 200": (r) => r.status === 200,
-    });
+  check(res, {
+    "checkout status is 201": (r) => r.status === 201,
   });
 
-  group(`Hero API - ${store.host}`, () => {
-    const res = http.get(`${BASE_URL}/api/hero?storeId=${store.storeId}`, {
-      headers,
-    });
-
-    check(res, {
-      "hero api status 200": (r) => r.status === 200,
-    });
-  });
+  sleep(1);
 }

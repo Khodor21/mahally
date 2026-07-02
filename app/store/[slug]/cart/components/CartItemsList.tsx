@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { Trash2, Minus, Plus } from "lucide-react";
 
@@ -9,6 +10,7 @@ type CartItem = {
     title: string;
     price?: number;
     image?: string;
+    stock?: number;
   };
   qty: number;
 };
@@ -16,6 +18,7 @@ type CartItem = {
 type Props = {
   items: CartItem[];
   currencySymbol: string;
+  isArabic?: boolean;
   onUpdateQty: (id: string | number, qty: number) => void;
   onRemoveItem: (id: string | number) => void;
 };
@@ -23,9 +26,25 @@ type Props = {
 export default function CartItemsList({
   items,
   currencySymbol,
+  isArabic = false,
   onUpdateQty,
   onRemoveItem,
 }: Props) {
+  const [warningId, setWarningId] = useState<string | null>(null);
+
+  const handleIncrement = (item: CartItem) => {
+    const maxStock = item.product.stock ?? Infinity;
+
+    if (item.qty >= maxStock) {
+      setWarningId(item.product.id.toString());
+      // Auto-clear the warning after 3 seconds
+      setTimeout(() => setWarningId(null), 3000);
+    } else {
+      setWarningId(null);
+      onUpdateQty(item.product.id, item.qty + 1);
+    }
+  };
+
   return (
     <div className="bg-white">
       <div className="space-y-4">
@@ -71,25 +90,36 @@ export default function CartItemsList({
                 </button>
               </div>
 
-              {/* Quantity Controls */}
-              <div className="flex items-center gap-3 mt-4">
-                <button
-                  onClick={() =>
-                    onUpdateQty(item.product.id, Math.max(1, item.qty - 1))
-                  }
-                  className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600"
-                >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <span className="w-6 text-center font-bold text-gray-900 text-sm">
-                  {item.qty}
-                </span>
-                <button
-                  onClick={() => onUpdateQty(item.product.id, item.qty + 1)}
-                  className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
+              {/* Quantity Controls & Warning */}
+              <div className="mt-4">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() =>
+                      onUpdateQty(item.product.id, Math.max(1, item.qty - 1))
+                    }
+                    className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="w-6 text-center font-bold text-gray-900 text-sm">
+                    {item.qty}
+                  </span>
+                  <button
+                    onClick={() => handleIncrement(item)}
+                    className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Out of Stock Warning */}
+                {warningId === item.product.id.toString() && (
+                  <p className="text-xs text-red-500 font-bold mt-2 animate-fade-in">
+                    {isArabic
+                      ? "تم الوصول للحد الأقصى للمخزون المتوفر"
+                      : "Max available stock reached"}
+                  </p>
+                )}
               </div>
             </div>
           </div>

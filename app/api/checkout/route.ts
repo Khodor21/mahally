@@ -15,7 +15,7 @@ const CheckoutSchema = z.object({
   notes: z.string().max(1000).optional().or(z.literal("")),
 
   shipping: z.number().min(0),
-  couponCode: z.string().optional().or(z.literal("")), // NEW: Accept coupon code
+  couponCode: z.string().optional().or(z.literal("")),
 
   items: z
     .array(
@@ -29,7 +29,6 @@ const CheckoutSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // ── Parse body ─────────────────────────────────────
     let rawBody;
     try {
       rawBody = await request.json();
@@ -40,7 +39,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Validate ───────────────────────────────────────
     const parsed = CheckoutSchema.safeParse(rawBody);
 
     if (!parsed.success) {
@@ -67,11 +65,10 @@ export async function POST(request: NextRequest) {
       address,
       notes,
       shipping,
-      couponCode, // Extract coupon code
+      couponCode,
       items,
     } = parsed.data;
 
-    // ── Fetch products securely ────────────────────────
     const productIds = items.map((i) => i.productId);
 
     const { data: products, error: productsError } = await supabaseAdmin
@@ -94,18 +91,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Build order items & calculate subtotal ─────────
     let subtotal = 0;
-
     const orderItems = items.map((item) => {
       const product = products.find((p) => p.id === item.productId);
       if (!product) throw new Error("Product not found");
-      if (product.stock < item.qty)
-        throw new Error(`${product.title} out of stock`);
-
       const itemTotal = Number(product.price) * item.qty;
       subtotal += itemTotal;
-
       return {
         product_id: product.id,
         title: product.title,
@@ -116,7 +107,6 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // ── Apply Coupon Logic ─────────────────────────────
     let discountAmount = 0;
     let appliedCouponCode = null;
     let couponId = null;
@@ -130,125 +120,72 @@ export async function POST(request: NextRequest) {
         .eq("code", couponCode.toUpperCase())
         .single();
 
-      if (couponError || !coupon) {
-        return NextResponse.json(
-          { success: false, message: "Invalid coupon code" },
-          { status: 400 },
-        );
+      if (!couponError && coupon) {
+        if (
+          coupon.is_active &&
+          new Date() <= new Date(coupon.expiry_date) &&
+          coupon.used_count < coupon.max_uses &&
+          subtotal >= coupon.min_purchase
+        ) {
+          discountAmount =
+            coupon.type === "percentage"
+              ? (subtotal * coupon.discount) / 100
+              : Math.min(coupon.discount, subtotal);
+          appliedCouponCode = coupon.code;
+          couponId = coupon.id;
+          currentCouponUsage = coupon.used_count;
+        }
       }
-
-      // Validations
-      if (!coupon.is_active) {
-        return NextResponse.json(
-          { success: false, message: "Coupon is no longer active" },
-          { status: 400 },
-        );
-      }
-      if (new Date() > new Date(coupon.expiry_date)) {
-        return NextResponse.json(
-          { success: false, message: "Coupon has expired" },
-          { status: 400 },
-        );
-      }
-      if (coupon.used_count >= coupon.max_uses) {
-        return NextResponse.json(
-          { success: false, message: "Coupon usage limit reached" },
-          { status: 400 },
-        );
-      }
-      if (subtotal < coupon.min_purchase) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: `Minimum purchase of $${coupon.min_purchase} required`,
-          },
-          { status: 400 },
-        );
-      }
-
-      // Calculate discount
-      if (coupon.type === "percentage") {
-        discountAmount = (subtotal * coupon.discount) / 100;
-      } else {
-        discountAmount = Math.min(coupon.discount, subtotal); // Prevent negative totals
-      }
-
-      appliedCouponCode = coupon.code;
-      couponId = coupon.id;
-      currentCouponUsage = coupon.used_count;
     }
 
-    // Apply discount to subtotal, then add shipping
-    const finalSubtotal = Math.max(0, subtotal - discountAmount);
-    const total = finalSubtotal + shipping;
+    const total = Math.max(0, subtotal - discountAmount) + shipping;
 
-    // ── Create order ───────────────────────────────────
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
       .insert({
         store_id: storeId,
-
         customer_name: customerName,
         customer_email: customerEmail || null,
         customer_phone: customerPhone,
-
         city: city || null,
         address: address || null,
         notes: notes || null,
-
         subtotal,
-        discount_amount: discountAmount, // NEW
-        coupon_code: appliedCouponCode, // NEW
+        discount_amount: discountAmount,
+        coupon_code: appliedCouponCode,
         shipping,
         total,
-
         status: "pending",
       })
       .select()
       .single();
 
-    if (orderError || !order) {
-      console.error("Create order error:", orderError);
-      return NextResponse.json(
-        { success: false, message: "Failed to create order" },
-        { status: 500 },
-      );
-    }
-
-    // ── Insert order items ─────────────────────────────
-    const itemsPayload = orderItems.map((item) => ({
-      order_id: order.id,
-      ...item,
-    }));
+    if (orderError || !order) throw new Error("Failed to create order");
 
     const { error: itemsError } = await supabaseAdmin
       .from("order_items")
-      .insert(itemsPayload);
-
+      .insert(orderItems.map((item) => ({ order_id: order.id, ...item })));
     if (itemsError) {
-      console.error("Insert order items error:", itemsError);
       await supabaseAdmin.from("orders").delete().eq("id", order.id);
-      return NextResponse.json(
-        { success: false, message: "Failed to create order items" },
-        { status: 500 },
-      );
+      throw new Error("Failed to create order items");
     }
 
-    // ── Reduce stock and Record Coupon Usage ───────────
-
-    // 1. Reduce Stock
-    await Promise.all(
-      items.map(async (item) => {
-        const product = products.find((p) => p.id === item.productId);
-        if (!product) return;
-        await supabaseAdmin
-          .from("products")
-          .update({ stock: product.stock - item.qty })
-          .eq("id", product.id);
-      }),
+    const { error: stockError } = await supabaseAdmin.rpc(
+      "reduce_stock_securely",
+      {
+        items: items.map((item) => ({
+          product_id: item.productId,
+          qty: item.qty,
+        })),
+      },
     );
 
-    // 2. Increment Coupon Usage
+    if (stockError) {
+      await supabaseAdmin.from("order_items").delete().eq("order_id", order.id);
+      await supabaseAdmin.from("orders").delete().eq("id", order.id);
+      throw new Error("Failed to secure product stock.");
+    }
+
     if (couponId) {
       await supabaseAdmin
         .from("coupons")
@@ -259,12 +196,8 @@ export async function POST(request: NextRequest) {
         .eq("id", couponId);
     }
 
-    // ── Success ────────────────────────────────────────
     return NextResponse.json(
-      {
-        success: true,
-        orderId: order.id,
-      },
+      { success: true, orderId: order.id },
       { status: 201 },
     );
   } catch (err: any) {
@@ -279,54 +212,67 @@ export async function POST(request: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-
     const storeId = searchParams.get("storeId");
-
-    if (!storeId) {
+    if (!storeId)
       return NextResponse.json(
-        {
-          success: false,
-          message: "Store ID required",
-        },
+        { success: false, message: "Store ID required" },
         { status: 400 },
       );
-    }
 
-    const { data, error } = await supabaseAdmin
+    // FIXED: Reduced limit and added batched fetching to prevent timeout
+    const { data: orders, error: ordersError } = await supabaseAdmin
       .from("orders")
-      .select(
-        `
-        *,
-        order_items (*)
-      `,
-      )
+      .select("*")
       .eq("store_id", storeId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(50); // Reduced from 100 to 50
 
-    if (error) {
-      console.error("GET orders error:", error);
+    if (ordersError) throw ordersError;
 
-      return NextResponse.json(
-        {
-          success: false,
-          message: error.message,
-        },
-        { status: 500 },
-      );
+    if (!orders || orders.length === 0) {
+      return NextResponse.json({ success: true, data: [] });
     }
 
-    return NextResponse.json({
-      success: true,
-      data: data || [],
-    });
-  } catch (err: any) {
-    console.error("GET checkout catch error:", err);
+    // Fetch order items in batches to avoid timeout
+    const batchSize = 10;
+    const orderIds = orders.map((o: any) => o.id);
+    let allOrderItems: any[] = [];
 
+    for (let i = 0; i < orderIds.length; i += batchSize) {
+      const batch = orderIds.slice(i, i + batchSize);
+
+      const { data: batchItems, error: itemsError } = await supabaseAdmin
+        .from("order_items")
+        .select("*")
+        .in("order_id", batch);
+
+      if (itemsError) {
+        console.warn(
+          "Failed to fetch batch items, continuing without items:",
+          itemsError,
+        );
+        // Continue without items instead of failing
+        continue;
+      }
+
+      if (batchItems) {
+        allOrderItems = [...allOrderItems, ...batchItems];
+      }
+    }
+
+    // Map order_items to their respective orders
+    const ordersWithItems = orders.map((order: any) => ({
+      ...order,
+      order_items: allOrderItems.filter(
+        (item: any) => item.order_id === order.id,
+      ),
+    }));
+
+    return NextResponse.json({ success: true, data: ordersWithItems });
+  } catch (err: any) {
+    console.error("GET orders error:", err);
     return NextResponse.json(
-      {
-        success: false,
-        message: err.message || "Internal server error",
-      },
+      { success: false, message: err.message || "Internal server error" },
       { status: 500 },
     );
   }

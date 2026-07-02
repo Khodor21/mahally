@@ -25,7 +25,7 @@ interface StoreSection {
   banner_url?: string;
   category_id: string;
   status: "active" | "draft";
-  order: number;
+  section_order: number;
 }
 
 interface ToastState {
@@ -56,7 +56,9 @@ export default function StorefrontPanel() {
       const res = await fetch(`/api/sections?store_id=${storeId}`);
       if (!res.ok) throw new Error("Failed to fetch sections");
       const data = await res.json();
-      return data.sort((a: StoreSection, b: StoreSection) => a.order - b.order);
+      return data.sort(
+        (a: StoreSection, b: StoreSection) => a.section_order - b.section_order,
+      );
     },
     { skip: !storeId },
   );
@@ -95,7 +97,9 @@ export default function StorefrontPanel() {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Form Data State
-  const [formData, setFormData] = useState<Omit<StoreSection, "id" | "order">>({
+  const [formData, setFormData] = useState<
+    Omit<StoreSection, "id" | "section_order">
+  >({
     title: "",
     banner_url: "",
     category_id: "",
@@ -160,7 +164,11 @@ export default function StorefrontPanel() {
 
       const payload =
         formMode === "create"
-          ? { ...formData, store_id: storeId, order: sections?.length ?? 0 }
+          ? {
+              ...formData,
+              store_id: storeId,
+              section_order: sections?.length ?? 0,
+            }
           : { ...formData, store_id: storeId };
 
       const res = await fetch(url, {

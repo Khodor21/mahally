@@ -64,6 +64,7 @@ export default function ProductCard({
   const productUrl = `/product/${encodeURIComponent(product.title)}?lang=${lang}`;
   const productId = String(product.id);
   const favorited = isFavorite(productId);
+
   const [added, setAdded] = useAddedFlash(5000);
   const [progress, setProgress] = useState(100);
 
@@ -71,6 +72,10 @@ export default function ProductCard({
   const [favToast, setFavToast] = useAddedFlash(3000);
   const [favProgress, setFavProgress] = useState(100);
   const [favAction, setFavAction] = useState<"added" | "removed">("added");
+
+  // 👉 Stock Warning state
+  const [stockWarning, setStockWarning] = useAddedFlash(4000);
+  const [stockWarningProgress, setStockWarningProgress] = useState(100);
 
   // 👉 Check if out of stock
   const isOutOfStock = (product.stock ?? 1) === 0;
@@ -89,6 +94,7 @@ export default function ProductCard({
       outOfStock: "Out of Stock",
       addedToFav: "Added to favorites",
       removedFromFav: "Removed from favorites",
+      maxStockReached: "Max available stock reached for this product",
     },
     ar: {
       addToCart: "إضافـة إلـى السلّـة",
@@ -98,6 +104,7 @@ export default function ProductCard({
       outOfStock: "غير متوفر",
       addedToFav: "تمت الإضافة إلى المفضلة",
       removedFromFav: "تمت الإزالة من المفضلة",
+      maxStockReached: "تم الوصول للحد الأقصى للمخزون  المتوفر لهذا المنتج",
     },
   };
 
@@ -109,10 +116,23 @@ export default function ProductCard({
   };
 
   const handleAddToCart = () => {
-    if (!isOutOfStock) {
-      addToCart(normalizedProduct);
-      setAdded(true);
+    if (isOutOfStock) return;
+
+    // ✅ Find existing item in cart to validate against max stock
+    const existingCartItem = cartItems.find(
+      (item: any) => String(item.product.id) === productId,
+    );
+    const currentCartQty = existingCartItem ? existingCartItem.qty : 0;
+    const maxStock = product.stock ?? Infinity;
+
+    // Block addition if stock ceiling is reached
+    if (currentCartQty >= maxStock) {
+      setStockWarning(true);
+      return;
     }
+
+    addToCart(normalizedProduct);
+    setAdded(true);
   };
 
   const handleToggleFavorite = () => {
@@ -122,6 +142,7 @@ export default function ProductCard({
     setFavToast(true);
   };
 
+  // Toast Progress Effects
   useEffect(() => {
     if (added) {
       setProgress(100);
@@ -141,6 +162,16 @@ export default function ProductCard({
       setFavProgress(100);
     }
   }, [favToast]);
+
+  useEffect(() => {
+    if (stockWarning) {
+      setStockWarningProgress(100);
+      const timer = setTimeout(() => setStockWarningProgress(0), 50);
+      return () => clearTimeout(timer);
+    } else {
+      setStockWarningProgress(100);
+    }
+  }, [stockWarning]);
 
   const originalPrice = formatPrice(product.price ?? 0);
   const displayPrice = hasDiscount
@@ -491,6 +522,57 @@ export default function ProductCard({
                     }`}
                     size={18}
                   />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* STOCK LIMIT WARNING TOAST */}
+      {stockWarning && (
+        <div
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-lg shadow-2xl overflow-hidden border border-red-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
+          dir={lang === "ar" ? "rtl" : "ltr"}
+        >
+          {/* PROGRESS BAR */}
+          <div
+            className="h-1 ease-linear bg-red-500"
+            style={{
+              width: `${stockWarningProgress}%`,
+              transitionDuration: stockWarning ? "3950ms" : "0ms",
+              transitionProperty: "width",
+            }}
+          />
+          <div className="flex items-center justify-between px-4 py-3">
+            {lang === "ar" ? (
+              <>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-sm font-bold text-red-600">
+                    {t.maxStockReached}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setStockWarning(false)}
+                  className="text-gray-400 hover:text-gray-700 transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setStockWarning(false)}
+                  className="text-gray-400 hover:text-gray-700 transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-sm font-bold text-red-600">
+                    {t.maxStockReached}
+                  </span>
                 </div>
               </>
             )}

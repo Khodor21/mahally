@@ -48,6 +48,29 @@ export async function getCurrentStore() {
 
   return data ?? null;
 }
+
+export async function getCurrentStoreMeta() {
+  const storeId = await requireStoreSession()
+    .then((u) => u.id)
+    .catch(() => null);
+
+  if (!storeId) return null;
+
+  const { data, error } = await supabaseAdmin
+    .from("stores")
+    .select("store_name, store_type, location, language, slug, is_active")
+    .eq("id", storeId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Get current store meta error:", error);
+    return null;
+  }
+
+  return data ?? null;
+}
+
 export async function getStoreBySlug(slug: string) {
   const { data, error } = await supabaseAdmin
     .from("stores")
@@ -77,5 +100,3 @@ delivery_cost,
 
   return data ?? null;
 }
-
-

@@ -19,7 +19,6 @@ import {
   Sparkles,
   Palette,
 } from "lucide-react";
-import FeaturesPanel from "../components/Features";
 import { useDashboard } from "../DashboardContext";
 import {
   useOrders,
@@ -520,7 +519,6 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
             </table>
           </div>
         )}
-        <FeaturesPanel />
       </div>
     </div>
   );

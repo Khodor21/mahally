@@ -9,6 +9,8 @@ export interface RecommendedProduct {
   title: string;
   images: string[];
   price: number;
+  stock?: number;
+  discount_price?: number | null;
 }
 
 export interface RecommendationRecord {
@@ -33,7 +35,7 @@ export const getCachedRecommendations = async (storeId: string) => {
           `
           id,
           product_id,
-          products!inner(id, title, images, price) 
+          products!inner(id, title, images, price, stock, discount_price) 
         `,
         )
         .eq("store_id", storeId)
@@ -49,6 +51,7 @@ export const getCachedRecommendations = async (storeId: string) => {
   // Execute the cached function
   return fetchCached();
 };
+
 export default async function ProductRecommendations({
   storeId,
   storeSlug,
@@ -88,12 +91,14 @@ export default async function ProductRecommendations({
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         {recommendations.map((rec) => {
-          // 👉 Data Mapping: Transform 'images[]' into 'image' for ProductCard
+          // 👉 Data Mapping: Transform 'images[]' into 'image' and pass new fields for ProductCard
           const mappedProduct = {
             id: rec.id,
             title: rec.title,
             image: rec.images?.[0] || "/placeholder.jpg",
             price: rec.price,
+            stock: rec.stock,
+            discount_price: rec.discount_price,
           };
 
           return (

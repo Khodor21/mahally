@@ -32,10 +32,8 @@ export function useTrackVisitor(storeId: string) {
 
         const data = await response.json();
         if (data.tracked) {
-          console.log("✓ Visitor tracked successfully");
           trackedRef.current = true;
         } else {
-          console.log("ℹ Visitor already tracked today");
           trackedRef.current = true;
         }
       } catch (error) {

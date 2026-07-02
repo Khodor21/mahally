@@ -571,11 +571,7 @@ export default function OnboardingPage() {
     if (!validate(1)) return;
     setLoading(true);
     try {
-      await fetch("/api/send-welcome-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email }),
-      });
+      // removed send-welcome-email request
     } catch {
       // non-blocking
     } finally {

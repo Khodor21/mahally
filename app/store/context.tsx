@@ -34,6 +34,13 @@ interface ShopContextType {
   updateCartQty: (productId: string, qty: number) => void;
   clearCart: () => void;
 
+  // Buy Now (single-item express checkout, isolated from persistent cart)
+  buyNowItem: CartItem | null;
+  setBuyNowItem: (product: Product, qty?: number) => void;
+  clearBuyNowItem: () => void;
+  checkoutItems: CartItem[]; // buyNowItem if set, otherwise cartItems
+  isBuyNowMode: boolean;
+
   // Favorites
   favorites: Product[];
   favCount: number;
@@ -54,11 +61,13 @@ const ShopContext = createContext<ShopContextType | null>(null);
 
 const CART_STORAGE_KEY = "shop_cart";
 const FAV_STORAGE_KEY = "shop_favorites";
+const BUY_NOW_STORAGE_KEY = "shop_buy_now";
 
 export function ShopProvider({ children }: { children: React.ReactNode }) {
   // ── State ────────────────────────────────────────────────
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [favorites, setFavorites] = useState<Product[]>([]);
+  const [buyNowItem, setBuyNowItemState] = useState<CartItem | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Store Config State
@@ -102,6 +111,9 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
 
       if (savedCart) setCartItems(JSON.parse(savedCart));
       if (savedFavs) setFavorites(JSON.parse(savedFavs));
+
+      const savedBuyNow = sessionStorage.getItem(BUY_NOW_STORAGE_KEY);
+      if (savedBuyNow) setBuyNowItemState(JSON.parse(savedBuyNow));
     } catch (error) {
       console.error("Failed to load from localStorage:", error);
     } finally {
@@ -129,6 +141,19 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, [favorites, isHydrated]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    try {
+      if (buyNowItem) {
+        sessionStorage.setItem(BUY_NOW_STORAGE_KEY, JSON.stringify(buyNowItem));
+      } else {
+        sessionStorage.removeItem(BUY_NOW_STORAGE_KEY);
+      }
+    } catch (error) {
+      console.error("Failed to save buy-now item:", error);
+    }
+  }, [buyNowItem, isHydrated]);
 
   // ── Cart Actions ──────────────────────────────────────────
   const addToCart = useCallback((product: Product, qty: number = 1) => {
@@ -164,12 +189,24 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     setCartItems([]);
   }, []);
 
+  // ── Buy Now Actions ────────────────────────────────────────
+  const setBuyNowItem = useCallback((product: Product, qty: number = 1) => {
+    setBuyNowItemState({ product, qty });
+  }, []);
+
+  const clearBuyNowItem = useCallback(() => {
+    setBuyNowItemState(null);
+  }, []);
+
   // ── Derived Cart Math ─────────────────────────────────────
   const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
   const cartTotal = cartItems.reduce(
     (sum, i) => sum + (i.product.price ?? 0) * i.qty,
     0,
   );
+
+  const checkoutItems = buyNowItem ? [buyNowItem] : cartItems;
+  const isBuyNowMode = buyNowItem !== null;
 
   // Final total matching delivery fee configuration
   const orderTotal = cartTotal + deliveryCost;
@@ -210,6 +247,13 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         removeFromCart,
         updateCartQty,
         clearCart,
+
+        // Buy Now
+        buyNowItem,
+        setBuyNowItem,
+        clearBuyNowItem,
+        checkoutItems,
+        isBuyNowMode,
 
         // Favorites
         favorites,

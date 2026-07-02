@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Heart,
-  Share2,
   CheckCircle2,
   ShoppingBag,
   CreditCard,
@@ -17,6 +16,8 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { useShop } from "@/app/store/context";
+import ShareIcons from "./components/ShareIcons";
+import FavoriteToast from "./components/FavoriteToast";
 
 // --- Types & Interfaces ---
 
@@ -104,7 +105,7 @@ export default function ProductClientUI({
   children,
 }: ProductClientUIProps) {
   const router = useRouter();
-  const { addToCart, toggleFavorite, isFavorite } = useShop();
+  const { addToCart, toggleFavorite, isFavorite, cartItems } = useShop();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   const t = {
@@ -128,6 +129,9 @@ export default function ProductClientUI({
       cart: "عرض السلة",
       options: "الخيارات المتاحة",
       selectOption: "اختر الخيار",
+      maxStockReached: "تم الوصول للحد الأقصى للمخزون المتوفر",
+      addedToFav: "تمت الإضافة للمفضلة",
+      removedFromFav: "تم الإزالة من المفضلة",
     },
     en: {
       home: "Home",
@@ -149,6 +153,9 @@ export default function ProductClientUI({
       cart: "View Cart",
       options: "Available Options",
       selectOption: "Select option",
+      maxStockReached: "Max available stock reached",
+      addedToFav: "Added to favorites",
+      removedFromFav: "Removed from favorites",
     },
   }[lang];
 
@@ -156,7 +163,6 @@ export default function ProductClientUI({
   const hasMultipleImages = images.length > 1;
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [activeTab, setActiveTab] = useState("details");
-  const [copied, setCopied] = useState(false);
 
   // --- Variant Groups Logic ---
   const variantGroups: VariantGroup[] = useMemo(() => {
@@ -191,6 +197,15 @@ export default function ProductClientUI({
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useAddedFlash(5000);
   const [progress, setProgress] = useState(100);
+
+  // 👉 Stock Warning state
+  const [stockWarning, setStockWarning] = useAddedFlash(4000);
+  const [stockWarningProgress, setStockWarningProgress] = useState(100);
+
+  // 👉 Favorite Toast state
+  const [favToast, setFavToast] = useState(false);
+  const [favAction, setFavAction] = useState<"added" | "removed">("added");
+  const [favProgress, setFavProgress] = useState(100);
 
   const productId = String(product.id);
   const favorited = isFavorite(productId);
@@ -254,36 +269,44 @@ export default function ProductClientUI({
     }
   }, [selectedVariants, activeStock, quantity]);
 
+  // ✅ VALIDATION HELPER: Check cart contents against active stock
+  const isStockLimitReached = () => {
+    const existingCartQty = cartItems
+      .filter((item: any) => String(item.product.id) === productId)
+      .reduce((sum: number, item: any) => sum + item.qty, 0);
+
+    return existingCartQty + quantity > activeStock;
+  };
+
   const handleAddToCart = () => {
+    if (activeStock < 1) return;
+
+    if (isStockLimitReached()) {
+      setStockWarning(true);
+      return;
+    }
+
     addToCart(normalizedProduct);
     setAdded(true);
   };
 
-  const handleToggleFavorite = () => {
-    toggleFavorite(normalizedProduct);
+  const handleBuyNow = () => {
+    if (activeStock < 1) return;
+
+    if (isStockLimitReached()) {
+      setStockWarning(true);
+      return;
+    }
+
+    addToCart(normalizedProduct);
+    router.push("/cart");
   };
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: product.title,
-          text: `${t.shareText} ${product.title}`,
-          url: url,
-        });
-      } catch (err) {
-        // User cancelled or error — silently ignore
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        console.error("Failed to copy link:", err);
-      }
-    }
+  const handleToggleFavorite = () => {
+    const currentlyFav = isFavorite(productId);
+    toggleFavorite(normalizedProduct);
+    setFavAction(currentlyFav ? "removed" : "added");
+    setFavToast(true);
   };
 
   const handleThumbnailClick = (idx: number) => {
@@ -311,6 +334,31 @@ export default function ProductClientUI({
       setProgress(100);
     }
   }, [added]);
+
+  useEffect(() => {
+    if (stockWarning) {
+      setStockWarningProgress(100);
+      const timer = setTimeout(() => setStockWarningProgress(0), 50);
+      return () => clearTimeout(timer);
+    } else {
+      setStockWarningProgress(100);
+    }
+  }, [stockWarning]);
+
+  // Handle Favorite Toast animation and timing
+  useEffect(() => {
+    if (favToast) {
+      setFavProgress(100);
+      const timer1 = setTimeout(() => setFavProgress(0), 50);
+      const timer2 = setTimeout(() => setFavToast(false), 3000); // Hide after 3s
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
+    } else {
+      setFavProgress(100);
+    }
+  }, [favToast]);
 
   useEffect(() => {
     if (!hasMultipleImages) return;
@@ -347,7 +395,7 @@ export default function ProductClientUI({
         </nav>
 
         {/* MAIN TOP SECTION */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-8">
           {/* IMAGE GALLERY */}
           <div className="flex flex-col-reverse md:flex-row gap-4 h-auto md:h-[600px]">
             {hasMultipleImages && (
@@ -373,7 +421,8 @@ export default function ProductClientUI({
               </div>
             )}
 
-            <div className="relative flex-1 bg-[rgb(244_242_245)] rounded-2xl overflow-hidden aspect-square md:aspect-auto">
+            {/* Changed from bg-grey & mix-blend to transparent, natural dimensions */}
+            <div className="relative flex-1 rounded-2xl overflow-hidden aspect-square md:aspect-auto flex items-center justify-center">
               {images.map((img: string, idx: number) => (
                 <div
                   key={idx}
@@ -387,7 +436,7 @@ export default function ProductClientUI({
                     src={img}
                     alt={`${product.title} - image ${idx + 1}`}
                     fill
-                    className="object-cover object-center"
+                    className="object-contain object-center rounded"
                     priority={idx === 0}
                   />
                 </div>
@@ -398,19 +447,6 @@ export default function ProductClientUI({
           {/* PRODUCT DETAILS */}
           <div className="flex flex-col">
             <div className="flex justify-end gap-2 mb-4">
-              <button
-                onClick={handleShare}
-                className={`w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition ${
-                  copied ? "text-emerald-500" : "text-gray-600"
-                }`}
-                aria-label={copied ? t.copied : "Share product"}
-              >
-                {copied ? (
-                  <CheckCircle className="w-4 h-4" />
-                ) : (
-                  <Share2 className="w-4 h-4" />
-                )}
-              </button>
               <button
                 onClick={handleToggleFavorite}
                 className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition"
@@ -496,7 +532,7 @@ export default function ProductClientUI({
             )}
 
             {/* Quantity & Price Summary */}
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8 py-4">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 py-4 border-t border-gray-100">
               <div className="flex items-center justify-between sm:justify-start gap-4">
                 <span className="text-black font-medium">{t.quantity}</span>
                 <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden h-12 w-36 bg-white">
@@ -528,24 +564,31 @@ export default function ProductClientUI({
               </div>
             </div>
 
+            {/* Share Buttons (Moved after Quantity/Pricing, before Action Buttons) */}
+            <div className="my-6">
+              <ShareIcons
+                productTitle={product.title}
+                productUrl={
+                  typeof window !== "undefined" ? window.location.href : ""
+                }
+                lang={lang}
+              />
+            </div>
+
             {/* Action Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-auto">
               <button
                 onClick={handleAddToCart}
                 disabled={activeStock < 1}
-                className="flex items-center justify-center gap-2 bg-brand-primary text-white py-4 rounded-sm font-medium hover:bg-[rgb(244_242_245)] hover:text-brand-primary hover:border hover:border-brand-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 bg-brand-primary text-white py-2 rounded-sm font-medium hover:bg-[rgb(244_242_245)] hover:text-brand-primary hover:border hover:border-brand-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShoppingBag className="w-5 h-5" />
                 {t.addToCart}
               </button>
               <button
-                onClick={() => {
-                  if (activeStock < 1) return;
-                  addToCart(normalizedProduct);
-                  router.push("/checkout");
-                }}
+                onClick={handleBuyNow}
                 disabled={activeStock < 1}
-                className="flex items-center justify-center gap-2 bg-white border-2 border-brand-primary text-brand-primary py-4 rounded-sm font-medium hover:bg-[rgb(244_242_245)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 bg-white border-2 border-brand-primary text-brand-primary py-2 rounded-sm font-medium hover:bg-[rgb(244_242_245)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CreditCard className="w-5 h-5" />
                 {t.buyNow}
@@ -598,6 +641,16 @@ export default function ProductClientUI({
         {children}
       </div>
 
+      {/* FAVORITE TOAST (NEW COMPONENT) */}
+      <FavoriteToast
+        favToast={favToast}
+        setFavToast={setFavToast}
+        favAction={favAction}
+        favProgress={favProgress}
+        lang={lang}
+        t={{ addedToFav: t.addedToFav, removedFromFav: t.removedFromFav }}
+      />
+
       {/* ADD TO CART TOAST */}
       {added && (
         <div
@@ -614,69 +667,200 @@ export default function ProductClientUI({
             }}
           />
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
-            <button
-              onClick={() => setAdded(false)}
-              className="text-gray-500 hover:text-gray-800 transition-colors"
-              aria-label="Close"
-            >
-              <X size={20} />
-            </button>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-gray-900">
-                {t.addedToCart}
-              </span>
-              <CheckCircle className="text-emerald-500" size={18} />
-            </div>
+            {lang === "ar" ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="text-emerald-500" size={18} />
+                  <span className="text-sm font-bold text-gray-900">
+                    {t.addedToCart}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setAdded(false)}
+                  className="text-gray-500 hover:text-gray-800 transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={20} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setAdded(false)}
+                  className="text-gray-500 hover:text-gray-800 transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={20} />
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-gray-900">
+                    {t.addedToCart}
+                  </span>
+                  <CheckCircle className="text-emerald-500" size={18} />
+                </div>
+              </>
+            )}
           </div>
           <div className="p-4 flex items-center gap-4">
-            <div className="relative w-16 h-16 rounded-md overflow-hidden bg-[rgb(244_242_245)] border border-gray-100 flex-shrink-0">
-              <Image
-                src={images[0]}
-                alt={product.title}
-                fill
-                className="object-contain p-1 mix-blend-multiply"
-              />
-            </div>
-            <div className="flex-1 flex flex-col justify-center">
-              <h4 className="text-sm font-bold text-gray-900 line-clamp-2">
-                {product.title}
-              </h4>
-              <p className="text-sm font-bold text-brand-primary mt-1.5">
-                {formattedPrice}
-                {quantity > 1 && (
-                  <span className="text-xs text-gray-500 ml-2">
-                    ({quantity}x)
-                  </span>
-                )}
-              </p>
-              {variantDescription && (
-                <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                  {variantDescription}
-                </p>
-              )}
-            </div>
+            {lang === "ar" ? (
+              <>
+                <div className="relative w-16 h-16 rounded-md overflow-hidden bg-[rgb(244_242_245)] border border-gray-100 flex-shrink-0">
+                  <Image
+                    src={images[0]}
+                    alt={product.title}
+                    fill
+                    className="object-contain p-1 mix-blend-multiply"
+                  />
+                </div>
+                <div className="flex-1 flex flex-col justify-center">
+                  <h4 className="text-sm font-bold text-gray-900 line-clamp-2 text-right">
+                    {product.title}
+                  </h4>
+                  <p className="text-sm font-bold text-brand-primary mt-1.5 text-right flex items-center justify-end gap-2">
+                    {quantity > 1 && (
+                      <span className="text-xs text-gray-500">
+                        ({quantity}x)
+                      </span>
+                    )}
+                    {formattedPrice}
+                  </p>
+                  {variantDescription && (
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-1 text-right">
+                      {variantDescription}
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex-1 flex flex-col justify-center">
+                  <h4 className="text-sm font-bold text-gray-900 line-clamp-2 text-left">
+                    {product.title}
+                  </h4>
+                  <p className="text-sm font-bold text-brand-primary mt-1.5 text-left flex items-center justify-start gap-2">
+                    {formattedPrice}
+                    {quantity > 1 && (
+                      <span className="text-xs text-gray-500">
+                        ({quantity}x)
+                      </span>
+                    )}
+                  </p>
+                  {variantDescription && (
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-1 text-left">
+                      {variantDescription}
+                    </p>
+                  )}
+                </div>
+                <div className="relative w-16 h-16 rounded-md overflow-hidden bg-[rgb(244_242_245)] border border-gray-100 flex-shrink-0">
+                  <Image
+                    src={images[0]}
+                    alt={product.title}
+                    fill
+                    className="object-contain p-1 mix-blend-multiply"
+                  />
+                </div>
+              </>
+            )}
           </div>
           <div className="px-4 pb-4 flex gap-3">
-            <button
-              onClick={() => {
-                setAdded(false);
-                router.push("/checkout");
-              }}
-              className="flex-1 py-2.5 bg-brand-primary rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-            >
-              <CreditCard size={18} />
-              {t.checkout}
-            </button>
-            <button
-              onClick={() => {
-                setAdded(false);
-                router.push("/cart");
-              }}
-              className="flex-1 py-2.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
-            >
-              <ShoppingBag size={18} />
-              {t.cart}
-            </button>
+            {lang === "ar" ? (
+              <>
+                <button
+                  onClick={() => {
+                    setAdded(false);
+                    router.push("/cart");
+                  }}
+                  className="flex-1 py-1.5 bg-brand-primary rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                >
+                  {t.checkout}
+                  <CreditCard size={18} />
+                </button>
+                <button
+                  onClick={() => {
+                    setAdded(false);
+                    router.push("/cart");
+                  }}
+                  className="flex-1 py-1.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
+                >
+                  {t.cart}
+                  <ShoppingBag size={18} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => {
+                    setAdded(false);
+                    router.push("/cart");
+                  }}
+                  className="flex-1 py-1.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
+                >
+                  <ShoppingBag size={18} />
+                  {t.cart}
+                </button>
+                <button
+                  onClick={() => {
+                    setAdded(false);
+                    router.push("/cart");
+                  }}
+                  className="flex-1 py-1.5 bg-brand-primary rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                >
+                  <CreditCard size={18} />
+                  {t.checkout}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* STOCK LIMIT WARNING TOAST */}
+      {stockWarning && (
+        <div
+          dir={dir}
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-lg shadow-2xl overflow-hidden border border-red-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
+        >
+          {/* PROGRESS BAR */}
+          <div
+            className="h-1 ease-linear bg-red-500"
+            style={{
+              width: `${stockWarningProgress}%`,
+              transitionDuration: stockWarning ? "3950ms" : "0ms",
+              transitionProperty: "width",
+            }}
+          />
+          <div className="flex items-center justify-between px-4 py-3">
+            {lang === "ar" ? (
+              <>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-sm font-bold text-red-600">
+                    {t.maxStockReached}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setStockWarning(false)}
+                  className="text-gray-400 hover:text-gray-700 transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setStockWarning(false)}
+                  className="text-gray-400 hover:text-gray-700 transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-sm font-bold text-red-600">
+                    {t.maxStockReached}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

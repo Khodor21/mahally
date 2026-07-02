@@ -29,7 +29,6 @@ export function usePushNotifications(
   useEffect(() => {
     if (!enabled || !customerId) {
       if (!enabled) {
-        console.log("⚠️ usePushNotifications disabled (enabled=false)");
       } else {
         console.log("⚠️ usePushNotifications missing customerId");
       }

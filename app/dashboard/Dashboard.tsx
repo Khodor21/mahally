@@ -33,8 +33,6 @@ export default function Dashboard({ store }: DashboardProps) {
       case "home":
         return <HomePanel setActiveNav={setActiveNav} store={store} />;
       case "orders":
-        // FIX: Inject the client-side 'lang' into the store and cast as any
-        // to bypass the strict local/global type mismatch.
         return <OrdersPanel store={{ ...store, language: lang } as any} />;
       case "products":
         return <ProductsPanel storeId={store.id} />;
