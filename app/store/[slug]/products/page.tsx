@@ -1,18 +1,16 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   Loader2,
   PackageX,
   ChevronLeft,
   ChevronRight,
   Search,
-  SlidersHorizontal,
-  ChevronDown,
 } from "lucide-react";
-import ProductCard from "../../components/landing/ProductCard";
+import ProductCard from "../components/landing/ProductCard";
 
 // --- Types ---
 interface BackendProduct {
@@ -24,16 +22,19 @@ interface BackendProduct {
   stock: number;
 }
 
-interface CategoryData {
-  id: string;
-  title: string;
-  banner_url: string | null;
-  products: BackendProduct[];
-}
-
 type SortOption = "default" | "price-asc" | "price-desc";
 
-const ITEMS_PER_PAGE = 8;
+const PRODUCTS_PER_PAGE = 20;
+
+// --- Utility: Fisher-Yates Shuffle ---
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
 
 // --- Separate Component: Search Bar ---
 function SearchBar({
@@ -50,7 +51,9 @@ function SearchBar({
   return (
     <div className="relative flex-grow w-full">
       <div
-        className={`absolute inset-y-0 ${dir === "rtl" ? "right-0 pr-3" : "left-0 pl-3"} flex items-center pointer-events-none`}
+        className={`absolute inset-y-0 ${
+          dir === "rtl" ? "right-0 pr-3" : "left-0 pl-3"
+        } flex items-center pointer-events-none`}
       >
         <Search className="h-5 w-5 text-gray-400" />
       </div>
@@ -74,44 +77,31 @@ function FilterPanel({
   inStockOnly,
   setInStockOnly,
   t,
-  dir,
 }: {
   sortOption: SortOption;
   setSortOption: (val: SortOption) => void;
   inStockOnly: boolean;
   setInStockOnly: (val: boolean) => void;
   t: any;
-  dir: "rtl" | "ltr";
 }) {
   return (
-    <div className="w-full flex flex-col md:flex-row justify-between gap-3 md:gap-4 items-start md:items-center">
-      {/* Sort Dropdown */}
-      <div className="w-full md:w-auto relative">
-        <select
-          value={sortOption}
-          onChange={(e) => setSortOption(e.target.value as SortOption)}
-          className={`w-full md:w-48 text-sm border border-gray-200 rounded-lg py-2.5 px-3 bg-white outline-none focus:border-brand-black focus:ring-2 focus:ring-brand-black/10 cursor-pointer appearance-none transition-all ${
-            dir === "rtl" ? "pr-10" : "pl-10"
-          }`}
-        >
-          <option value="default">{t.sortDefault}</option>
-          <option value="price-asc">{t.sortPriceAsc}</option>
-          <option value="price-desc">{t.sortPriceDesc}</option>
-        </select>
-        <div
-          className={`absolute inset-y-0 ${dir === "rtl" ? "left-0 pl-3" : "right-0 pr-3"} flex items-center pointer-events-none text-gray-400`}
-        >
-          <ChevronDown className="w-4 h-4" />
-        </div>
-      </div>
+    <div className="w-full flex justify-between gap-0 md:justify-center flex-wrap items-center md:gap-4">
+      <select
+        value={sortOption}
+        onChange={(e) => setSortOption(e.target.value as SortOption)}
+        className="text-sm border border-gray-200 rounded-md py-2 px-3 bg-white outline-none focus:border-brand-black cursor-pointer"
+      >
+        <option value="default">{t.sortDefault}</option>
+        <option value="price-asc">{t.sortPriceAsc}</option>
+        <option value="price-desc">{t.sortPriceDesc}</option>
+      </select>
 
-      {/* In Stock Toggle */}
       <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
         <input
           type="checkbox"
           checked={inStockOnly}
           onChange={(e) => setInStockOnly(e.target.checked)}
-          className="rounded border-gray-300 text-brand-black focus:ring-brand-black w-4 h-4 cursor-pointer accent-brand-black"
+          className="rounded border-gray-300 text-brand-black focus:ring-brand-black w-4 h-4 cursor-pointer"
         />
         {t.inStockOnly}
       </label>
@@ -119,85 +109,129 @@ function FilterPanel({
   );
 }
 
-// --- Pagination Component ---
+// --- Separate Component: Skeleton Grid ---
+function SkeletonGrid() {
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="animate-pulse">
+          <div className="aspect-square bg-gray-100 rounded-lg mb-3" />
+          <div className="h-4 bg-gray-100 rounded w-3/4 mb-2" />
+          <div className="h-4 bg-gray-100 rounded w-1/2" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// --- Separate Component: Pagination ---
 function Pagination({
   currentPage,
   totalPages,
   onPageChange,
-  t,
   dir,
+  lang,
 }: {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-  t: any;
   dir: "rtl" | "ltr";
+  lang: "ar" | "en";
 }) {
+  const getPageNumbers = (): (number | "ellipsis-start" | "ellipsis-end")[] => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    const pages: (number | "ellipsis-start" | "ellipsis-end")[] = [1];
+
+    if (currentPage > 3) {
+      pages.push("ellipsis-start");
+    }
+
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    if (currentPage < totalPages - 2) {
+      pages.push("ellipsis-end");
+    }
+
+    if (totalPages > 1) {
+      pages.push(totalPages);
+    }
+
+    return pages;
+  };
+
   if (totalPages <= 1) return null;
 
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const pages = getPageNumbers();
+  const PrevIcon = dir === "rtl" ? ChevronRight : ChevronLeft;
+  const NextIcon = dir === "rtl" ? ChevronLeft : ChevronRight;
 
   return (
-    <div className="flex items-center justify-center gap-2 mt-12 mb-8">
-      {/* Previous Button */}
+    <div className="flex items-center justify-center gap-1.5 mt-10 mb-4">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="flex items-center justify-center w-10 h-10 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        aria-label={lang === "ar" ? "الصفحة السابقة" : "Previous page"}
       >
-        {dir === "rtl" ? (
-          <ChevronRight className="w-4 h-4" />
-        ) : (
-          <ChevronLeft className="w-4 h-4" />
-        )}
+        <PrevIcon className="w-4 h-4" />
       </button>
 
-      {/* Page Numbers */}
-      <div className="flex items-center gap-1">
-        {pages.map((page) => (
+      {pages.map((page, idx) => {
+        if (page === "ellipsis-start" || page === "ellipsis-end") {
+          return (
+            <span
+              key={page}
+              className="w-9 h-9 flex items-center justify-center text-gray-400 text-sm select-none"
+            >
+              ...
+            </span>
+          );
+        }
+
+        return (
           <button
             key={page}
             onClick={() => onPageChange(page)}
-            className={`w-10 h-10 rounded-lg text-sm font-medium transition-all ${
+            className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
               page === currentPage
-                ? "bg-brand-black text-white"
-                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                ? "bg-brand-black text-white border border-brand-black"
+                : "border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
             }`}
           >
             {page}
           </button>
-        ))}
-      </div>
+        );
+      })}
 
-      {/* Next Button */}
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="flex items-center justify-center w-10 h-10 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        aria-label={lang === "ar" ? "الصفحة التالية" : "Next page"}
       >
-        {dir === "rtl" ? (
-          <ChevronLeft className="w-4 h-4" />
-        ) : (
-          <ChevronRight className="w-4 h-4" />
-        )}
+        <NextIcon className="w-4 h-4" />
       </button>
     </div>
   );
 }
 
 // --- Main Page Component ---
-export default function CategoryPage() {
-  const params = useParams();
+export default function ProductsPage() {
   const searchParams = useSearchParams();
-
-  const rawTitle = params.title as string;
-  const categoryTitle = decodeURIComponent(rawTitle);
 
   const rawLang = searchParams.get("lang");
   const lang: "ar" | "en" = rawLang === "en" ? "en" : "ar";
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  const [categoryData, setCategoryData] = useState<CategoryData | null>(null);
+  const [allProducts, setAllProducts] = useState<BackendProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -207,13 +241,17 @@ export default function CategoryPage() {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Cache ref to avoid re-fetching
+  const productsCache = useRef<BackendProduct[] | null>(null);
+
   // --- Translations ---
   const translations = {
     ar: {
       home: "الرئيسية",
+      allProducts: "جميع المنتجات",
       back: "العودة للرئيسية",
-      emptyState: "لا توجد منتجات في هذا القسم حالياً.",
-      searchPlaceholder: "ابحث عن منتج في هذا القسم...",
+      emptyState: "لا توجد منتجات حالياً.",
+      searchPlaceholder: "ابحث عن منتج...",
       filters: "تصفية وترتيب",
       sortDefault: "تصفية وترتيب",
       sortPriceAsc: "السعر: من الأقل للأعلى",
@@ -221,12 +259,16 @@ export default function CategoryPage() {
       inStockOnly: "متوفر في المخزون فقط",
       noSearchResults: "لا توجد نتائج مطابقة لبحثك.",
       clearFilters: "مسح التصفية",
+      showingResults: (from: number, to: number, total: number) =>
+        `عرض ${from}–${to} من ${total} منتج`,
+      page: "صفحة",
     },
     en: {
       home: "Home",
+      allProducts: "All Products",
       back: "Back to Home",
-      emptyState: "No products available in this category yet.",
-      searchPlaceholder: "Search products in this category...",
+      emptyState: "No products available yet.",
+      searchPlaceholder: "Search products...",
       filters: "Filter & Sort",
       sortDefault: "Filter & Sort",
       sortPriceAsc: "Price: Low to High",
@@ -234,29 +276,37 @@ export default function CategoryPage() {
       inStockOnly: "In Stock Only",
       noSearchResults: "No products match your search criteria.",
       clearFilters: "Clear Filters",
+      showingResults: (from: number, to: number, total: number) =>
+        `Showing ${from}–${to} of ${total} products`,
+      page: "Page",
     },
   };
   const t = translations[lang];
 
-  // --- Fetch Data ---
+  // --- Fetch Data (once, then cache) ---
   useEffect(() => {
-    async function fetchCategoryData() {
-      if (!categoryTitle) return;
+    async function fetchProducts() {
+      // Return cached if available
+      if (productsCache.current) {
+        setAllProducts(productsCache.current);
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
-        const res = await fetch(
-          `/api/categories/by-title/${encodeURIComponent(categoryTitle)}/products?lang=${lang}`,
-        );
+        const res = await fetch(`/api/products?lang=${lang}`);
 
-        if (!res.ok) throw new Error("Failed to fetch category data");
+        if (!res.ok) throw new Error("Failed to fetch products");
         const json = await res.json();
 
-        if (json.success) {
-          setCategoryData(json.data);
-          setCurrentPage(1); // Reset to first page on new category
+        if (json.success && Array.isArray(json.data)) {
+          const products = json.data as BackendProduct[];
+          const shuffled = shuffleArray(products);
+          productsCache.current = shuffled;
+          setAllProducts(shuffled);
         } else {
-          throw new Error(json.message || "Failed to load category");
+          throw new Error(json.message || "Failed to load products");
         }
       } catch (err) {
         console.error(err);
@@ -270,14 +320,12 @@ export default function CategoryPage() {
       }
     }
 
-    fetchCategoryData();
-  }, [categoryTitle, lang]);
+    fetchProducts();
+  }, [lang]);
 
-  // --- Active Filtration & Sorting Logic ---
+  // --- Client-side Filtering, Sorting & Pagination ---
   const filteredProducts = useMemo(() => {
-    if (!categoryData?.products) return [];
-
-    let products = [...categoryData.products];
+    let products = [...allProducts];
 
     // 1. Search Filter
     if (searchQuery.trim() !== "") {
@@ -298,15 +346,46 @@ export default function CategoryPage() {
     }
 
     return products;
-  }, [categoryData, searchQuery, inStockOnly, sortOption]);
+  }, [allProducts, searchQuery, inStockOnly, sortOption]);
 
-  // --- Pagination Logic ---
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE),
+  );
+
+  // Auto-correct page when filters shrink results
+  const safePage = useMemo(() => {
+    if (currentPage > totalPages) return totalPages;
+    return currentPage;
+  }, [currentPage, totalPages]);
+
   const paginatedProducts = useMemo(() => {
-    const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIdx = startIdx + ITEMS_PER_PAGE;
-    return filteredProducts.slice(startIdx, endIdx);
-  }, [filteredProducts, currentPage]);
+    const start = (safePage - 1) * PRODUCTS_PER_PAGE;
+    return filteredProducts.slice(start, start + PRODUCTS_PER_PAGE);
+  }, [filteredProducts, safePage]);
+
+  const resultsFrom = (safePage - 1) * PRODUCTS_PER_PAGE + 1;
+  const resultsTo = Math.min(
+    safePage * PRODUCTS_PER_PAGE,
+    filteredProducts.length,
+  );
+
+  // --- Handlers ---
+  const handlePageChange = useCallback(
+    (page: number) => {
+      if (page < 1 || page > totalPages) return;
+      setCurrentPage(page);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [totalPages],
+  );
+
+  const handleClearFilters = useCallback(() => {
+    setSearchQuery("");
+    setInStockOnly(false);
+    setSortOption("default");
+    setCurrentPage(1);
+  }, []);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -316,22 +395,32 @@ export default function CategoryPage() {
   // --- Render Loading ---
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="w-10 h-10 animate-spin text-brand-black" />
+      <div dir={dir} className="min-h-screen bg-white pb-16">
+        <div className="py-4 px-4 md:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="h-4 w-24 bg-gray-100 rounded animate-pulse mb-2" />
+            <div className="h-4 w-40 bg-gray-100 rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 mt-1">
+          <div className="flex flex-col lg:flex-row gap-4 mb-8">
+            <div className="h-10 w-full bg-gray-100 rounded-lg animate-pulse" />
+            <div className="h-10 w-48 bg-gray-100 rounded-md animate-pulse" />
+          </div>
+          <SkeletonGrid />
+        </div>
       </div>
     );
   }
 
   // --- Render Error ---
-  if (error || !categoryData) {
+  if (error) {
     return (
       <div
         className="min-h-screen flex flex-col items-center justify-center bg-white gap-4"
         dir={dir}
       >
-        <p className="text-red-500 font-medium">
-          {error || "Category not found"}
-        </p>
+        <p className="text-red-500 font-medium">{error}</p>
         <Link
           href={`/?lang=${lang}`}
           className="text-brand-black hover:underline"
@@ -357,15 +446,15 @@ export default function CategoryPage() {
               {t.home}
             </Link>
             <BreadcrumbIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <span className="text-brand-black">{categoryData.title}</span>
+            <span className="text-brand-black">{t.allProducts}</span>
           </p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 mt-1">
-        {/* Search & Filter Section - Now Full Width */}
-        {categoryData.products.length > 0 && (
-          <div className="w-full flex flex-col gap-4 mb-8">
+        {/* Search & Filter Section */}
+        {allProducts.length > 0 && (
+          <div className="flex flex-col w-full lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
             <SearchBar
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
@@ -378,13 +467,19 @@ export default function CategoryPage() {
               inStockOnly={inStockOnly}
               setInStockOnly={setInStockOnly}
               t={t}
-              dir={dir}
             />
           </div>
         )}
 
+        {/* Results Counter */}
+        {!loading && allProducts.length > 0 && filteredProducts.length > 0 && (
+          <p className="text-xs text-gray-400 mb-4">
+            {t.showingResults(resultsFrom, resultsTo, filteredProducts.length)}
+          </p>
+        )}
+
         {/* Products Grid / Empty States */}
-        {categoryData.products.length === 0 ? (
+        {allProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-500">
             <PackageX
               className="w-20 h-20 mb-4 text-gray-300"
@@ -397,11 +492,7 @@ export default function CategoryPage() {
             <Search className="w-12 h-12 mb-4 text-gray-300" />
             <p className="md:text-lg font-medium">{t.noSearchResults}</p>
             <button
-              onClick={() => {
-                setSearchQuery("");
-                setInStockOnly(false);
-                setSortOption("default");
-              }}
+              onClick={handleClearFilters}
               className="mt-4 px-4 py-2 text-sm bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50 transition-colors"
             >
               {t.clearFilters}
@@ -443,13 +534,12 @@ export default function CategoryPage() {
               })}
             </div>
 
-            {/* Pagination Controls */}
             <Pagination
-              currentPage={currentPage}
+              currentPage={safePage}
               totalPages={totalPages}
-              onPageChange={setCurrentPage}
-              t={t}
+              onPageChange={handlePageChange}
               dir={dir}
+              lang={lang}
             />
           </>
         )}

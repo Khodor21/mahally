@@ -1,5 +1,4 @@
 "use client";
-
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -8,6 +7,10 @@ import {
   StickyNote,
   ChevronRight,
   ChevronLeft,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Info,
 } from "lucide-react";
 import { useShop } from "../../context";
 import { useAuth } from "@/hooks/useAuth";
@@ -67,6 +70,34 @@ export default function CartClientPage({ store }: Props) {
   // ── UI State ────────────────────────────────────────
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // ── Custom Toast State ──────────────────────────────
+  const [toastState, setToastState] = useState<{
+    show: boolean;
+    type: "success" | "error";
+    message: string;
+  }>({ show: false, type: "success", message: "" });
+  const [toastProgress, setToastProgress] = useState(0);
+
+  const showCustomToast = (type: "success" | "error", message: string) => {
+    setToastState({ show: true, type, message });
+    setToastProgress(0);
+    // Slight delay to allow DOM to register the 0% before transitioning to 100%
+    setTimeout(() => {
+      setToastProgress(100);
+    }, 50);
+  };
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    if (toastState.show) {
+      timeoutId = setTimeout(() => {
+        setToastState((prev) => ({ ...prev, show: false }));
+        setToastProgress(0);
+      }, 3000); // 3 seconds matching the 2950ms CSS transition
+    }
+    return () => clearTimeout(timeoutId);
+  }, [toastState.show]);
 
   // ── Buy Now Isolated State ────────────────────────────
   const [isMounted, setIsMounted] = useState(false);
@@ -207,7 +238,11 @@ export default function CartClientPage({ store }: Props) {
       setError("");
 
       if (!store?.id) {
-        setError(t.storeNotFound);
+        const errorMsg =
+          t.storeNotFound ||
+          (isArabic ? "المتجر غير موجود" : "Store not found");
+        setError(errorMsg);
+        showCustomToast("error", errorMsg);
         return;
       }
 
@@ -235,7 +270,12 @@ export default function CartClientPage({ store }: Props) {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || t.checkoutFailed);
+        const errorMsg =
+          data.message ||
+          t.checkoutFailed ||
+          (isArabic ? "فشل إتمام الطلب" : "Checkout failed");
+        setError(errorMsg);
+        showCustomToast("error", errorMsg);
         clearBuyNowSession(); // Clear session on failure
         return;
       }
@@ -246,11 +286,24 @@ export default function CartClientPage({ store }: Props) {
         clearCart();
       }
 
-      router.push(`/`);
+      // Bilingual success toast before routing
+      showCustomToast(
+        "success",
+        isArabic ? "تم تأكيد الطلب بنجاح!" : "Order placed successfully!",
+      );
+
+      // Delay routing so the custom toast is visible for its duration
+      setTimeout(() => {
+        router.push(`/`);
+      }, 3000);
     } catch (err) {
       console.error(err);
-      setError(t.somethingWentWrong);
-      clearBuyNowSession(); // Clear session on failure
+      const errorMsg =
+        t.somethingWentWrong ||
+        (isArabic ? "حدث خطأ ما" : "Something went wrong");
+      setError(errorMsg);
+      showCustomToast("error", errorMsg);
+      clearBuyNowSession();
     } finally {
       setLoading(false);
     }
@@ -282,16 +335,141 @@ export default function CartClientPage({ store }: Props) {
 
   return (
     <div className={`w-full bg-white py-8 px-4 ${isArabic ? "rtl" : "ltr"}`}>
+      {/* ── CUSTOM TOAST INJECTION ── */}
+      {toastState.show && (
+        <div
+          className={`fixed top-4 ${
+            isArabic ? "left-4" : "right-4"
+          } z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300`}
+          dir={isArabic ? "rtl" : "ltr"}
+        >
+          {/* PROGRESS BAR */}
+          <div
+            className={`h-1 ease-linear ${
+              toastState.type === "success" ? "bg-emerald-500" : "bg-red-500"
+            }`}
+            style={{
+              width: `${toastProgress}%`,
+              transitionDuration: toastState.show ? "2950ms" : "0ms",
+              transitionProperty: "width",
+            }}
+          />
+          <div className="flex items-center justify-between px-4 py-3">
+            {isArabic ? (
+              <>
+                <div className="flex items-center gap-2.5">
+                  {toastState.type === "success" ? (
+                    <CheckCircle2
+                      className="flex-shrink-0 text-emerald-500"
+                      size={18}
+                    />
+                  ) : (
+                    <AlertCircle
+                      className="flex-shrink-0 text-red-500"
+                      size={18}
+                    />
+                  )}
+                  <span className="text-sm font-medium text-gray-900">
+                    {toastState.message}
+                  </span>
+                </div>
+                <button
+                  onClick={() =>
+                    setToastState((prev) => ({ ...prev, show: false }))
+                  }
+                  className="text-gray-400 hover:text-gray-700 transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() =>
+                    setToastState((prev) => ({ ...prev, show: false }))
+                  }
+                  className="text-gray-400 hover:text-gray-700 transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-sm font-medium text-gray-900">
+                    {toastState.message}
+                  </span>
+                  {toastState.type === "success" ? (
+                    <CheckCircle2
+                      className="flex-shrink-0 text-emerald-500"
+                      size={18}
+                    />
+                  ) : (
+                    <AlertCircle
+                      className="flex-shrink-0 text-red-500"
+                      size={18}
+                    />
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      {/* ── END CUSTOM TOAST ── */}
+
       <div className="max-w-2xl mx-auto">
+        {/* Mode Indicator Banner - Only on cart view */}
+        {isBuyNow && step === "cart" && (
+          <div className="mb-6 p-4 rounded-xl border border-amber-200 bg-amber-50 flex items-start gap-3">
+            <div className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 flex-shrink-0"></div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-amber-900">
+                {isArabic ? "🚀 وضع الشراء السريع" : "🚀 Quick Purchase"}
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                {isArabic
+                  ? "منتج واحد فقط. عودة سريعة لإضافة المزيد من المتجر."
+                  : "Single item only. Quick checkout or return to store to add more."}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Cart Items Indicator - Shows what you're viewing */}
+        {step === "cart" && (
+          <div className="mb-6 p-3 rounded-lg border border-blue-100 bg-blue-50 flex items-start gap-2.5">
+            <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-blue-700 font-medium">
+              {isBuyNow && cartItems.length > 0
+                ? isArabic
+                  ? `تصفح: شراء سريع (${buyNowItem?.qty || 1} منتج) • السلة (${cartItems.length} منتج)`
+                  : `Viewing: Quick Purchase (${buyNowItem?.qty || 1} item) • Shopping Cart (${cartItems.length} items)`
+                : isArabic
+                  ? `السلة: ${activeItems.length} منتج`
+                  : `Shopping Cart: ${activeItems.length} items`}
+            </p>
+          </div>
+        )}
+
         {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
+        <div className="mb-8">
           <div>
             <h3 className="text-2xl font-bold text-gray-900">
-              {step === "cart" ? t.cart : t.shippingInfo}
+              {step === "cart"
+                ? isBuyNow
+                  ? isArabic
+                    ? "تأكيد الشراء"
+                    : "Confirm Purchase"
+                  : t.cart
+                : t.shippingInfo}
             </h3>
             <p className="mt-1 text-sm text-gray-500 font-medium">
               {step === "cart"
-                ? ` ${t.products}: ${activeItems.length}`
+                ? isBuyNow
+                  ? isArabic
+                    ? "📦 منتج واحد جاهز للشراء"
+                    : "📦 1 item ready to purchase"
+                  : ` ${t.products}: ${activeItems.length}`
                 : t.fillDetailsBelow}
             </p>
           </div>
@@ -337,9 +515,15 @@ export default function CartClientPage({ store }: Props) {
                   clearBuyNowSession();
                   router.back();
                 }}
-                className="flex-1 h-12 rounded border border-brand-primary text-brand-primary bg-transparent font-bold text-sm hover:bg-brand-primary hover:text-white transition-colors flex items-center justify-center"
+                className="flex-1 h-12 rounded border border-gray-300 text-gray-700 bg-white font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center"
               >
-                {isArabic ? "العودة" : "Back"}
+                {isBuyNow
+                  ? isArabic
+                    ? "← العودة للمتجر"
+                    : "← Back to Store"
+                  : isArabic
+                    ? "← تابع التسوق"
+                    : "← Continue Shopping"}
               </button>
             </div>
           </div>

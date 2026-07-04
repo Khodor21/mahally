@@ -210,7 +210,7 @@ export const t = {
     maxImagesError: "الحد الأقصى 5 صور لكل رفع",
     uploading: "جاري رفع الصور...",
     imageUploadHint:
-      "Maximum 5 images per upload. Supported: JPEG, PNG, WebP, GIF (max 5MB each)",
+      "Maximum 5 images per upload. Supported: JPEG, PNG, WebP, GIF (max 400kb each)",
   },
   en: {
     // Nav
@@ -422,7 +422,7 @@ export const t = {
     maxImagesError: "Maximum 5 images per upload",
     uploading: "Uploading images...",
     imageUploadHint:
-      "Maximum 5 images per upload. Supported: JPEG, PNG, WebP, GIF (max 5MB each)",
+      "Maximum 5 images per upload. Supported: JPEG, PNG, WebP, GIF (max 400Kb each)",
   },
 } as const;
 

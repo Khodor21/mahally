@@ -1,6 +1,25 @@
 "use client";
+import { useMemo, useState, useEffect } from "react";
 
-import { useMemo, useState } from "react";
+// Hide scrollbar on mobile while keeping scroll functionality
+const scrollbarHideStyles = `
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  @media (min-width: 768px) {
+    .scrollbar-hide {
+      -ms-overflow-style: auto;
+      scrollbar-width: auto;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: block;
+    }
+  }
+`;
 import {
   Search,
   Plus,
@@ -13,7 +32,6 @@ import {
   Loader2,
   GripVertical,
 } from "lucide-react";
-
 import { useDashboard } from "../DashboardContext";
 import Toast from "../components/Toast";
 import { useFetch, useCategories, useStore } from "@/hooks/useApi";
@@ -27,25 +45,30 @@ interface StoreSection {
   status: "active" | "draft";
   section_order: number;
 }
-
 interface ToastState {
   message: string;
   type: "success" | "error";
 }
-
 export default function StorefrontPanel() {
   const { tr, lang } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
-
   const [toast, setToast] = useState<ToastState | null>(null);
 
+  // Inject scrollbar hide styles on mount
+  useEffect(() => {
+    const styleId = "scrollbar-hide-styles";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = scrollbarHideStyles;
+      document.head.appendChild(style);
+    }
+  }, []);
   // Dynamic API Hooks
   const { data: store } = useStore();
   const storeId = store?.id || "";
-
   // Fetch real categories to replace mockCategories
   const { data: categories = [] } = useCategories(storeId, { skip: !storeId });
-
   // Use the generic useFetch hook since useSections doesn't exist natively in useApi.ts yet
   const {
     data,
@@ -63,7 +86,6 @@ export default function StorefrontPanel() {
     { skip: !storeId },
   );
   const sections = data ?? [];
-
   // Modal States
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -75,13 +97,9 @@ export default function StorefrontPanel() {
   async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
     try {
       if (!e.target.files || e.target.files.length === 0) return;
-
       const file = e.target.files[0];
-
       setUploading(true);
-
       const result = await uploadImages([file]);
-
       setFormData((prev) => ({
         ...prev,
         banner_url: result.urls[0],
@@ -95,7 +113,6 @@ export default function StorefrontPanel() {
   }
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-
   // Form Data State
   const [formData, setFormData] = useState<
     Omit<StoreSection, "id" | "section_order">
@@ -105,18 +122,15 @@ export default function StorefrontPanel() {
     category_id: "",
     status: "active",
   });
-
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
   };
-
   const activeCount = useMemo(
     () =>
       (sections || []).filter((s: StoreSection) => s.status === "active")
         .length,
     [sections],
   );
-
   // Handlers
   const openCreate = () => {
     setFormMode("create");
@@ -128,7 +142,6 @@ export default function StorefrontPanel() {
     });
     setFormOpen(true);
   };
-
   const openEdit = (section: StoreSection) => {
     setFormMode("edit");
     setSelectedSection(section);
@@ -140,12 +153,10 @@ export default function StorefrontPanel() {
     });
     setFormOpen(true);
   };
-
   const openDelete = (section: StoreSection) => {
     setSelectedSection(section);
     setDeleteOpen(true);
   };
-
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.category_id) {
@@ -153,7 +164,6 @@ export default function StorefrontPanel() {
       return;
     }
     if (!storeId) return;
-
     setFormLoading(true);
     try {
       const url =
@@ -161,7 +171,6 @@ export default function StorefrontPanel() {
           ? "/api/sections"
           : `/api/sections/${selectedSection?.id}`;
       const method = formMode === "create" ? "POST" : "PUT";
-
       const payload =
         formMode === "create"
           ? {
@@ -170,15 +179,12 @@ export default function StorefrontPanel() {
               section_order: sections?.length ?? 0,
             }
           : { ...formData, store_id: storeId };
-
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       if (!res.ok) throw new Error();
-
       showToast(
         formMode === "create"
           ? tr.createdSuccess || "تم إنشاء القسم بنجاح"
@@ -193,19 +199,15 @@ export default function StorefrontPanel() {
       setFormLoading(false);
     }
   };
-
   const handleDelete = async () => {
     if (!selectedSection || !storeId) return;
-
     setDeleteLoading(true);
     try {
       const res = await fetch(
         `/api/sections/${selectedSection.id}?store_id=${storeId}`,
         { method: "DELETE" },
       );
-
       if (!res.ok) throw new Error();
-
       showToast(tr.deletedSuccess || "تم الحذف بنجاح", "success");
       setDeleteOpen(false);
       fetchSections();
@@ -215,7 +217,6 @@ export default function StorefrontPanel() {
       setDeleteLoading(false);
     }
   };
-
   return (
     <div className="space-y-6" dir={dir}>
       {/* Summary Header */}
@@ -233,7 +234,6 @@ export default function StorefrontPanel() {
             </p>
           </div>
         </div>
-
         <div className="flex gap-4">
           <div className="text-center px-4 md:border-s border-gray-200">
             <p className="text-2xl font-bold text-[rgb(60_28_84)]">
@@ -253,7 +253,6 @@ export default function StorefrontPanel() {
           </div>
         </div>
       </div>
-
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -277,7 +276,6 @@ export default function StorefrontPanel() {
           </button>
         </div>
       </div>
-
       {/* Sections List (Stacked Cards for Layout feel) */}
       <div className="space-y-4">
         {loading ? (
@@ -314,7 +312,6 @@ export default function StorefrontPanel() {
                 <div className="hidden md:flex bg-gray-50 w-10 items-center justify-center border-e border-gray-100 cursor-move text-gray-300 group-hover:text-gray-500 transition-colors">
                   <GripVertical className="w-5 h-5" />
                 </div>
-
                 {/* Banner Preview */}
                 <div className="w-full md:w-64 h-32 bg-gray-100 flex items-center justify-center relative shrink-0 overflow-hidden">
                   {section.banner_url ? (
@@ -344,7 +341,6 @@ export default function StorefrontPanel() {
                     </span>
                   </div>
                 </div>
-
                 {/* Info */}
                 <div className="p-4 md:p-5 flex-1 flex flex-col justify-center">
                   <h3 className="text-lg font-bold text-gray-900">
@@ -356,7 +352,6 @@ export default function StorefrontPanel() {
                     </span>
                   </div>
                 </div>
-
                 {/* Actions */}
                 <div className="p-4 md:p-5 flex flex-row md:flex-col items-center justify-end gap-2 border-t md:border-t-0 md:border-s border-gray-100 bg-gray-50/50">
                   <button
@@ -377,12 +372,14 @@ export default function StorefrontPanel() {
           })
         )}
       </div>
-
-      {/* Form Modal */}
+      {/* Form Modal - FIX 3: Responsive bottom sheet on mobile */}
       {formOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-t-3xl md:rounded-2xl shadow-2xl w-full md:w-full md:max-w-lg max-h-[90vh] md:max-h-[calc(100vh-2rem)] overflow-y-auto md:overflow-y-auto animate-in slide-in-from-bottom md:zoom-in-95 duration-200 scrollbar-hide md:scrollbar-auto">
+            {/* Mobile spacer at top */}
+            <div className="h-1 w-12 bg-gray-300 rounded-full mx-auto mt-2 md:hidden"></div>
+
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50 sticky top-0 z-10">
               <h3 className="text-lg font-bold text-gray-900">
                 {formMode === "create" ? "إضافة قسم جديد" : "تعديل القسم"}
               </h3>
@@ -394,7 +391,10 @@ export default function StorefrontPanel() {
               </button>
             </div>
 
-            <form onSubmit={handleFormSubmit} className="p-6 space-y-5">
+            <form
+              onSubmit={handleFormSubmit}
+              className="p-6 space-y-5 pb-8 md:pb-0"
+            >
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
                   عنوان القسم (يظهر للعملاء) *
@@ -410,7 +410,6 @@ export default function StorefrontPanel() {
                   placeholder="مثال: الأكثر مبيعاً"
                 />
               </div>
-
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
                   ربط بتصنيف المنتجات *
@@ -434,15 +433,21 @@ export default function StorefrontPanel() {
                   ))}
                 </select>
               </div>
-
               <div className="space-y-3">
                 <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
                   لافتة إعلانية (Banner)
                 </label>
-                <p className="text-[11px] text-amber-600">
-                  الحد الأقصى لحجم الصورة: 400 كيلوبايت / Max image size: 400KB
-                </p>
-
+                <div className="space-y-2">
+                  <p className="text-[11px] text-amber-600 font-medium">
+                    <strong>الحد الأقصى:</strong> 400 كيلوبايت |{" "}
+                    <strong>Max:</strong> 400KB
+                  </p>
+                  <p className="text-[11px] text-blue-600 font-medium">
+                    <strong>الأبعاد المثالية:</strong> نسبة 3:1 (مثال: 1200×400)
+                    | <strong>Ideal:</strong> 3:1 aspect ratio (e.g.,
+                    1200×400px)
+                  </p>
+                </div>
                 {formData.banner_url ? (
                   <div className="relative w-full h-40 rounded-xl overflow-hidden border">
                     <img
@@ -450,7 +455,6 @@ export default function StorefrontPanel() {
                       className="w-full h-full object-cover"
                       alt="banner"
                     />
-
                     <button
                       type="button"
                       onClick={() =>
@@ -473,7 +477,6 @@ export default function StorefrontPanel() {
                         </span>
                       </>
                     )}
-
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp,image/gif"
@@ -484,7 +487,6 @@ export default function StorefrontPanel() {
                   </label>
                 )}
               </div>
-
               <div className="space-y-1.5 pt-2">
                 <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
                   حالة العرض
@@ -528,8 +530,7 @@ export default function StorefrontPanel() {
                   </label>
                 </div>
               </div>
-
-              <div className="pt-4 flex gap-3 border-t border-gray-100 mt-4">
+              <div className="pt-4 flex gap-3 border-t border-gray-100 mt-4 sticky bottom-0 bg-white py-4 z-10">
                 <button
                   type="button"
                   onClick={() => setFormOpen(false)}
@@ -551,7 +552,6 @@ export default function StorefrontPanel() {
           </div>
         </div>
       )}
-
       {/* Delete Modal */}
       {deleteOpen && selectedSection && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
@@ -586,7 +586,6 @@ export default function StorefrontPanel() {
           </div>
         </div>
       )}
-
       {/* Toast */}
       {toast && (
         <Toast

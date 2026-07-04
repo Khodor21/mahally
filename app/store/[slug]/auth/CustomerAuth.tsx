@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Eye, EyeOff, MapPin, Phone, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Eye, EyeOff, MapPin, Phone, User, ShieldCheck } from "lucide-react";
 import Toast from "../components/Toast";
 import { authTranslations } from "../i18n";
 import { useRouter } from "next/navigation";
@@ -84,7 +84,35 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
     phone: "+961",
     governorate: "",
     password: "",
+    confirmPassword: "",
   });
+
+  const [showCredentials, setShowCredentials] = useState(false);
+  const [credentialsData, setCredentialsData] = useState<{
+    firstName: string;
+    lastName: string;
+    phone: string;
+    governorate: string;
+    password: string;
+  } | null>(null);
+  const [credentialsCountdown, setCredentialsCountdown] = useState(0);
+
+  useEffect(() => {
+    if (!showCredentials) return;
+    setCredentialsCountdown(8);
+    const interval = setInterval(() => {
+      setCredentialsCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setShowCredentials(false);
+          setCredentialsData(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [showCredentials]);
 
   async function handleSubmit() {
     try {
@@ -98,6 +126,16 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
         (!form.firstName.trim() || !form.lastName.trim() || !form.governorate)
       ) {
         setToast({ message: tr.missingFields, type: "error" });
+        return;
+      }
+      if (mode === "signup" && form.password !== form.confirmPassword) {
+        setToast({
+          message:
+            lang === "ar"
+              ? "كلمتا المرور غير متطابقتين"
+              : "Passwords do not match",
+          type: "error",
+        });
         return;
       }
 
@@ -137,14 +175,26 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
       }
 
       localStorage.setItem("store_customer", JSON.stringify(data.customer));
-      setToast({
-        message: mode === "signup" ? tr.successSignup : tr.successLogin,
-        type: "success",
-      });
-      setTimeout(() => {
-        router.push(``);
-        router.refresh();
-      }, 1200);
+
+      if (mode === "signup") {
+        setCredentialsData({
+          firstName: form.firstName.trim(),
+          lastName: form.lastName.trim(),
+          phone: fullPhone,
+          governorate: form.governorate,
+          password: form.password,
+        });
+        setShowCredentials(true);
+      } else {
+        setToast({
+          message: tr.successLogin,
+          type: "success",
+        });
+        setTimeout(() => {
+          router.push(``);
+          router.refresh();
+        }, 1200);
+      }
     } catch (error) {
       setToast({ message: tr.invalidCredentials, type: "error" });
     } finally {
@@ -163,6 +213,94 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
           type={toast.type}
           onClose={() => setToast(null)}
         />
+      )}
+
+      {/* Credentials Card Overlay */}
+      {showCredentials && credentialsData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div
+            dir={dir}
+            className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-[fadeInUp_0.3s_ease-out]"
+          >
+            {/* Header */}
+            <div className="bg-emerald-500 px-6 py-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-lg">
+                  {lang === "ar"
+                    ? "تم إنشاء حسابك بنجاح"
+                    : "Account Created Successfully"}
+                </h3>
+                <p className="text-white/80 text-xs">
+                  {lang === "ar"
+                    ? "احفظ بياناتك الآن، هذه الرسالة ستختفي قريبًا"
+                    : "Save your data now, this message will disappear soon"}
+                </p>
+              </div>
+            </div>
+
+            {/* Credentials Body */}
+            <div className="px-6 py-5 space-y-4">
+              <CredentialRow
+                label={lang === "ar" ? "الاسم الكامل" : "Full Name"}
+                value={`${credentialsData.firstName} ${credentialsData.lastName}`}
+                lang={lang}
+              />
+              <CredentialRow
+                label={lang === "ar" ? "رقم الهاتف" : "Phone Number"}
+                value={credentialsData.phone}
+                lang={lang}
+                dir="ltr"
+                textAlign="left"
+              />
+              <CredentialRow
+                label={lang === "ar" ? "المنطقة" : "Governorate"}
+                value={
+                  governorates.find(
+                    (g) => g.en === credentialsData.governorate,
+                  )?.[lang] || credentialsData.governorate
+                }
+                lang={lang}
+              />
+              <div className="border-t border-gray-100 pt-4">
+                <CredentialRow
+                  label={lang === "ar" ? "كلمة المرور" : "Password"}
+                  value={credentialsData.password}
+                  lang={lang}
+                  dir="ltr"
+                  textAlign="left"
+                  isPassword
+                />
+              </div>
+            </div>
+
+            {/* Footer with countdown */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+              <p className="text-xs text-gray-400">
+                {lang === "ar"
+                  ? "سيتم الإغلاق تلقائيًا خلال"
+                  : "Auto-closing in"}{" "}
+                <span className="font-bold text-gray-600">
+                  {credentialsCountdown}
+                </span>{" "}
+                {lang === "ar" ? "ثوانٍ" : "seconds"}
+              </p>
+              <button
+                onClick={() => {
+                  setShowCredentials(false);
+                  setCredentialsData(null);
+                  router.push(``);
+                  router.refresh();
+                }}
+                className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
+              >
+                {lang === "ar" ? "متابعة التسوق" : "Continue Shopping"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="mb-10 text-center">
@@ -303,6 +441,16 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
           onChange={(v) => setForm({ ...form, password: v })}
         />
 
+        {mode === "signup" && (
+          <InputField
+            type="password"
+            icon={<User className="w-4 h-4" />}
+            label={lang === "ar" ? "تأكيد كلمة المرور" : "Confirm Password"}
+            value={form.confirmPassword}
+            onChange={(v) => setForm({ ...form, confirmPassword: v })}
+          />
+        )}
+
         <button
           onClick={handleSubmit}
           disabled={loading}
@@ -317,6 +465,81 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
               : tr.loginNow}
         </button>
       </div>
+
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function CredentialRow({
+  label,
+  value,
+  lang,
+  dir,
+  textAlign,
+  isPassword,
+}: {
+  label: string;
+  value: string;
+  lang: "en" | "ar";
+  dir?: string;
+  textAlign?: string;
+  isPassword?: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+          {label}
+        </p>
+        <p
+          dir={dir}
+          className="text-sm font-bold text-gray-800 break-all"
+          style={{ textAlign: textAlign as "left" | "right" | undefined }}
+        >
+          {isPassword ? "••••••••" : value}
+        </p>
+        {isPassword && (
+          <p dir="ltr" className="text-xs text-gray-500 mt-0.5 break-all">
+            {value}
+          </p>
+        )}
+      </div>
+      <button
+        onClick={handleCopy}
+        className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all duration-200 ${
+          copied
+            ? "border-emerald-300 bg-emerald-50 text-emerald-600"
+            : "border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50"
+        }`}
+      >
+        {copied
+          ? lang === "ar"
+            ? "تم النسخ"
+            : "Copied"
+          : lang === "ar"
+            ? "نسخ"
+            : "Copy"}
+      </button>
     </div>
   );
 }

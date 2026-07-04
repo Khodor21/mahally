@@ -480,54 +480,79 @@ export default function ProductClientUI({
             {/* Variant Groups Selector */}
             {variantGroups.length > 0 && (
               <div className="mb-6 space-y-5">
-                <h4 className="text-sm font-bold text-gray-900">{t.options}</h4>
-                {variantGroups.map((group) => (
-                  <div key={group.id}>
-                    <label className="text-sm font-semibold text-gray-800 mb-2.5 block">
-                      {group.title}
-                    </label>
+                {variantGroups.map((group) => {
+                  const isSingleOption = group.options.length === 1;
+                  const singleOption = group.options[0];
 
-                    {/* Select Type (Dropdown Buttons) */}
-                    {group.type === "select" ? (
-                      <div className="flex flex-wrap gap-2">
-                        {group.options.map((option) => (
-                          <button
-                            key={option.id}
-                            onClick={() =>
-                              handleVariantOptionChange(group.id, option)
-                            }
-                            className={`px-4 py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
-                              selectedVariants[group.id]?.id === option.id
-                                ? "border-brand-primary bg-[rgb(244_242_245)] text-brand-primary"
-                                : "border-gray-200 text-gray-600 hover:border-gray-300"
-                            }`}
-                          >
-                            {option.value}
-                            {group.allowPrice && option.price && (
-                              <span className="text-xs ml-1.5 opacity-70">
-                                (+${option.price.toFixed(2)})
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      /* Text Type (Free Input) */
-                      <input
-                        type="text"
-                        placeholder={`${t.selectOption}: ${group.title}`}
-                        defaultValue={selectedVariants[group.id]?.value || ""}
-                        onChange={(e) => {
-                          handleVariantOptionChange(group.id, {
-                            id: `custom-${group.id}`,
-                            value: e.target.value,
-                          });
-                        }}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 outline-none transition-all"
-                      />
-                    )}
-                  </div>
-                ))}
+                  return (
+                    <div key={group.id}>
+                      {isSingleOption ? (
+                        <div className="flex items-center justify-between ">
+                          <span className="font-medium text-gray-800">
+                            {group.title}
+                          </span>
+                          <span className="text-sm text-gray-600">
+                            {singleOption.value}
+                            {group.allowPrice &&
+                              singleOption.price !== undefined && (
+                                <span className="text-xs ml-1.5 opacity-70">
+                                  (${singleOption.price!.toFixed(2)})
+                                </span>
+                              )}
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <label className="font-medium text-gray-800 mb-2.5 block">
+                            {group.title}
+                          </label>
+
+                          {/* Select Type (Dropdown Buttons) */}
+                          {group.type === "select" ? (
+                            <div className="flex flex-wrap gap-2">
+                              {group.options.map((option) => (
+                                <button
+                                  key={option.id}
+                                  onClick={() =>
+                                    handleVariantOptionChange(group.id, option)
+                                  }
+                                  className={`px-2 py-1 border-2 rounded text-sm font-medium transition-colors ${
+                                    selectedVariants[group.id]?.id === option.id
+                                      ? "border-brand-primary bg-[rgb(244_242_245)] text-brand-primary"
+                                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                                  }`}
+                                >
+                                  {option.value}
+                                  {group.allowPrice && option.price && (
+                                    <span className="text-xs mx-1.5 opacity-70">
+                                      - (${option.price.toFixed(2)})
+                                    </span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            /* Text Type (Free Input) */
+                            <input
+                              type="text"
+                              placeholder={`${t.selectOption}: ${group.title}`}
+                              defaultValue={
+                                selectedVariants[group.id]?.value || ""
+                              }
+                              onChange={(e) => {
+                                handleVariantOptionChange(group.id, {
+                                  id: `custom-${group.id}`,
+                                  value: e.target.value,
+                                });
+                              }}
+                              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 outline-none transition-all"
+                            />
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -535,13 +560,13 @@ export default function ProductClientUI({
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 py-4 border-t border-gray-100">
               <div className="flex items-center justify-between sm:justify-start gap-4">
                 <span className="text-black font-medium">{t.quantity}</span>
-                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden h-12 w-36 bg-white">
+                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden h-8 w-28 bg-white">
                   <button
                     onClick={increment}
                     disabled={quantity >= activeStock}
-                    className="w-10 h-full flex items-center justify-center hover:bg-gray-50 text-gray-600 disabled:opacity-50"
+                    className="w-8 h-full flex items-center justify-center hover:bg-gray-50 text-gray-600 disabled:opacity-50"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-3 h-3" />
                   </button>
                   <div className="flex-1 text-sm h-full flex items-center justify-center font-bold text-gray-900 border-x border-gray-200">
                     {quantity}
@@ -549,9 +574,9 @@ export default function ProductClientUI({
                   <button
                     onClick={decrement}
                     disabled={quantity <= 1}
-                    className="w-10 h-full flex items-center justify-center hover:bg-gray-50 text-gray-600 disabled:opacity-50"
+                    className="w-8 h-full flex items-center justify-center hover:bg-gray-50 text-gray-600 disabled:opacity-50"
                   >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-3 h-3" />
                   </button>
                 </div>
               </div>

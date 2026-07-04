@@ -45,25 +45,25 @@ export default function ShareIcons({
     switch (platform) {
       case "facebook":
         const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-          productUrl
+          productUrl,
         )}`;
         window.open(fbUrl, "_blank", "width=600,height=400");
         break;
       case "twitter":
         const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-          `Check out: ${productTitle}`
+          `Check out: ${productTitle}`,
         )}&url=${encodeURIComponent(productUrl)}`;
         window.open(tweetUrl, "_blank", "width=600,height=400");
         break;
       case "whatsapp":
         const waUrl = `https://wa.me/?text=${encodeURIComponent(
-          `Check out this product: ${productTitle} ${productUrl}`
+          `Check out this product: ${productTitle} ${productUrl}`,
         )}`;
         window.open(waUrl, "_blank");
         break;
       case "email":
         const mailUrl = `mailto:?subject=${encodeURIComponent(
-          productTitle
+          productTitle,
         )}&body=${encodeURIComponent(`Check out this product:\n\n${productUrl}`)}`;
         window.location.href = mailUrl;
         break;
@@ -88,7 +88,7 @@ export default function ShareIcons({
   ];
 
   return (
-    <div className="bg-white border-2 border-gray-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
       <span className="text-sm font-semibold text-gray-800 shrink-0">
         {t.title}
       </span>
@@ -102,7 +102,7 @@ export default function ShareIcons({
             <button
               key={platform.id}
               onClick={() => handleShare(platform.id)}
-              className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
+              className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
                 isActive || isCopied
                   ? "bg-brand-primary text-white shadow-md scale-110"
                   : "bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 hover:text-brand-primary"

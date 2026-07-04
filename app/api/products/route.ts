@@ -45,7 +45,7 @@ export async function GET() {
     const { data, error } = await supabaseAdmin
       .from("products")
       .select(
-        "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variants, variantGroups",
+        "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variants, variantGroups, sales_count",
       )
       .eq("store_id", user.id)
       .order("created_at", { ascending: false });
@@ -190,9 +190,10 @@ export async function POST(req: Request) {
         category_id: category_id || null,
         variantGroups: variantGroupsArray,
         pin: isPinned,
+        sales_count: 0, // Initialize sales_count
       })
       .select(
-        "id, title, description, price, discount_price, stock, images, category_id, variantGroups, pin",
+        "id, title, description, price, discount_price, stock, images, category_id, variantGroups, pin, sales_count",
       )
       .single();
 
@@ -351,7 +352,7 @@ export async function PATCH(req: Request) {
       .eq("id", id)
       .eq("store_id", user.id)
       .select(
-        "id, title, description, price, discount_price, stock, images, category_id, variantGroups, pin",
+        "id, title, description, price, discount_price, stock, images, category_id, variantGroups, pin, sales_count",
       )
       .single();
 

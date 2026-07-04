@@ -27,7 +27,8 @@ export interface Product {
   stock: number;
   images: string[];
   category_id?: string;
-  variantGroups?: VariantGroup[]; // NEW: Renamed from variants
+  variantGroups?: VariantGroup[];
+  sales_count?: number;
   pin: boolean;
   created_at: string;
 }

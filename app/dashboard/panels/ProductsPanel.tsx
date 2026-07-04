@@ -25,7 +25,6 @@ export default function ProductsPanel({ storeId }: { storeId: string }) {
   const { tr, lang } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  // FIX: loosen type for runtime translations (IMPORTANT)
   const safeTr = tr as Record<string, string>;
 
   const { data: products, loading, retry: fetchProducts } = useProducts();

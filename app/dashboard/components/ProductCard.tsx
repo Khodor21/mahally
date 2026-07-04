@@ -47,8 +47,8 @@ export default function ProductCard({
 
   const formattedPrice =
     lang === "ar"
-      ? `${product.price.toLocaleString("ar-SA")}$`
-      : `SAR ${product.price.toLocaleString("en-US")}`;
+      ? `$${product.price.toLocaleString("ar-SA")}`
+      : `$${product.price.toLocaleString("en-US")}`;
 
   const hasVariants = product.variants && product.variants.length > 0;
 

@@ -10,6 +10,7 @@ import {
   ShoppingBag,
   CheckCircle,
   CreditCard,
+  ArrowRight,
 } from "lucide-react";
 import { useShop } from "@/app/store/context";
 
@@ -88,8 +89,10 @@ export default function ProductCard({
   const content = {
     en: {
       addToCart: "Add to Cart",
+      buyNow: "Buy Now",
       toastTitle: "Added to cart",
       viewCart: "View Cart",
+      continueShopping: "View Cart",
       checkout: "Checkout",
       outOfStock: "Out of Stock",
       addedToFav: "Added to favorites",
@@ -98,8 +101,10 @@ export default function ProductCard({
     },
     ar: {
       addToCart: "إضافـة إلـى السلّـة",
+      buyNow: "اشتر الآن",
       toastTitle: "تمت الإضافة إلى سلة التسوق",
       viewCart: "عرض السلة",
+      continueShopping: "عرض السلة",
       checkout: "اتمام الطلب",
       outOfStock: "غير متوفر",
       addedToFav: "تمت الإضافة إلى المفضلة",
@@ -413,15 +418,15 @@ export default function ProductCard({
                       "TEMP_BUY_NOW_ITEM",
                       JSON.stringify({
                         product: product,
-                        qty: 1, // Or whatever your local state quantity is
+                        qty: 1,
                       }),
                     );
                     router.push(`/cart?lang=${lang}`);
                   }}
                   className="flex-1 py-2.5 bg-[rgb(var(--color-brand-primary))] rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                 >
-                  {t.checkout}
-                  <CreditCard size={18} />
+                  {t.buyNow}
+                  <ArrowRight size={18} />
                 </button>
                 <button
                   onClick={() => {
@@ -449,12 +454,19 @@ export default function ProductCard({
                 <button
                   onClick={() => {
                     setAdded(false);
-                    router.push(`/checkout?lang=${lang}`);
+                    sessionStorage.setItem(
+                      "TEMP_BUY_NOW_ITEM",
+                      JSON.stringify({
+                        product: product,
+                        qty: 1,
+                      }),
+                    );
+                    router.push(`/cart?lang=${lang}`);
                   }}
                   className="flex-1 py-2.5 bg-[rgb(var(--color-brand-primary))] rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                 >
-                  <CreditCard size={18} />
-                  {t.checkout}
+                  {t.buyNow}
+                  <ArrowRight size={18} />
                 </button>
               </>
             )}

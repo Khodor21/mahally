@@ -231,7 +231,7 @@ export default function ProductGrid({
       {!isMono && (
         <div className="flex flex-col w-full min-w-0">
           {bannerSrc && (
-            <div className="w-full aspect-[21/9] md:aspect-[3/1] rounded-xs overflow-hidden mb-8 md:mb-12 bg-gray-50 border border-gray-100 shadow-sm">
+            <div className="w-full aspect-[3/1] rounded-xs overflow-hidden mb-8 md:mb-12 bg-gray-50 border border-gray-100 shadow-sm">
               <img
                 src={bannerSrc}
                 alt={`${title} banner`}

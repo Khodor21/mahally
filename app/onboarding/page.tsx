@@ -10,431 +10,30 @@ import {
   CheckCircle,
   ArrowLeft,
   ArrowRight,
-  Copy,
-  ChevronDown,
 } from "lucide-react";
 import { Emoji } from "emoji-picker-react";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const STORE_TYPES = [
-  { value: "fashion", label: "ملابس وأزياء", unified: "1f457" },
-  { value: "electronics", label: "إلكترونيات", unified: "1f4f1" },
-  { value: "food", label: "مأكولات ومشروبات", unified: "1f354" },
-  { value: "beauty", label: "تجميل وعناية", unified: "1f484" },
-  { value: "home", label: "منزل وأثاث", unified: "1f3e0" },
-  { value: "sports", label: "رياضة وهوايات", unified: "26bd" },
-  { value: "books", label: "كتب وتعليم", unified: "1f4da" },
-  { value: "jewelry", label: "مجوهرات وإكسسوارات", unified: "1f48d" },
-  { value: "toys", label: "ألعاب أطفال", unified: "1f9f8" },
-  { value: "other", label: "متجر متنوع", unified: "1f3ea" },
-];
-
-const PAYMENT_METHODS = [
-  {
-    value: "cash_on_delivery",
-    label: "الدفع عند الاستلام",
-    description: "الزبون يدفع عند استلام الطلب",
-    icon: "1f682", // truck emoji
-    default: true,
-  },
-  {
-    value: "whish_money",
-    label: "محفظة وش",
-    description: "تحويل أموال عبر تطبيق وش",
-    icon: "1f4b3", // wallet emoji
-    default: false,
-  },
-  {
-    value: "bob_finance",
-    label: "OMT ",
-    description: "الدفع عبر خدمة بوب فاينينس - OMT -",
-    icon: "1f4b5", // money emoji
-    default: false,
-  },
-];
-
-const STEPS = [
-  { id: 1, label: "البريد" },
-  { id: 2, label: "معلوماتك" },
-  { id: 3, label: "عن المتجر" },
-  { id: 4, label: "كلمة المرور" },
-  { id: 5, label: "رابطك" },
-];
-
-const INPUT_BASE =
-  "w-full h-12 md:h-14 px-4 rounded border border-[#f3ede5] bg-gray-50 " +
-  "text-brand-dark placeholder:text-[#bbb] text-sm outline-none " +
-  "transition-all duration-200 focus:border-brand-dark focus:bg-white " +
-  "focus:ring-4 focus:ring-brand-dark/5";
-
-const LABEL_BASE = "text-sm font-semibold text-brand-dark tracking-wide";
-const STORAGE_KEY = "mahalli_onboarding";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function generateSlug(name: string) {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 30);
-}
-
-type FormState = {
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  location: string;
-  storeName: string;
-  storeType: string;
-  paymentMethods: string[]; // ✅ NEW: Array of selected payment methods
-  slug: string;
-  password: string;
-  confirmPassword: string;
-};
-
-const DEFAULT_FORM: FormState = {
-  email: "",
-  firstName: "",
-  lastName: "",
-  phone: "",
-  location: "",
-  storeName: "",
-  storeType: "",
-  paymentMethods: ["cash_on_delivery"], // ✅ NEW: Default to cash on delivery
-  slug: "",
-  password: "",
-  confirmPassword: "",
-};
-
-function loadFromStorage(): { form: FormState; step: number } {
-  if (typeof window === "undefined") return { form: DEFAULT_FORM, step: 1 };
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { form: DEFAULT_FORM, step: 1 };
-    const parsed = JSON.parse(raw);
-    return {
-      form: { ...DEFAULT_FORM, ...parsed.form },
-      step: parsed.step ?? 1,
-    };
-  } catch {
-    return { form: DEFAULT_FORM, step: 1 };
-  }
-}
-
-function saveToStorage(form: FormState, step: number) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ form, step }));
-  } catch {}
-}
-
-function clearStorage() {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch {}
-}
-
-// ─── Progress Bar (fixed top) ─────────────────────────────────────────────────
-function ProgressBar({ current, total }: { current: number; total: number }) {
-  const pct = ((current - 1) / (total - 1)) * 100;
-  return (
-    <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-[#e8e3db]">
-      <div
-        className="h-full bg-brand-dark transition-all duration-700"
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  );
-}
-
-// ─── Step Pills ───────────────────────────────────────────────────────────────
-function StepPills({ current }: { current: number }) {
-  return (
-    <div className="flex justify-center pt-3 pb-2">
-      <div className="flex items-center gap-1.5">
-        {STEPS.map((s) => {
-          const isDone = s.id < current;
-          const isActive = s.id === current;
-          return (
-            <div key={s.id} className="flex items-center gap-1.5">
-              <div
-                className={[
-                  "flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold transition-all duration-300",
-                  isDone
-                    ? "bg-brand-dark text-white"
-                    : isActive
-                      ? "bg-[#e3ceff] text-brand-dark"
-                      : "bg-transparent text-[#ccc]",
-                ].join(" ")}
-              >
-                {isDone && <CheckCircle className="w-3 h-3" />}
-                <span>{s.label}</span>
-              </div>
-              {s.id < STEPS.length && (
-                <div
-                  className={[
-                    "w-3 h-px transition-all duration-500",
-                    isDone ? "bg-brand-dark" : "bg-[#e8e3db]",
-                  ].join(" ")}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Field ────────────────────────────────────────────────────────────────────
-function Field({
-  label,
-  hint,
-  error,
-  children,
-}: {
-  label?: string;
-  hint?: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      {label && (
-        <div className="flex items-baseline justify-between mb-2">
-          <label className={LABEL_BASE}>{label}</label>
-          {hint && !error && (
-            <span className="text-xs text-[#aaa]">{hint}</span>
-          )}
-        </div>
-      )}
-      {children}
-      {error && (
-        <p className="mt-2 text-xs text-red-500 flex items-center gap-1.5">
-          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
-
-// ─── Animated Step Wrapper ────────────────────────────────────────────────────
-function StepWrapper({
-  children,
-  stepKey,
-}: {
-  children: React.ReactNode;
-  stepKey: number;
-}) {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 10);
-    return () => clearTimeout(t);
-  }, []);
-  return (
-    <div
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0px)" : "translateY(16px)",
-        transition: "opacity 0.35s ease, transform 0.35s ease",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-// ─── Success Screen ───────────────────────────────────────────────────────────
-function SuccessScreen({ slug }: { slug: string }) {
-  const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mahalli.lb";
-  const storeUrl = `${slug}.${domain}`;
-  const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    navigator.clipboard.writeText(storeUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-  return (
-    <div
-      dir="rtl"
-      className="min-h-screen bg-white flex items-center justify-center px-5 py-10"
-    >
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex justify-center mb-12">
-          <Image src="/Logo.svg" alt="محلي" width={140} height={48} />
-        </div>
-        <div className="text-center">
-          {/* Title */}
-          <h1 className="text-3xl md:text-4xl text-green-400 mb-4 flex items-center justify-center gap-3 leading-tight">
-            متجرك صار جاهز للعمل
-            <Emoji unified="1f389" size={36} />
-          </h1>
-          <p className="text-gray-600 text-base leading-relaxed mb-8 px-2">
-            مبروك! خطوتك الأولى في التجارة الإلكترونية تمت بنجاح. عشان تبدأ صح
-            وبدون لخبطة، جهّزنا لك الخطوات الجاية بكل بساطة:
-          </p>
-          {/* Step-by-Step Baby UX */}
-          <div className="text-right space-y-4 mb-8">
-            {/* Step 1 */}
-            <div className="flex items-start gap-3 bg-gray-50 p-4 border border-gray-200 rounded transition-colors hover:bg-gray-100">
-              <div className="flex-shrink-0 w-6 h-6 rounded bg-white border border-gray-200 flex items-center justify-center text-sm font-bold text-brand-dark mt-0.5">
-                1
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-brand-dark mb-1">
-                  احفظ رابط متجرك
-                </h3>
-                <p className="text-sm text-gray-500 mb-4">
-                  هذا هو عنوانك على الإنترنت، انسخه وخلّيه عندك عشان تشاركه مع
-                  زبائنك ويبدأوا يطلبوا.
-                </p>
-                {/* URL Card Integrated */}
-                <div className="bg-white border border-gray-200 rounded p-3 flex items-center justify-between gap-4">
-                  <p
-                    className="text-brand-dark font-bold text-left break-all text-sm md:text-base"
-                    dir="ltr"
-                  >
-                    {slug}
-                    <span className="text-gray-400">.{domain}</span>
-                  </p>
-                  <button
-                    onClick={handleCopy}
-                    className={[
-                      "flex-shrink-0 px-3 py-2 rounded border font-semibold text-xs flex items-center gap-1.5 transition-all duration-300",
-                      copied
-                        ? "border-green-300 bg-green-50 text-green-700"
-                        : "border-gray-200 text-brand-dark hover:border-brand-dark hover:bg-gray-50",
-                    ].join(" ")}
-                  >
-                    {copied ? (
-                      <>
-                        <CheckCircle className="w-3.5 h-3.5" /> تم النسخ
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" /> انسخ
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-            {/* Step 2 */}
-            <div className="flex items-start gap-3 bg-gray-50 p-4 border border-gray-200 rounded transition-colors hover:bg-gray-100">
-              <div className="flex-shrink-0 w-6 h-6 rounded bg-white border border-gray-200 flex items-center justify-center text-sm font-bold text-brand-dark mt-0.5">
-                2
-              </div>
-              <div>
-                <h3 className="font-semibold text-brand-dark mb-1">
-                  ادخل للوحة التحكم
-                </h3>
-                <p className="text-sm text-gray-500">
-                  لوحة التحكم هي الإدارة المخفية لمتجرك؛ من هناك بتقدر تضيف أول
-                  منتج، تحدد طرق الدفع، وتتابع أرباحك وطلباتك.
-                </p>
-              </div>
-            </div>
-          </div>
-          {/* Main Call to Action */}
-          <Link
-            href="/login"
-            className="w-full h-14 rounded bg-brand-dark text-white font-bold text-base flex items-center justify-center gap-2 hover:bg-[#333] transition-all duration-300 shadow-sm"
-          >
-            يلا نبدأ، الذهاب للوحة التحكم
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Shared Nav Row (back + next) ─────────────────────────────────────────────
-function NavRow({
-  onBack,
-  onNext,
-}: {
-  onBack: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <div className="flex items-center justify-between pt-4 border-t border-[#e3ceff] mt-2">
-      <button
-        type="button"
-        onClick={onBack}
-        className="flex items-center gap-1.5 px-6 h-10 rounded-lg md:rounded-2xl text-sm bg-[#e3ceff] text-[#1e1e1e] hover:text-brand-dark transition-colors"
-      >
-        <ArrowRight className="w-4 h-4" /> رجوع
-      </button>
-      <button
-        type="button"
-        onClick={onNext}
-        className="h-10 px-6 rounded-lg md:rounded-2xl bg-brand-dark text-white text-sm font-bold flex items-center gap-2 hover:bg-[#333] transition-all duration-200"
-      >
-        التالي <ArrowLeft className="w-4 h-4" />
-      </button>
-    </div>
-  );
-}
-
-function PasswordStrength({ password }: { password: string }) {
-  const checks = [
-    { label: "8 أحرف على الأقل", pass: password.length >= 8 },
-    { label: "حرف كبير", pass: /[A-Z]/.test(password) },
-    { label: "رقم", pass: /[0-9]/.test(password) },
-  ];
-  const score = checks.filter((c) => c.pass).length;
-  const colors = ["bg-red-400", "bg-yellow-400", "bg-emerald-400"];
-  const labels = ["ضعيفة", "متوسطة", "قوية"];
-  if (!password) return null;
-  return (
-    <div className="space-y-2">
-      {/* Bar */}
-      <div className="flex gap-1.5">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className={[
-              "h-1.5 flex-1 rounded-full transition-all duration-300",
-              i < score ? colors[score - 1] : "bg-[#e8e3db]",
-            ].join(" ")}
-          />
-        ))}
-      </div>
-      {/* Checks */}
-      <div className="flex gap-3 flex-wrap">
-        {checks.map((c) => (
-          <span
-            key={c.label}
-            className={[
-              "text-[11px] flex items-center gap-1 transition-colors duration-200",
-              c.pass ? "text-emerald-600" : "text-[#bbb]",
-            ].join(" ")}
-          >
-            <CheckCircle className="w-3 h-3" />
-            {c.label}
-          </span>
-        ))}
-      </div>
-      {password && (
-        <p className="text-xs text-[#888]">
-          قوة كلمة المرور:{" "}
-          <span
-            className={
-              score === 3 ? "text-emerald-600 font-semibold" : "text-[#aaa]"
-            }
-          >
-            {labels[score - 1] ?? "ضعيفة جداً"}
-          </span>
-        </p>
-      )}
-    </div>
-  );
-}
+import {
+  STORE_TYPES,
+  PAYMENT_METHODS,
+  STEPS,
+  INPUT_BASE,
+  generateSlug,
+  FormState,
+  DEFAULT_FORM,
+  loadFromStorage,
+  saveToStorage,
+  clearStorage,
+} from "./components/OnboardingConstants";
+import {
+  ProgressBar,
+  StepPills,
+  Field,
+  StepWrapper,
+  NavRow,
+  PasswordStrength,
+} from "./components/OnboardingUI";
+import { SuccessScreen } from "./components/SuccessScreen";
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function OnboardingPage() {
@@ -502,17 +101,14 @@ export default function OnboardingPage() {
     setErrors((e) => ({ ...e, [key]: "" }));
   }, []);
 
-  // ✅ NEW: Toggle payment method
   const togglePaymentMethod = useCallback((method: string) => {
     setForm((f) => {
       const current = f.paymentMethods;
       if (current.includes(method)) {
-        // Remove only if at least one will remain
         if (current.length > 1) {
           return { ...f, paymentMethods: current.filter((m) => m !== method) };
         }
       } else {
-        // Add method
         return { ...f, paymentMethods: [...current, method] };
       }
       return f;
@@ -536,7 +132,6 @@ export default function OnboardingPage() {
       if (targetStep === 3) {
         if (!form.storeName.trim()) errs.storeName = "اسم المتجر مطلوب";
         if (!form.storeType) errs.storeType = "اختر نوع المتجر";
-        // ✅ NEW: Validate payment methods
         if (form.paymentMethods.length === 0) {
           errs.paymentMethods = "اختر طريقة دفع واحدة على الأقل";
         }
@@ -599,7 +194,7 @@ export default function OnboardingPage() {
           location: form.location,
           storeName: form.storeName,
           storeType: form.storeType,
-          paymentMethods: form.paymentMethods, // ✅ NEW: Send payment methods
+          paymentMethods: form.paymentMethods,
           slug: form.slug,
           password: form.password,
         }),
@@ -637,7 +232,7 @@ export default function OnboardingPage() {
       {/* Fixed progress bar */}
       <ProgressBar current={step} total={STEPS.length} />
       {/* ── Static Header ──────────────────────────────────────────────────── */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-sm border-b border-[#e3ceff]">
+      <header className="fixed top-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-sm border-b border-[#e5e7eb]">
         <div className="absolute top-0 left-0 right-0 h-1 bg-[#e8e3db]">
           <div
             className="h-full bg-brand-dark transition-all duration-700"
@@ -753,7 +348,7 @@ export default function OnboardingPage() {
                 </div>
                 <Field label="رقم الهاتف" error={errors.phone}>
                   <div className="flex gap-2">
-                    <div className="flex items-center gap-1.5 h-12 md:h-14 px-3 rounded-lg md:rounded-2xl border border-[#e8e3db] bg-[#e3ceff] text-sm text-brand-dark font-medium whitespace-nowrap select-none">
+                    <div className="flex items-center gap-1.5 h-12 md:h-14 px-3 rounded-lg md:rounded-2xl border border-[#e8e3db] bg-[#e5e7eb] text-sm text-brand-dark font-medium whitespace-nowrap select-none">
                       🇱🇧 <span dir="ltr">+961</span>
                     </div>
                     <input
@@ -852,7 +447,7 @@ export default function OnboardingPage() {
                   </div>
                 </Field>
 
-                {/* ✅ NEW: Payment Methods */}
+                {/* Payment Methods */}
                 <Field
                   label="طرق الدفع المتاحة"
                   hint="اختر واحدة أو أكثر"
@@ -993,11 +588,11 @@ export default function OnboardingPage() {
                     <span>{errors.global}</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between pt-4 border-t border-[#e3ceff] mt-6">
+                <div className="flex items-center justify-between pt-4 border-t border-[#e5e7eb] mt-6">
                   <button
                     type="button"
                     onClick={() => setStep(3)}
-                    className="flex items-center gap-1.5 px-7 h-12 rounded-2xl text-sm bg-[#e3ceff] text-[#1a1a1a] hover:bg-[#e8e4de] transition-colors"
+                    className="flex items-center gap-1.5 px-7 h-12 rounded-2xl text-sm bg-[#e5e7eb] text-[#1a1a1a] hover:bg-[#d1d5db] transition-colors"
                   >
                     <ArrowRight className="w-4 h-4" /> رجوع
                   </button>
@@ -1045,13 +640,13 @@ export default function OnboardingPage() {
                 >
                   <div
                     className={[
-                      "flex items-center h-12 md:h-14 rounded-2xl border bg-[#e3ceff] overflow-hidden transition-all duration-200",
+                      "flex items-center h-12 md:h-14 rounded-2xl border bg-[#e5e7eb] overflow-hidden transition-all duration-200",
                       errors.slug
                         ? "border-red-300 focus-within:ring-4 focus-within:ring-red-100"
                         : "border-[#e8e3db] focus-within:border-brand-dark focus-within:ring-4 focus-within:ring-brand-dark/5 focus-within:bg-white",
                     ].join(" ")}
                   >
-                    <div className="h-full flex items-center px-3 border-l border-[#e8e3db] bg-[#e3ceff] text-[#999] text-xs font-medium whitespace-nowrap">
+                    <div className="h-full flex items-center px-3 border-l border-[#e8e3db] bg-[#e5e7eb] text-[#999] text-xs font-medium whitespace-nowrap">
                       .{domain}
                     </div>
                     <input
@@ -1119,11 +714,11 @@ export default function OnboardingPage() {
                     <span>{errors.global}</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between pt-4 border-t border-[#e3ceff] mt-6">
+                <div className="flex items-center justify-between pt-4 border-t border-[#e5e7eb] mt-6">
                   <button
                     type="button"
                     onClick={() => setStep(4)}
-                    className="flex items-center gap-1.5 px-7 h-12 rounded-lg md:rounded-2xl text-sm bg-[#e3ceff] text-brand-dark hover:bg-[#e8e4de] transition-colors"
+                    className="flex items-center gap-1.5 px-7 h-12 rounded-lg md:rounded-2xl text-sm bg-[#e5e7eb] text-brand-dark hover:bg-[#d1d5db] transition-colors"
                   >
                     <ArrowRight className="w-4 h-4" /> رجوع
                   </button>

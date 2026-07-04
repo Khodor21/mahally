@@ -78,6 +78,36 @@ export default function ProductFormModal({
 
   useEffect(() => {
     if (mode === "edit" && product) {
+      let parsedVariantGroups: any[] = [];
+
+      try {
+        // 1. Support both camelCase and snake_case in case the API serializer alters the key
+        let rawGroups =
+          (product as any).variantGroups ?? (product as any).variant_groups;
+
+        if (rawGroups) {
+          // 2. Handle double or triple stringification natively
+          while (typeof rawGroups === "string" && rawGroups.trim() !== "") {
+            try {
+              rawGroups = JSON.parse(rawGroups);
+            } catch (e) {
+              // Break loop if it's a string but fails to parse, preserving the current state
+              break;
+            }
+          }
+
+          // 3. Ensure it's a valid array and sanitize inner options to prevent UI crashes
+          if (Array.isArray(rawGroups)) {
+            parsedVariantGroups = rawGroups.map((g: any) => ({
+              ...g,
+              options: Array.isArray(g?.options) ? g.options : [],
+            }));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to parse variant groups:", error);
+      }
+
       setForm({
         title: product.title,
         description: product.description ?? "",
@@ -89,12 +119,21 @@ export default function ProductFormModal({
             : "",
         stock: String(product.stock),
         images: product.images ?? [],
-        category_id: (product as any).category_id ?? "",
-        variantGroups: (product as any).variantGroups ?? [],
+        category_id:
+          (product as any).category_id ?? (product as any).categoryId ?? "",
+        variantGroups: parsedVariantGroups,
         pin: Boolean((product as any).pin),
       });
+
+      // 4. Auto-expand the first variant group so it is visually obvious to the user
+      if (parsedVariantGroups.length > 0 && parsedVariantGroups[0]?.id) {
+        setExpandedVariantGroup(parsedVariantGroups[0].id);
+      } else {
+        setExpandedVariantGroup(null);
+      }
     } else {
       setForm(EMPTY_FORM);
+      setExpandedVariantGroup(null);
     }
     setErrors({});
   }, [mode, product]);
@@ -309,7 +348,7 @@ export default function ProductFormModal({
       >
         {/* Header */}
         <div className="sticky top-0 z-10 px-6 py-5 md:py-6 border-b border-[rgb(244_242_245)] bg-white flex items-center justify-between rounded-t-3xl">
-          <h2 className="text-lg md:text-xl font-bold text-[rgb(60_28_84)]">
+          <h3 className="text-lg md:text-xl font-bold text-[rgb(60_28_84)]">
             {mode === "create"
               ? dir === "rtl"
                 ? "إنشاء منتج جديد"
@@ -317,7 +356,7 @@ export default function ProductFormModal({
               : dir === "rtl"
                 ? "تعديل المنتج"
                 : "Edit Product"}
-          </h2>
+          </h3>
           <button
             type="button"
             onClick={onClose}

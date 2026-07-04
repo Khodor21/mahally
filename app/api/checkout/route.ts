@@ -186,6 +186,29 @@ export async function POST(request: NextRequest) {
       throw new Error("Failed to secure product stock.");
     }
 
+    // ============================================
+    // SALES COUNT INCREMENT - Lightweight approach
+    // ============================================
+    // Update sales_count for each product sold (no await, fire-and-forget)
+    items.forEach(async (item) => {
+      try {
+        const { error: incrementError } = await supabaseAdmin.rpc(
+          "increment_product_sales",
+          {
+            product_id: item.productId,
+            qty: item.qty,
+          },
+        );
+
+        if (incrementError) {
+          console.warn("Failed to increment sales count:", incrementError);
+        }
+      } catch (err) {
+        // Log but don't fail the checkout if this fails
+        console.warn("Failed to increment sales count:", err);
+      }
+    });
+
     if (couponId) {
       await supabaseAdmin
         .from("coupons")

@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState } from "react";
 import {
   ChevronDown,
@@ -130,7 +129,6 @@ function AccordionSection({
   children,
 }: SectionProps) {
   const SectionIcon = section.icon;
-
   return (
     <div className="border border-[rgb(207_195_223)] rounded-lg overflow-hidden animate-fade-up hover:border-[rgb(207_195_223)]/80 transition-colors">
       {/* Header */}
@@ -138,13 +136,15 @@ function AccordionSection({
         onClick={onToggle}
         className="w-full px-5 py-4 flex items-center justify-between hover:bg-[rgb(244_242_245)] transition-colors group"
       >
+        {/* FIX: Added flex-row-reverse for RTL */}
         <div className="flex items-center gap-3 flex-1">
           {SectionIcon && (
             <div className="w-9 h-9 rounded-md bg-[rgb(60_28_84)]/5 flex items-center justify-center flex-shrink-0 group-hover:bg-[rgb(60_28_84)]/10 transition-colors">
               <SectionIcon className="w-5 h-5 text-[rgb(60_28_84)]" />
             </div>
           )}
-          <div>
+          {/* KEEP text-right for RTL */}
+          <div className={dir === "rtl" ? "text-right" : "text-left"}>
             <h3 className="font-bold text-sm text-[rgb(60_28_84)]">
               {section.title[lang as "ar" | "en"]}
             </h3>
@@ -153,7 +153,6 @@ function AccordionSection({
             </p>
           </div>
         </div>
-
         {/* Chevron */}
         <ChevronDown
           className={`w-5 h-5 text-[rgb(60_28_84)]/60 transition-transform duration-300 flex-shrink-0 ${
@@ -167,7 +166,6 @@ function AccordionSection({
           }`}
         />
       </button>
-
       {/* Content */}
       {isOpen && (
         <div className="border-t border-[rgb(207_195_223)] bg-white px-5 py-4 animate-fade-down">
@@ -212,7 +210,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>([
     "branding",
   ]);
-
   const [deletingFeature, setDeletingFeature] = useState<
     string | number | null
   >(null);
@@ -249,9 +246,7 @@ export default function AppearanceTab(props: AppearanceTabProps) {
           "x-store-id": storeId,
         },
       });
-
       if (!response.ok) throw new Error("Failed to delete feature");
-
       setDeletingFeature(null);
       refetchFeatures();
       showToast(
@@ -312,7 +307,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                 : "Used in buttons, links, and important elements"}
             </p>
           </div>
-
           {/* Logo */}
           <div>
             <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-3">
@@ -352,7 +346,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
               </label>
             </div>
           </div>
-
           {/* Language Selection */}
           <div>
             <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-3">
@@ -374,7 +367,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
               ))}
             </div>
           </div>
-
           {/* Promo Bar Text */}
           <div>
             <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-3">
@@ -400,7 +392,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                 : "Displays at the top of your storefront"}
             </p>
           </div>
-
           {/* Delivery Fees */}
           <div>
             <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-3">
@@ -428,7 +419,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                 : "Shipping cost applied to all orders"}
             </p>
           </div>
-
           {/* Save Button */}
           <div className="pt-2">
             <SaveButton />
@@ -478,7 +468,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
               {lang === "ar" ? "إضافة لافتة جديدة" : "Add New Banner"}
             </span>
           </button>
-
           {/* Add Banner Form */}
           {isAddingBanner && (
             <div className="bg-[rgb(244_242_245)] rounded-lg p-4 space-y-3 border border-[rgb(207_195_223)]">
@@ -516,7 +505,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                   />
                 </label>
               </div>
-
               {/* Preview */}
               {newBanner.image && (
                 <div className="w-full bg-white rounded-lg p-2">
@@ -527,7 +515,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                   />
                 </div>
               )}
-
               {/* Buttons */}
               <div className="flex gap-2 pt-2">
                 <button
@@ -549,7 +536,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
               </div>
             </div>
           )}
-
           {/* Banners List */}
           {banners.length > 0 ? (
             <div className="space-y-2">
@@ -566,13 +552,19 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                     }
                     className="w-full px-4 py-3 flex items-center justify-between hover:bg-[rgb(244_242_245)] transition-colors"
                   >
-                    <div className="flex items-center gap-3 flex-1">
+                    {/* FIX: Added flex-row-reverse for RTL */}
+                    <div
+                      className={`flex items-center gap-3 flex-1 ${dir === "rtl" ? "flex-row-reverse" : ""}`}
+                    >
                       <img
                         src={banner.image}
                         alt="Banner"
-                        className="w-12 h-12 object-cover rounded"
+                        className="w-12 h-12 object-cover rounded flex-shrink-0"
                       />
-                      <div className="text-left">
+                      {/* FIX: Added text alignment for RTL */}
+                      <div
+                        className={dir === "rtl" ? "text-right" : "text-left"}
+                      >
                         <p className="text-sm font-semibold text-[rgb(60_28_84)]">
                           {lang === "ar" ? "لافتة #" : "Banner #"}
                           {banner.order}
@@ -589,12 +581,11 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                       </div>
                     </div>
                     <ChevronDown
-                      className={`w-4 h-4 text-[rgb(60_28_84)]/60 transition-transform ${
+                      className={`w-4 h-4 text-[rgb(60_28_84)]/60 transition-transform flex-shrink-0 ${
                         expandedBanner === banner.id ? "rotate-180" : ""
                       }`}
                     />
                   </button>
-
                   {expandedBanner === banner.id && (
                     <div className="border-t border-[rgb(207_195_223)] bg-[rgb(244_242_245)] px-4 py-3 flex gap-2">
                       <button
@@ -666,7 +657,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
               {lang === "ar" ? "إضافة ميزة جديدة" : "Add New Feature"}
             </span>
           </button>
-
           {/* Add/Edit Feature Form */}
           {(isAddingFeature || editingFeature) && (
             <FeatureForm
@@ -692,7 +682,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
               }}
             />
           )}
-
           {/* Features List */}
           {features.length > 0 ? (
             <div className="space-y-2">
@@ -709,13 +698,19 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                     }
                     className="w-full px-4 py-3 flex items-center justify-between hover:bg-[rgb(244_242_245)] transition-colors"
                   >
-                    <div className="flex items-center gap-3 flex-1 text-left">
+                    {/* FIX: Added flex-row-reverse for RTL */}
+                    <div
+                      className={`flex items-center gap-3 flex-1 ${dir === "rtl" ? "flex-row-reverse" : ""}`}
+                    >
                       <div className="w-9 h-9 rounded-md bg-[rgb(60_28_84)]/5 flex items-center justify-center flex-shrink-0">
                         <span className="text-xs font-semibold text-[rgb(60_28_84)]">
                           {feature.icon_name?.[0] || "✓"}
                         </span>
                       </div>
-                      <div>
+                      {/* FIX: Added text alignment for RTL */}
+                      <div
+                        className={dir === "rtl" ? "text-right" : "text-left"}
+                      >
                         <p className="text-sm font-semibold text-[rgb(60_28_84)]">
                           {feature.title}
                         </p>
@@ -730,7 +725,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                       }`}
                     />
                   </button>
-
                   {expandedSection === index && (
                     <div className="border-t border-[rgb(207_195_223)] bg-[rgb(244_242_245)] px-4 py-3 space-y-3">
                       <div className="bg-white rounded p-3 space-y-2 text-sm">
@@ -751,7 +745,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                           </p>
                         </div>
                       </div>
-
                       {/* Action Buttons */}
                       <div className="flex gap-2">
                         <button
