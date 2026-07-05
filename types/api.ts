@@ -92,8 +92,10 @@ export interface Order {
   status: "pending" | "processing" | "completed" | "cancelled";
   created_at: string;
   order_items: OrderItem[];
-    payment_method?: string;
+  payment_method?: string;
   notes?: string;
+  discount_amount?: number;
+  coupon_code?: string;
 }
 
 export interface Customer {

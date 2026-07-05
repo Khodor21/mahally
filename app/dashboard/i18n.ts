@@ -207,6 +207,10 @@ export const t = {
     errorOccurred: "حدث خطأ ما. يرجى المحاولة مجددًا.",
 
     // Media
+    updateStatus: "تحديث الحالة",
+    orderSummary: "ملخص الطلب",
+    notes: "ملاحظات العميل",
+    paymentMethod: "طريقة الدفع",
     maxImagesError: "الحد الأقصى 5 صور لكل رفع",
     uploading: "جاري رفع الصور...",
     imageUploadHint:
@@ -419,6 +423,10 @@ export const t = {
     errorOccurred: "Something went wrong. Please try again.",
 
     // Media
+    updateStatus: "Update Status",
+    orderSummary: "Order Summary",
+    notes : "Client Notes", 
+    paymentMethod: "Payment Method",
     maxImagesError: "Maximum 5 images per upload",
     uploading: "Uploading images...",
     imageUploadHint:
