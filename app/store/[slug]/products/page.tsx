@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  AlertCircle,
 } from "lucide-react";
 import ProductCard from "../components/landing/ProductCard";
 
@@ -52,16 +53,16 @@ function SearchBar({
     <div className="relative flex-grow w-full">
       <div
         className={`absolute inset-y-0 ${
-          dir === "rtl" ? "right-0 pr-3" : "left-0 pl-3"
+          dir === "rtl" ? "right-0 pr-3.5" : "left-0 pl-3.5"
         } flex items-center pointer-events-none`}
       >
-        <Search className="h-5 w-5 text-gray-400" />
+        <Search className="h-5 w-5 text-gray-400 drop-shadow-sm" />
       </div>
       <input
         type="text"
-        className={`block w-full rounded-lg border border-gray-100 bg-[#fdfdfd] py-1.5 md:py-2.5 ${
-          dir === "rtl" ? "pr-10 pl-3" : "pl-10 pr-3"
-        } text-sm focus:border-brand-black focus:ring-brand-black outline-none transition-colors`}
+        className={`block w-full rounded-xl border border-gray-200 bg-[#fdfdfd] py-2.5 md:py-3 ${
+          dir === "rtl" ? "pr-11 pl-4" : "pl-11 pr-4"
+        } text-sm focus:border-[#B73034] focus:ring-1 focus:ring-[#B73034] outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]`}
         placeholder={placeholder}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
@@ -85,25 +86,25 @@ function FilterPanel({
   t: any;
 }) {
   return (
-    <div className="w-full flex justify-between gap-0 md:justify-center flex-wrap items-center md:gap-4">
+    <div className="w-full flex justify-between gap-3 md:justify-center flex-wrap items-center md:gap-5">
       <select
         value={sortOption}
         onChange={(e) => setSortOption(e.target.value as SortOption)}
-        className="text-sm border border-gray-200 rounded-md py-2 px-3 bg-white outline-none focus:border-brand-black cursor-pointer"
+        className="text-sm border border-gray-200 rounded-xl py-2.5 px-4 bg-white outline-none focus:border-[#B73034] cursor-pointer shadow-sm transition-all"
       >
         <option value="default">{t.sortDefault}</option>
         <option value="price-asc">{t.sortPriceAsc}</option>
         <option value="price-desc">{t.sortPriceDesc}</option>
       </select>
 
-      <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+      <label className="flex items-center gap-2.5 cursor-pointer text-sm text-gray-700 select-none">
         <input
           type="checkbox"
           checked={inStockOnly}
           onChange={(e) => setInStockOnly(e.target.checked)}
-          className="rounded border-gray-300 text-brand-black focus:ring-brand-black w-4 h-4 cursor-pointer"
+          className="rounded border-gray-300 text-[#B73034] focus:ring-[#B73034] w-5 h-5 cursor-pointer transition-colors"
         />
-        {t.inStockOnly}
+        <span className="font-medium">{t.inStockOnly}</span>
       </label>
     </div>
   );
@@ -112,12 +113,12 @@ function FilterPanel({
 // --- Separate Component: Skeleton Grid ---
 function SkeletonGrid() {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="animate-pulse">
-          <div className="aspect-square bg-gray-100 rounded-lg mb-3" />
-          <div className="h-4 bg-gray-100 rounded w-3/4 mb-2" />
-          <div className="h-4 bg-gray-100 rounded w-1/2" />
+        <div key={i} className="animate-pulse flex flex-col">
+          <div className="aspect-square bg-gray-100/80 rounded-2xl mb-4 shadow-sm" />
+          <div className="h-4 bg-gray-100 rounded-md w-3/4 mb-3" />
+          <div className="h-4 bg-gray-100 rounded-md w-1/2" />
         </div>
       ))}
     </div>
@@ -174,14 +175,14 @@ function Pagination({
   const NextIcon = dir === "rtl" ? ChevronLeft : ChevronRight;
 
   return (
-    <div className="flex items-center justify-center gap-1.5 mt-10 mb-4">
+    <div className="flex items-center justify-center gap-2 mt-12 mb-6">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm bg-white"
         aria-label={lang === "ar" ? "الصفحة السابقة" : "Previous page"}
       >
-        <PrevIcon className="w-4 h-4" />
+        <PrevIcon className="w-5 h-5" />
       </button>
 
       {pages.map((page, idx) => {
@@ -189,7 +190,7 @@ function Pagination({
           return (
             <span
               key={page}
-              className="w-9 h-9 flex items-center justify-center text-gray-400 text-sm select-none"
+              className="w-10 h-10 flex items-center justify-center text-gray-400 text-sm select-none"
             >
               ...
             </span>
@@ -200,10 +201,10 @@ function Pagination({
           <button
             key={page}
             onClick={() => onPageChange(page)}
-            className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+            className={`w-10 h-10 rounded-xl text-sm font-semibold transition-all shadow-sm ${
               page === currentPage
-                ? "bg-brand-black text-white border border-brand-black"
-                : "border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                ? "bg-gradient-to-b from-[#cf3c40] to-[#B73034] text-white border-transparent shadow-[0_4px_10px_rgba(183,48,52,0.3)] transform scale-105"
+                : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
             }`}
           >
             {page}
@@ -214,10 +215,10 @@ function Pagination({
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm bg-white"
         aria-label={lang === "ar" ? "الصفحة التالية" : "Next page"}
       >
-        <NextIcon className="w-4 h-4" />
+        <NextIcon className="w-5 h-5" />
       </button>
     </div>
   );
@@ -230,6 +231,7 @@ export default function ProductsPage() {
   const rawLang = searchParams.get("lang");
   const lang: "ar" | "en" = rawLang === "en" ? "en" : "ar";
   const dir = lang === "ar" ? "rtl" : "ltr";
+  const rawStoreId = searchParams.get("store_id");
 
   const [allProducts, setAllProducts] = useState<BackendProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -285,6 +287,9 @@ export default function ProductsPage() {
 
   // --- Fetch Data (once, then cache) ---
   useEffect(() => {
+    // Invalidate cache when store context or language changes
+    productsCache.current = null;
+
     async function fetchProducts() {
       // Return cached if available
       if (productsCache.current) {
@@ -295,7 +300,8 @@ export default function ProductsPage() {
 
       try {
         setLoading(true);
-        const res = await fetch(`/api/products?lang=${lang}`);
+        const fetchUrl = `/api/products?lang=${lang}${rawStoreId ? `&store_id=${rawStoreId}` : ""}`;
+        const res = await fetch(fetchUrl);
 
         if (!res.ok) throw new Error("Failed to fetch products");
         const json = await res.json();
@@ -321,7 +327,7 @@ export default function ProductsPage() {
     }
 
     fetchProducts();
-  }, [lang]);
+  }, [lang, rawStoreId]);
 
   // --- Client-side Filtering, Sorting & Pagination ---
   const filteredProducts = useMemo(() => {
@@ -395,17 +401,17 @@ export default function ProductsPage() {
   // --- Render Loading ---
   if (loading) {
     return (
-      <div dir={dir} className="min-h-screen bg-white pb-16">
-        <div className="py-4 px-4 md:px-8">
+      <div dir={dir} className="min-h-screen pb-8">
+        <div className="py-6 px-4 md:px-8">
           <div className="max-w-7xl mx-auto">
-            <div className="h-4 w-24 bg-gray-100 rounded animate-pulse mb-2" />
-            <div className="h-4 w-40 bg-gray-100 rounded animate-pulse" />
+            <div className="h-4 w-28 bg-gray-200/60 rounded-md animate-pulse mb-3" />
+            <div className="h-5 w-48 bg-gray-200/60 rounded-md animate-pulse" />
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4 mt-1">
-          <div className="flex flex-col lg:flex-row gap-4 mb-8">
-            <div className="h-10 w-full bg-gray-100 rounded-lg animate-pulse" />
-            <div className="h-10 w-48 bg-gray-100 rounded-md animate-pulse" />
+        <div className="max-w-7xl mx-auto px-4 mt-2">
+          <div className="flex flex-col lg:flex-row gap-5 mb-10">
+            <div className="h-12 w-full bg-white rounded-xl shadow-sm border border-gray-100 animate-pulse" />
+            <div className="h-12 w-full lg:w-64 bg-white rounded-xl shadow-sm border border-gray-100 animate-pulse" />
           </div>
           <SkeletonGrid />
         </div>
@@ -417,13 +423,16 @@ export default function ProductsPage() {
   if (error) {
     return (
       <div
-        className="min-h-screen flex flex-col items-center justify-center bg-white gap-4"
+        className="min-h-screen flex flex-col items-center justify-center gap-5"
         dir={dir}
       >
-        <p className="text-red-500 font-medium">{error}</p>
+        <div className="flex flex-col items-center max-w-md text-center px-6 py-8 bg-white rounded-2xl border border-red-100 shadow-sm">
+          <AlertCircle className="w-12 h-12 text-[#B73034] mb-4 opacity-80" />
+          <p className="text-gray-800 font-medium leading-relaxed">{error}</p>
+        </div>
         <Link
           href={`/?lang=${lang}`}
-          className="text-brand-black hover:underline"
+          className="text-[#B73034] font-semibold hover:text-[#912529] transition-colors hover:underline underline-offset-4"
         >
           {t.back}
         </Link>
@@ -434,27 +443,27 @@ export default function ProductsPage() {
   const BreadcrumbIcon = dir === "rtl" ? ChevronLeft : ChevronRight;
 
   return (
-    <div dir={dir} className="min-h-screen bg-white pb-16">
+    <div dir={dir} className="min-h-screen bg-white pb-20">
       {/* Header & Breadcrumbs */}
-      <div className="py-4 px-4 md:px-8">
+      <div className="py-6 px-4 md:px-8 border-b border-gray-100 shadow-sm mb-8">
         <div className="max-w-7xl mx-auto flex flex-col items-start gap-2">
-          <p className="font-medium text-gray-400 flex items-center flex-wrap gap-2">
+          <p className="text-sm font-medium text-gray-400 flex items-center flex-wrap gap-2.5">
             <Link
               href={`/?lang=${lang}`}
-              className="hover:text-brand-black transition-colors"
+              className="hover:text-[#B73034] transition-colors"
             >
               {t.home}
             </Link>
-            <BreadcrumbIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <span className="text-brand-black">{t.allProducts}</span>
+            <BreadcrumbIcon className="w-4 h-4 text-gray-300 flex-shrink-0" />
+            <span className="text-gray-900 font-semibold">{t.allProducts}</span>
           </p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 mt-1">
+      <div className="max-w-7xl mx-auto px-4">
         {/* Search & Filter Section */}
         {allProducts.length > 0 && (
-          <div className="flex flex-col w-full lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
+          <div className="flex flex-col w-full lg:flex-row justify-between items-start lg:items-center gap-5 mb-8">
             <SearchBar
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
@@ -473,34 +482,39 @@ export default function ProductsPage() {
 
         {/* Results Counter */}
         {!loading && allProducts.length > 0 && filteredProducts.length > 0 && (
-          <p className="text-xs text-gray-400 mb-4">
+          <p className="text-sm font-medium text-gray-500 mb-6 bg-white px-4 py-2 rounded-lg inline-block shadow-sm border border-gray-100">
             {t.showingResults(resultsFrom, resultsTo, filteredProducts.length)}
           </p>
         )}
 
         {/* Products Grid / Empty States */}
         {allProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+          <div className="flex flex-col items-center justify-center py-32 text-gray-500 bg-white rounded-3xl border border-gray-100 shadow-sm">
             <PackageX
-              className="w-20 h-20 mb-4 text-gray-300"
+              className="w-24 h-24 mb-6 text-gray-200 drop-shadow-sm"
               strokeWidth={1.5}
             />
-            <p className="text-lg font-medium">{t.emptyState}</p>
+            <p className="text-xl font-medium text-gray-600">{t.emptyState}</p>
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-            <Search className="w-12 h-12 mb-4 text-gray-300" />
-            <p className="md:text-lg font-medium">{t.noSearchResults}</p>
+          <div className="flex flex-col items-center justify-center py-32 text-gray-500 bg-white rounded-3xl border border-gray-100 shadow-sm">
+            <Search
+              className="w-20 h-20 mb-6 text-gray-200 drop-shadow-sm"
+              strokeWidth={1.5}
+            />
+            <p className="md:text-lg font-medium text-gray-600 mb-6">
+              {t.noSearchResults}
+            </p>
             <button
               onClick={handleClearFilters}
-              className="mt-4 px-4 py-2 text-sm bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50 transition-colors"
+              className="px-6 py-2.5 text-sm font-semibold bg-white border border-gray-200 text-gray-700 rounded-xl shadow-sm hover:bg-gray-50 hover:text-[#B73034] transition-all"
             >
               {t.clearFilters}
             </button>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               {paginatedProducts.map((product) => {
                 const badge: "New" | "Sale" | "Hot" =
                   product.stock === undefined
@@ -526,7 +540,7 @@ export default function ProductsPage() {
                 return (
                   <div
                     key={product.id}
-                    className="animate-in fade-in duration-500"
+                    className="animate-in fade-in zoom-in-95 duration-500"
                   >
                     <ProductCard lang={lang} product={mappedProduct} />
                   </div>

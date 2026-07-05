@@ -73,12 +73,12 @@ export default function FeaturesSection({
               >
                 <div className="flex items-center justify-center text-brand-primary">
                   <IconComponent
-                    className="w-8 h-8 md:w-10 md:h-10"
+                    className="w-7 h-7 sm:w-9 md:h-9"
                     strokeWidth={1}
                   />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="font-medium text-black text-base md:text-lg leading-tight">
+                  <h3 className="font-medium text-black text-sm sm:text-base leading-tight">
                     {feature.title}
                   </h3>
                   {/* <p className="text-brand-primary/80 text-sm md:text-base">

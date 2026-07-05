@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, CreditCard } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const LEBANON_GOVERNORATES_EN = [
@@ -30,6 +30,25 @@ const LEBANON_GOVERNORATES = LEBANON_GOVERNORATES_EN.map((en, i) => ({
   label: en,
   labelAr: LEBANON_GOVERNORATES_AR[i],
 }));
+
+// Payment method labels
+const PAYMENT_METHOD_LABELS = {
+  cash_on_delivery: {
+    en: "Cash on Delivery",
+    ar: "الدفع عند الاستلام",
+    icon: "💰",
+  },
+  whish_money: {
+    en: "Whish Money",
+    ar: "ويش مني",
+    icon: "📱",
+  },
+  bob_finance: {
+    en: "Bob Finance",
+    ar: "بوب فاينانس",
+    icon: "🏦",
+  },
+};
 
 type CartItem = {
   product: {
@@ -72,6 +91,9 @@ type Props = {
   total: number;
   appliedCoupon: AppliedCoupon;
   activeItems: CartItem[];
+  paymentMethods?: string[];
+  selectedPaymentMethod?: string;
+  onPaymentMethodChange?: (method: string) => void;
   onValidityChange?: (isValid: boolean) => void;
 };
 
@@ -96,6 +118,9 @@ export default function ShippingForm({
   total,
   appliedCoupon,
   activeItems,
+  paymentMethods = [],
+  selectedPaymentMethod = "",
+  onPaymentMethodChange,
   onValidityChange,
 }: Props) {
   const [errors, setErrors] = useState<ValidationErrors>({
@@ -150,7 +175,7 @@ export default function ShippingForm({
         return "";
 
       case "city":
-        if (!value) {
+        if (!city) {
           return isArabic ? "يجب اختيار محافظة" : "City selection required";
         }
         return "";
@@ -191,7 +216,8 @@ export default function ShippingForm({
     customerName.trim() &&
     customerPhone.trim() &&
     city &&
-    address.trim(),
+    address.trim() &&
+    selectedPaymentMethod,
   );
 
   // Notify parent of validity changes
@@ -302,7 +328,6 @@ export default function ShippingForm({
             </p>
           </div>
 
-          {/* City */}
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-2">
               {t.city}
@@ -357,6 +382,69 @@ export default function ShippingForm({
                 : "Include neighborhood, street, and building number"}
             </p>
           </div>
+
+          {/* Payment Methods Section */}
+
+          {/* Payment Method Selection */}
+          {paymentMethods && paymentMethods.length > 0 ? (
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-2">
+                {isArabic ? "طريقة الدفع" : "Payment Method"}
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <select
+                value={selectedPaymentMethod}
+                onChange={(e) => {
+                  onPaymentMethodChange?.(e.target.value);
+                }}
+                className={`w-full h-11 rounded-xl border px-4 text-sm font-medium outline-none transition-all bg-gray-50 hover:bg-white focus:bg-white cursor-pointer ${
+                  !selectedPaymentMethod
+                    ? "border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                    : "border-gray-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                }`}
+                dir={isArabic ? "rtl" : "ltr"}
+              >
+                <option value="">
+                  {isArabic ? "اختر طريقة الدفع" : "Select payment method"}
+                </option>
+                {paymentMethods.map((method) => {
+                  const label = PAYMENT_METHOD_LABELS[
+                    method as keyof typeof PAYMENT_METHOD_LABELS
+                  ] || {
+                    en: method,
+                    ar: method,
+                    icon: "💳",
+                  };
+
+                  return (
+                    <option key={method} value={method}>
+                      {label.icon} {isArabic ? label.ar : label.en}
+                    </option>
+                  );
+                })}
+              </select>
+              {!selectedPaymentMethod && (
+                <p className="text-red-500 text-xs mt-1 font-medium">
+                  {isArabic
+                    ? "يرجى اختيار طريقة دفع"
+                    : "Please select a payment method"}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <p className="text-sm text-red-700 font-bold">
+                {isArabic
+                  ? "لا توجد طرق دفع متاحة"
+                  : "No payment methods available"}
+              </p>
+              <p className="text-xs text-red-600 mt-1">
+                {isArabic
+                  ? "يرجى التواصل مع المتجر لترتيب عملية الدفع."
+                  : "Please contact the store to arrange payment."}
+              </p>
+            </div>
+          )}
 
           {/* Notes */}
           <div>
@@ -459,7 +547,8 @@ export default function ShippingForm({
             {(touched.customerName ||
               touched.customerPhone ||
               touched.city ||
-              touched.address) && (
+              touched.address ||
+              !selectedPaymentMethod) && (
               <ul className="text-xs text-red-600 mt-2 ml-4 space-y-1">
                 {errors.customerName && (
                   <li>• {isArabic ? "الاسم" : "Name"}</li>
@@ -470,6 +559,9 @@ export default function ShippingForm({
                 {errors.city && <li>• {isArabic ? "المحافظة" : "City"}</li>}
                 {errors.address && (
                   <li>• {isArabic ? "العنوان" : "Address"}</li>
+                )}
+                {!selectedPaymentMethod && (
+                  <li>• {isArabic ? "طريقة الدفع" : "Payment method"}</li>
                 )}
               </ul>
             )}

@@ -11,6 +11,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Info,
+  ShoppingCart,
+  Zap,
 } from "lucide-react";
 import { useShop } from "../../context";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,7 +43,13 @@ export default function CartClientPage({ store }: Props) {
   // ✅ GUARANTEED DATA EXTRACTION: Pull directly from the verified Server Component prop
   const currencySymbol = store?.currency_symbol || "$";
   const storeDeliveryCost = parseFloat(store?.delivery_cost as string) || 0;
-
+  const paymentMethods = store?.payment_methods
+    ? typeof store.payment_methods === "string"
+      ? (JSON.parse(store.payment_methods) as string[])
+      : Array.isArray(store.payment_methods)
+        ? store.payment_methods
+        : []
+    : [];
   // ── Auth & Auto-fill ────────────────────────────────────
   const { customer, loading: authLoading } = useAuth(store?.id);
 
@@ -54,6 +62,7 @@ export default function CartClientPage({ store }: Props) {
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
 
   // ── Coupon State ────────────────────────────────────
   const [couponInput, setCouponInput] = useState("");
@@ -157,6 +166,15 @@ export default function CartClientPage({ store }: Props) {
     }
   };
 
+  // ── Cart/Buy Now Switcher ────────────────────────────
+  const switchToCartView = () => {
+    setIsBuyNow(false);
+  };
+
+  const switchToBuyNowView = () => {
+    setIsBuyNow(true);
+  };
+
   // ── Auto-fill from authenticated customer ──────────────
   useEffect(() => {
     if (customer) {
@@ -258,7 +276,8 @@ export default function CartClientPage({ store }: Props) {
           city,
           address,
           notes,
-          shipping, // ✅ Dynamic delivery fee correctly sent
+          shipping,
+          paymentMethod: selectedPaymentMethod,
           couponCode: appliedCoupon?.code || "",
           items: activeItems.map((item) => ({
             productId: item.product.id,
@@ -276,12 +295,12 @@ export default function CartClientPage({ store }: Props) {
           (isArabic ? "فشل إتمام الطلب" : "Checkout failed");
         setError(errorMsg);
         showCustomToast("error", errorMsg);
-        clearBuyNowSession(); // Clear session on failure
+        clearBuyNowSession();
         return;
       }
 
       if (isBuyNow) {
-        clearBuyNowSession(); // Clear BuyNow instead of global cart
+        clearBuyNowSession();
       } else {
         clearCart();
       }
@@ -329,6 +348,7 @@ export default function CartClientPage({ store }: Props) {
     customerPhone.trim() &&
     city &&
     address.trim() &&
+    selectedPaymentMethod &&
     activeItems.length > 0;
 
   const ArrowIcon = isArabic ? ChevronRight : ChevronLeft;
@@ -339,7 +359,7 @@ export default function CartClientPage({ store }: Props) {
       {toastState.show && (
         <div
           className={`fixed top-4 ${
-            isArabic ? "left-4" : "right-4"
+            isArabic ? "right-4" : "left-4"
           } z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300`}
           dir={isArabic ? "rtl" : "ltr"}
         >
@@ -418,52 +438,66 @@ export default function CartClientPage({ store }: Props) {
       {/* ── END CUSTOM TOAST ── */}
 
       <div className="max-w-2xl mx-auto">
-        {/* Mode Indicator Banner - Only on cart view */}
-        {isBuyNow && step === "cart" && (
-          <div className="mb-6 p-4 rounded-xl border border-amber-200 bg-amber-50 flex items-start gap-3">
-            <div className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 flex-shrink-0"></div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-amber-900">
-                {isArabic ? "🚀 وضع الشراء السريع" : "🚀 Quick Purchase"}
-              </p>
-              <p className="text-xs text-amber-700 mt-1">
-                {isArabic
-                  ? "منتج واحد فقط. عودة سريعة لإضافة المزيد من المتجر."
-                  : "Single item only. Quick checkout or return to store to add more."}
-              </p>
-            </div>
+        {/* Cart/Buy Now Switcher - On cart view with both items available */}
+        {step === "cart" && isBuyNow && cartItems.length > 0 && (
+          <div className="mb-6 flex gap-2">
+            <button
+              onClick={switchToBuyNowView}
+              className="flex-1 py-3 rounded bg-brand-primary/5 border-[2px] border-brand-primary/40 font-medium text-sm text-brand-primary flex items-center justify-center gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              {isArabic
+                ? `قائمة الشراء السريع  (${buyNowItem?.qty || 1})`
+                : `Quick Buy List (${buyNowItem?.qty || 1})`}
+            </button>
+            <button
+              onClick={switchToCartView}
+              className="flex-1 py-3 rounded bg-black/5 opacity-80 font-medium text-sm text-black/90 flex items-center justify-center gap-2"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {isArabic
+                ? `منتجات السلة (${cartItems.length})`
+                : `Cart Items(${cartItems.length})`}
+            </button>
           </div>
         )}
 
-        {/* Cart Items Indicator - Shows what you're viewing */}
-        {step === "cart" && (
-          <div className="mb-6 p-3 rounded-lg border border-blue-100 bg-blue-50 flex items-start gap-2.5">
-            <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-blue-700 font-medium">
-              {isBuyNow && cartItems.length > 0
-                ? isArabic
-                  ? `تصفح: شراء سريع (${buyNowItem?.qty || 1} منتج) • السلة (${cartItems.length} منتج)`
-                  : `Viewing: Quick Purchase (${buyNowItem?.qty || 1} item) • Shopping Cart (${cartItems.length} items)`
-                : isArabic
-                  ? `السلة: ${activeItems.length} منتج`
-                  : `Shopping Cart: ${activeItems.length} items`}
-            </p>
+        {step === "cart" && !isBuyNow && cartItems.length > 0 && buyNowItem && (
+          <div className="mb-6 flex gap-2">
+            <button
+              onClick={switchToBuyNowView}
+              className="flex-1 py-3 rounded bg-black/5 opacity-80 font-medium text-sm text-black/90 flex items-center justify-center gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              {isArabic
+                ? `قائمة الشراء السريع  (${buyNowItem?.qty || 1})`
+                : `Quick Buy List (${buyNowItem?.qty || 1})`}
+            </button>
+            <button
+              onClick={switchToCartView}
+              className="flex-1 py-3 rounded bg-brand-primary/5 border-[2px] border-brand-primary/40 font-medium text-sm text-brand-primary flex items-center justify-center gap-2"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {isArabic
+                ? `منتجات السلة (${cartItems.length})`
+                : `Cart Items(${cartItems.length})`}
+            </button>
           </div>
         )}
 
         {/* Header */}
         <div className="mb-8">
           <div>
-            <h3 className="text-2xl font-bold text-gray-900">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900">
               {step === "cart"
                 ? isBuyNow
                   ? isArabic
-                    ? "تأكيد الشراء"
-                    : "Confirm Purchase"
+                    ? "قائمة الشراء السريع"
+                    : "Quick Buy List"
                   : t.cart
                 : t.shippingInfo}
             </h3>
-            <p className="mt-1 text-sm text-gray-500 font-medium">
+            <p className="mt-1 text-xs text-gray-500 font-medium">
               {step === "cart"
                 ? isBuyNow
                   ? isArabic
@@ -481,6 +515,7 @@ export default function CartClientPage({ store }: Props) {
             <CartItemsList
               items={activeItems}
               currencySymbol={currencySymbol}
+              isArabic={isArabic}
               onUpdateQty={handleUpdateActiveQty}
               onRemoveItem={handleRemoveActiveItem}
             />
@@ -553,6 +588,9 @@ export default function CartClientPage({ store }: Props) {
               total={total}
               appliedCoupon={appliedCoupon}
               activeItems={activeItems}
+              paymentMethods={paymentMethods}
+              selectedPaymentMethod={selectedPaymentMethod}
+              onPaymentMethodChange={setSelectedPaymentMethod}
             />
 
             {error && (

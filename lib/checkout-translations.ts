@@ -3,12 +3,12 @@ export type Language = "ar" | "en";
 export const checkoutTranslations: Record<Language, Record<string, string>> = {
   ar: {
     // Empty Cart
-    emptyCartTitle: "عربتك فارغة",
+    emptyCartTitle: "سلتك فارغة",
     emptyCartDesc: "ابدأ التسوق وأضف بعض المنتجات إلى عربتك",
     continueShopping: "استكمل التسوق",
 
     // Cart Page
-    cart: "عربة التسوق",
+    cart: "منتجات السلة ",
     fillDetailsBelow: "املأ التفاصيل أدناه",
     products: "المنتجات",
 

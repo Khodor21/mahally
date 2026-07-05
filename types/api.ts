@@ -92,6 +92,8 @@ export interface Order {
   status: "pending" | "processing" | "completed" | "cancelled";
   created_at: string;
   order_items: OrderItem[];
+    payment_method?: string;
+  notes?: string;
 }
 
 export interface Customer {
@@ -149,7 +151,7 @@ export interface StoreData {
   promo_text?: string;
   logo_url?: string;
   description?: string;
-
+  payment_methods?: string[];
   privacy_policy?: string;
   shipping_policy?: string;
   return_policy?: string;

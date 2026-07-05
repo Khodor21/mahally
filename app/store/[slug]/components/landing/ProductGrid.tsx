@@ -159,7 +159,7 @@ export default function ProductGrid({
   return (
     <section
       dir={isRtl ? "rtl" : "ltr"}
-      className="w-full py-6 md:py-10 mx-auto overflow-hidden"
+      className="w-full mx-auto overflow-hidden"
     >
       {/* MONO LAYOUT (Side-by-Side) */}
       {isMono && bannerSrc && (

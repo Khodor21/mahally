@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Trash2, Minus, Plus } from "lucide-react";
+import { Trash2, Minus, Plus, AlertTriangle, X } from "lucide-react";
 
 type CartItem = {
   product: {
@@ -31,18 +31,37 @@ export default function CartItemsList({
   onRemoveItem,
 }: Props) {
   const [warningId, setWarningId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    show: boolean;
+    itemId: string | number | null;
+    itemTitle: string;
+  }>({ show: false, itemId: null, itemTitle: "" });
 
   const handleIncrement = (item: CartItem) => {
     const maxStock = item.product.stock ?? Infinity;
 
     if (item.qty >= maxStock) {
       setWarningId(item.product.id.toString());
-      // Auto-clear the warning after 3 seconds
       setTimeout(() => setWarningId(null), 3000);
     } else {
       setWarningId(null);
       onUpdateQty(item.product.id, item.qty + 1);
     }
+  };
+
+  const handleDeleteClick = (item: CartItem) => {
+    setDeleteConfirm({
+      show: true,
+      itemId: item.product.id,
+      itemTitle: item.product.title,
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteConfirm.itemId !== null) {
+      onRemoveItem(deleteConfirm.itemId);
+    }
+    setDeleteConfirm({ show: false, itemId: null, itemTitle: "" });
   };
 
   return (
@@ -83,7 +102,7 @@ export default function CartItemsList({
                   </p>
                 </div>
                 <button
-                  onClick={() => onRemoveItem(item.product.id)}
+                  onClick={() => handleDeleteClick(item)}
                   className="text-red-500 hover:text-red-800 transition-colors flex-shrink-0 p-1"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -125,6 +144,62 @@ export default function CartItemsList({
           </div>
         ))}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            className="w-[calc(100vw-2rem)] sm:w-96 bg-white rounded-2xl shadow-2xl p-6 animate-in zoom-in-95 duration-200"
+            dir={isArabic ? "rtl" : "ltr"}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  {isArabic ? "تأكيد الحذف" : "Remove Item?"}
+                </h3>
+              </div>
+              <button
+                onClick={() =>
+                  setDeleteConfirm({ show: false, itemId: null, itemTitle: "" })
+                }
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Message */}
+            <p className="text-sm text-gray-600 mb-6">
+              {isArabic
+                ? `هل أنت متأكد أنك تريد حذف "${deleteConfirm.itemTitle}" من السلة؟`
+                : `Are you sure you want to remove "${deleteConfirm.itemTitle}" from your cart?`}
+            </p>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() =>
+                  setDeleteConfirm({ show: false, itemId: null, itemTitle: "" })
+                }
+                className="flex-1 h-11 rounded-lg border border-gray-300 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
+              >
+                {isArabic ? "إلغاء" : "Cancel"}
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 h-11 rounded-lg bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                {isArabic ? "حذف" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

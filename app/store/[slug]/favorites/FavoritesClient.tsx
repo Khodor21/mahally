@@ -87,7 +87,7 @@ export default function FavoritesClient({ store, slug }: Props) {
     >
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-3xl font-bold text-gray-900">{t.title}</h3>
+          <h3 className="text-lg sm:text-xl font-bold text-gray-900">{t.title}</h3>
           <p className="text-sm text-brand-primary">
             {mappedFavorites.length} {t.items}
           </p>

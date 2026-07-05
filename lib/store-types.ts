@@ -7,6 +7,7 @@ export type Store = {
   currency?: string;
   currency_symbol?: string;
   delivery_cost?: string;
+  payment_methods? :string[];
 };
 
 export function getCurrencySymbol(store: Store | null): string {

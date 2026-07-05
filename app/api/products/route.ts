@@ -38,16 +38,74 @@ function isValidVariantGroups(variantGroups: any): boolean {
 // ROUTES
 // ============================================
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const user = await requireStoreSession();
+    const { searchParams } = new URL(req.url);
+    let store_id = searchParams.get("store_id");
 
+    // 1. If no explicit store_id, attempt to resolve via Subdomain (Host header)
+    if (!store_id) {
+      const host = req.headers.get("host") || "";
+      const subdomain = host.split(".")[0];
+
+      // Prevent querying for invalid subdomains like 'localhost', 'www', or IP addresses
+      if (
+        subdomain &&
+        subdomain !== "localhost" &&
+        subdomain !== "www" &&
+        !subdomain.includes(":")
+      ) {
+        // Try subdomain column first
+        const { data: store } = await supabaseAdmin
+          .from("stores")
+          .select("id")
+          .eq("subdomain", subdomain)
+          .single();
+
+        if (store) {
+          store_id = store.id;
+        } else {
+          // Fallback: try slug column (common alternative in e-commerce schemas)
+          try {
+            const { data: storeBySlug } = await supabaseAdmin
+              .from("stores")
+              .select("id")
+              .eq("slug", subdomain)
+              .single();
+
+            if (storeBySlug) {
+              store_id = storeBySlug.id;
+            }
+          } catch {
+            // slug column may not exist — ignore safely
+          }
+        }
+      }
+    }
+
+    // 2. If STILL no store_id (e.g., accessed from the main admin dashboard), fallback to session
+    if (!store_id) {
+      try {
+        const user = await requireStoreSession();
+        store_id = user.id;
+      } catch (sessionError) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Store ID is required or invalid tenant subdomain",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    // 3. Fetch products securely for the resolved store
     const { data, error } = await supabaseAdmin
       .from("products")
       .select(
         "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variants, variantGroups, sales_count",
       )
-      .eq("store_id", user.id)
+      .eq("store_id", store_id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -56,6 +114,7 @@ export async function GET() {
         { status: 500 },
       );
     }
+
     const data_with_renamed_variants = data.map((product: any) => ({
       ...product,
       variantGroups: product.variants, // Map old column to new field name

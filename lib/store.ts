@@ -86,6 +86,7 @@ export async function getStoreBySlug(slug: string) {
       language, currency, currency_symbol,
 delivery_cost,
       store_type,
+      payment_methods,
       created_at,
       is_active
     `,

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
-// 1. Add couponCode to your schema
+// 1. Add couponCode and paymentMethod to your schema
 const CheckoutSchema = z.object({
   storeId: z.string().uuid(),
 
@@ -16,6 +16,7 @@ const CheckoutSchema = z.object({
 
   shipping: z.number().min(0),
   couponCode: z.string().optional().or(z.literal("")),
+  paymentMethod: z.string().min(1, "Payment method is required"),
 
   items: z
     .array(
@@ -66,8 +67,49 @@ export async function POST(request: NextRequest) {
       notes,
       shipping,
       couponCode,
+      paymentMethod,
       items,
     } = parsed.data;
+
+    // Validate payment method against store's allowed methods
+    const { data: storeData, error: storeError } = await supabaseAdmin
+      .from("stores")
+      .select("payment_methods")
+      .eq("id", storeId)
+      .single();
+
+    if (storeError || !storeData) {
+      return NextResponse.json(
+        { success: false, message: "Store not found" },
+        { status: 404 },
+      );
+    }
+
+    let storePaymentMethods: string[] = [];
+    if (storeData.payment_methods) {
+      try {
+        const parsedMethods =
+          typeof storeData.payment_methods === "string"
+            ? JSON.parse(storeData.payment_methods)
+            : storeData.payment_methods;
+
+        if (Array.isArray(parsedMethods)) {
+          storePaymentMethods = parsedMethods;
+        }
+      } catch (e) {
+        console.error("Failed to parse store payment methods:", e);
+      }
+    }
+
+    if (!storePaymentMethods.includes(paymentMethod)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid or unsupported payment method for this store",
+        },
+        { status: 400 },
+      );
+    }
 
     const productIds = items.map((i) => i.productId);
 
@@ -155,19 +197,25 @@ export async function POST(request: NextRequest) {
         coupon_code: appliedCouponCode,
         shipping,
         total,
+        payment_method: paymentMethod,
         status: "pending",
       })
       .select()
       .single();
 
-    if (orderError || !order) throw new Error("Failed to create order");
+    if (orderError || !order) {
+      console.error("Order creation error:", orderError);
+      throw new Error(orderError?.message || "Failed to create order");
+    }
 
     const { error: itemsError } = await supabaseAdmin
       .from("order_items")
       .insert(orderItems.map((item) => ({ order_id: order.id, ...item })));
+
     if (itemsError) {
       await supabaseAdmin.from("orders").delete().eq("id", order.id);
-      throw new Error("Failed to create order items");
+      console.error("Order items creation error:", itemsError);
+      throw new Error(itemsError?.message || "Failed to create order items");
     }
 
     const { error: stockError } = await supabaseAdmin.rpc(
@@ -183,7 +231,8 @@ export async function POST(request: NextRequest) {
     if (stockError) {
       await supabaseAdmin.from("order_items").delete().eq("order_id", order.id);
       await supabaseAdmin.from("orders").delete().eq("id", order.id);
-      throw new Error("Failed to secure product stock.");
+      console.error("Stock reduction error:", stockError);
+      throw new Error(stockError?.message || "Failed to secure product stock.");
     }
 
     // ============================================
