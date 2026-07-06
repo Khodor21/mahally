@@ -129,7 +129,7 @@ export default function ShippingForm({
     city: "",
     address: "",
   });
-
+  const [isPaymentDropdownOpen, setIsPaymentDropdownOpen] = useState(false);
   const [touched, setTouched] = useState({
     customerName: false,
     customerPhone: false,
@@ -385,44 +385,94 @@ export default function ShippingForm({
 
           {/* Payment Methods Section */}
 
-          {/* Payment Method Selection */}
           {paymentMethods && paymentMethods.length > 0 ? (
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-2">
                 {isArabic ? "طريقة الدفع" : "Payment Method"}
                 <span className="text-red-500 ml-1">*</span>
               </label>
-              <select
-                value={selectedPaymentMethod}
-                onChange={(e) => {
-                  onPaymentMethodChange?.(e.target.value);
-                }}
-                className={`w-full h-11 rounded-xl border px-4 text-sm font-medium outline-none transition-all bg-gray-50 hover:bg-white focus:bg-white cursor-pointer ${
-                  !selectedPaymentMethod
-                    ? "border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-200"
-                    : "border-gray-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
-                }`}
-                dir={isArabic ? "rtl" : "ltr"}
-              >
-                <option value="">
-                  {isArabic ? "اختر طريقة الدفع" : "Select payment method"}
-                </option>
-                {paymentMethods.map((method) => {
-                  const label = PAYMENT_METHOD_LABELS[
-                    method as keyof typeof PAYMENT_METHOD_LABELS
-                  ] || {
-                    en: method,
-                    ar: method,
-                    icon: "💳",
-                  };
 
-                  return (
-                    <option key={method} value={method}>
-                      {label.icon} {isArabic ? label.ar : label.en}
-                    </option>
-                  );
-                })}
-              </select>
+              {/* Custom Dropdown Container */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setIsPaymentDropdownOpen(!isPaymentDropdownOpen)
+                  }
+                  className={`w-full h-11 rounded-xl border px-4 text-sm font-medium outline-none transition-all bg-gray-50 hover:bg-white focus:bg-white flex items-center justify-between ${
+                    !selectedPaymentMethod
+                      ? "border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                      : "border-gray-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                  }`}
+                  dir={isArabic ? "rtl" : "ltr"}
+                >
+                  <span className="flex items-center gap-2">
+                    {selectedPaymentMethod ? (
+                      <>
+                        {PAYMENT_METHOD_LABELS[
+                          selectedPaymentMethod as keyof typeof PAYMENT_METHOD_LABELS
+                        ]?.icon || "💳"}
+                        <span>
+                          {isArabic
+                            ? PAYMENT_METHOD_LABELS[
+                                selectedPaymentMethod as keyof typeof PAYMENT_METHOD_LABELS
+                              ]?.ar || selectedPaymentMethod
+                            : PAYMENT_METHOD_LABELS[
+                                selectedPaymentMethod as keyof typeof PAYMENT_METHOD_LABELS
+                              ]?.en || selectedPaymentMethod}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-gray-500">
+                        {isArabic
+                          ? "اختر طريقة الدفع"
+                          : "Select payment method"}
+                      </span>
+                    )}
+                  </span>
+                  <span
+                    className={`text-gray-400 text-xs transition-transform ${isPaymentDropdownOpen ? "rotate-180" : ""}`}
+                  >
+                    ▼
+                  </span>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isPaymentDropdownOpen && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                    {paymentMethods.map((method) => {
+                      const label = PAYMENT_METHOD_LABELS[
+                        method as keyof typeof PAYMENT_METHOD_LABELS
+                      ] || {
+                        en: method,
+                        ar: method,
+                        icon: "💳",
+                      };
+
+                      return (
+                        <button
+                          key={method}
+                          type="button"
+                          onClick={() => {
+                            onPaymentMethodChange?.(method);
+                            setIsPaymentDropdownOpen(false); // Close after selection
+                          }}
+                          className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors flex items-center gap-2 ${
+                            selectedPaymentMethod === method
+                              ? "bg-brand-primary/10 text-brand-primary"
+                              : "text-gray-700 hover:bg-gray-50"
+                          }`}
+                          dir={isArabic ? "rtl" : "ltr"}
+                        >
+                          <span className="text-lg">{label.icon}</span>
+                          <span>{isArabic ? label.ar : label.en}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {!selectedPaymentMethod && (
                 <p className="text-red-500 text-xs mt-1 font-medium">
                   {isArabic

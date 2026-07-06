@@ -288,6 +288,7 @@ export default function CartClientPage({ store }: Props) {
 
       const data = await response.json();
 
+      // ... (previous code above this remains the same)
       if (!response.ok) {
         const errorMsg =
           data.message ||
@@ -299,22 +300,20 @@ export default function CartClientPage({ store }: Props) {
         return;
       }
 
-      if (isBuyNow) {
-        clearBuyNowSession();
-      } else {
-        clearCart();
-      }
-
-      // Bilingual success toast before routing
       showCustomToast(
         "success",
         isArabic ? "تم تأكيد الطلب بنجاح!" : "Order placed successfully!",
       );
 
-      // Delay routing so the custom toast is visible for its duration
       setTimeout(() => {
+        if (isBuyNow) {
+          clearBuyNowSession();
+        } else {
+          clearCart();
+        }
+
         router.push(`/`);
-      }, 3000);
+      }, 1500);
     } catch (err) {
       console.error(err);
       const errorMsg =

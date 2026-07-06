@@ -106,13 +106,18 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
           clearInterval(interval);
           setShowCredentials(false);
           setCredentialsData(null);
+
+          // ADD THESE TWO LINES
+          router.push("/");
+          router.refresh();
+
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [showCredentials]);
+  }, [showCredentials, router]);
 
   async function handleSubmit() {
     try {
@@ -191,7 +196,7 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
           type: "success",
         });
         setTimeout(() => {
-          router.push(``);
+          router.push("/");
           router.refresh();
         }, 1200);
       }
@@ -291,7 +296,7 @@ export default function CustomerAuth({ storeId, lang = "ar" }: Props) {
                 onClick={() => {
                   setShowCredentials(false);
                   setCredentialsData(null);
-                  router.push(``);
+                  router.push("/"); // CHANGED from `` to "/"
                   router.refresh();
                 }}
                 className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"

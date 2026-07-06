@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   User,
@@ -22,6 +22,7 @@ import InputField from "./components/InputField";
 import SelectField from "./components/SelectField";
 import { useShop } from "../../context";
 import ProductCard from "../components/landing/ProductCard";
+import OrdersSection from "./components/OrdersSection";
 
 type Customer = {
   id: string;
@@ -32,12 +33,23 @@ type Customer = {
   store_id: string;
 };
 
+type OrderItem = {
+  id: string;
+  title: string;
+  image: string | null;
+  price: string;
+  qty: number;
+  total: string;
+};
+
 type Order = {
   id: string;
+  displayId: string;
   date: string;
   total: string;
   status: string;
   statusAr: string;
+  items: OrderItem[];
 };
 
 type MenuItem = {
@@ -78,6 +90,7 @@ const translations = {
     updateSuccess: "Profile updated successfully",
     updateError: "Failed to update profile",
     logoutConfirm: "Are you sure you want to logout?",
+    logoutSuccess: "Logged out successfully",
     deleteConfirm:
       "Are you sure you want to delete your account? This action cannot be undone.",
     deleteAccount: "Delete Account",
@@ -119,6 +132,7 @@ const translations = {
     updateSuccess: "تم تحديث الملف الشخصي بنجاح",
     updateError: "فشل تحديث الملف الشخصي",
     logoutConfirm: "هل أنت متأكد أنك تريد تسجيل الخروج؟",
+    logoutSuccess: "تم تسجيل الخروج بنجاح",
     deleteConfirm:
       "هل أنت متأكد أنك تريد حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء.",
     deleteAccount: "حذف الحساب",
@@ -178,23 +192,79 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
     newPassword: "",
   });
 
-  // Mock orders data - replace with API call
-  const [orders] = useState<Order[]>([
-    {
-      id: "#5821",
-      status: "Delivered",
-      statusAr: "تم التوصيل",
-      total: "$120.00",
-      date: "12 May 2026",
-    },
-    {
-      id: "#5820",
-      status: "Processing",
-      statusAr: "قيد المعالجة",
-      total: "$84.00",
-      date: "10 May 2026",
-    },
-  ]);
+  // 1. Replace your static orders state with these:
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
+  // 2. Add the status mapping dictionaries
+  const statusMapEn: Record<string, string> = {
+    pending: "Pending",
+    processing: "Processing",
+    completed: "Completed",
+    cancelled: "Cancelled",
+  };
+
+  const statusMapAr: Record<string, string> = {
+    pending: "قيد الانتظار",
+    processing: "قيد المعالجة",
+    completed: "مكتمل",
+    cancelled: "ملغى",
+  };
+
+  useEffect(() => {
+    async function fetchOrders() {
+      if (activeSection !== "orders") return;
+
+      try {
+        setOrdersLoading(true);
+        const res = await fetch(`/api/checkout?storeId=${customer.store_id}`);
+        const json = await res.json();
+
+        if (json.success && json.data) {
+          // Inside fetchOrders, replace the formattedOrders mapping with this:
+          const formattedOrders = json.data
+            .filter((order: any) => order.customer_phone === customer.phone)
+            .map((order: any) => {
+              const dateObj = new Date(order.created_at);
+              const formattedDate = dateObj.toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              });
+
+              return {
+                id: order.id,
+                displayId: `#${order.id.split("-")[0].substring(0, 6).toUpperCase()}`,
+                date: formattedDate,
+                total: `$${Number(order.total).toFixed(2)}`,
+                status: statusMapEn[order.status] || order.status,
+                statusAr: statusMapAr[order.status] || order.status,
+                items: (order.order_items || []).map((item: any) => ({
+                  id: item.id,
+                  title: item.title,
+                  image: item.image,
+                  price: `$${Number(item.price).toFixed(2)}`,
+                  qty: item.qty,
+                  total: `$${Number(item.total).toFixed(2)}`,
+                })),
+              };
+            });
+
+          setOrders(formattedOrders);
+        }
+      } catch (error) {
+        console.error("Failed to fetch orders:", error);
+        setToast({
+          message: isArabic ? "فشل في تحميل الطلبات" : "Failed to load orders",
+          type: "error",
+        });
+      } finally {
+        setOrdersLoading(false);
+      }
+    }
+
+    fetchOrders();
+  }, [activeSection, customer.store_id, customer.phone, isArabic]);
 
   const fullName = `${customer.first_name} ${customer.last_name}`;
   const firstInitial = customer.first_name.charAt(0).toUpperCase();
@@ -303,7 +373,14 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
     try {
       setLoading(true);
       await fetch("/api/store-customers/logout", { method: "POST" });
-      router.push("/auth");
+
+      setLogoutModal(false);
+      setToast({ message: tr.logoutSuccess, type: "success" });
+
+      // Delay the redirect so the toast has time to be seen
+      setTimeout(() => {
+        router.push("/auth");
+      }, 1500);
     } catch (error) {
       console.error("Logout error:", error);
       setToast({ message: "Failed to logout", type: "error" });
@@ -337,32 +414,17 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
 
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
-          {/* Header with Logout */}
-          <div className="mb-6 sm:mb-8 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-brand-primary/20 to-brand-primary/10 flex items-center justify-center text-2xl sm:text-3xl font-bold text-brand-primary">
-                {firstInitial}
-              </div>
-              <div>
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  {fullName}
-                </h3>
-                <p className="text-sm text-gray-500 mt-1">{customer.phone}</p>
-              </div>
+          {/* Header */}
+          <div className="mb-6 sm:mb-8 flex items-center gap-4">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-brand-primary/20 to-brand-primary/10 flex items-center justify-center text-2xl sm:text-3xl font-bold text-brand-primary">
+              {firstInitial}
             </div>
-
-            <button
-              onClick={() => setLogoutModal(true)}
-              disabled={loading}
-              className="flex items-center gap-2 text-sm font-medium bg-red-600 text-white rounded-base px-2 py-1 hover:text-red-600 hover:bg-white transition-colors disabled:opacity-50"
-            >
-              <span className="inline">{tr.logout}</span>
-              {loading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <LogOut size={18} />
-              )}
-            </button>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
+                {fullName}
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">{customer.phone}</p>
+            </div>
           </div>
 
           {/* Main Layout */}
@@ -415,7 +477,7 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
               {activeSection === "account" && (
                 <>
                   <section className="bg-white rounded sm:rounded border border-gray-200 p-4 sm:p-6 md:p-7">
-                    <div className="flex justify-between mb-4">
+                    <div className="flex justify-between items-start mb-6">
                       <div>
                         <h3 className="text-lg sm:text-xl font-bold text-gray-900">
                           {tr.accountInfo}
@@ -425,15 +487,31 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                         </p>
                       </div>
 
-                      {!isEditing && (
+                      {/* Action Buttons: Logout & Edit */}
+                      <div className="flex items-center gap-2 sm:gap-3">
                         <button
-                          onClick={() => setIsEditing(true)}
-                          className="w-fit h-9 md:h-10 px-4 sm:px-4 rounded bg-brand-primary text-white text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2 "
+                          onClick={() => setLogoutModal(true)}
+                          disabled={loading}
+                          className="h-9 md:h-10 px-3 sm:px-4 rounded border border-red-200 bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 hover:border-red-300 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                         >
-                          <Edit2 size={16} />
-                          {tr.edit}
+                          {loading ? (
+                            <Loader2 size={16} className="animate-spin" />
+                          ) : (
+                            <LogOut size={16} />
+                          )}
+                          <span className="hidden sm:inline">{tr.logout}</span>
                         </button>
-                      )}
+
+                        {!isEditing && (
+                          <button
+                            onClick={() => setIsEditing(true)}
+                            className="h-9 md:h-10 px-3 sm:px-4 rounded bg-brand-primary text-white text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                          >
+                            <Edit2 size={16} />
+                            <span className="hidden sm:inline">{tr.edit}</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {!isEditing ? (
@@ -585,7 +663,7 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                 </>
               )}
 
-              {/* Orders Section */}
+              {/* Inside your Main Content -> Orders Section */}
               {activeSection === "orders" && (
                 <section className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200 p-4 sm:p-6 md:p-7">
                   <div className="mb-6">
@@ -597,52 +675,16 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                     </p>
                   </div>
 
-                  {orders.length > 0 ? (
-                    <div className="flex flex-col gap-3">
-                      {orders.map((order) => (
-                        <button
-                          key={order.id}
-                          onClick={() => {
-                            /* Handle order click */
-                          }}
-                          className="text-left border border-gray-200 rounded-2xl p-3 sm:p-4 hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all"
-                        >
-                          <div className="flex items-start justify-between gap-4 mb-2">
-                            <div>
-                              <p className="text-sm font-semibold text-gray-900">
-                                {order.id}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-0.5">
-                                {order.date}
-                              </p>
-                            </div>
-                            <span className="text-xs px-3 py-1 rounded-full bg-brand-primary/10 text-brand-primary font-medium whitespace-nowrap">
-                              {isArabic ? order.statusAr : order.status}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-bold text-gray-900">
-                              {order.total}
-                            </span>
-                            <ChevronRight size={18} className="text-gray-300" />
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Package
-                        size={40}
-                        className="mx-auto text-gray-300 mb-3"
-                      />
-                      <p className="text-sm font-medium text-gray-900 mb-1">
-                        {tr.noOrders}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {tr.startShopping}
-                      </p>
-                    </div>
-                  )}
+                  {/* Render the extracted component here */}
+                  <OrdersSection
+                    orders={orders}
+                    lang={lang}
+                    loading={ordersLoading}
+                    onOrderClick={(orderId) => {
+                      console.log("Clicked order UUID:", orderId);
+                      // You can add routing here later: router.push(`/orders/${orderId}`)
+                    }}
+                  />
                 </section>
               )}
 

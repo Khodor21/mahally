@@ -64,18 +64,25 @@ export default function BottomNavbar({
   const navItems = [
     {
       label: t.home,
-      icon: <Home size={22} className="stroke-[1.5]" />,
+      icon: <Home size={18} className="stroke-[1.5]" />,
+      activeIcon: (
+        <Home size={18} fill="currentColor" className="stroke-[1.5]" />
+      ),
       href: "",
     },
     {
       label: t.categories,
-      icon: <LayoutGrid size={22} className="stroke-[1.5]" />,
+      icon: <LayoutGrid size={18} className="stroke-[1.5]" />,
+      activeIcon: (
+        <LayoutGrid size={18} fill="currentColor" className="stroke-[1.5]" />
+      ),
       // 👉 FIX 4: Changed to hash link to navigate to section on home page
       href: "#categories",
     },
     {
       label: t.search,
-      icon: <Search size={22} className="stroke-[1.5]" />,
+      icon: <Search size={18} className="stroke-[1.5]" />,
+      activeIcon: <Search size={18} className="stroke-[2.5]" />, // Search usually looks better bolded rather than filled
       href: "#",
       onClick: handleOpenSearch,
     },
@@ -84,9 +91,19 @@ export default function BottomNavbar({
       href: "/cart",
       icon: (
         <span className="relative flex items-center justify-center leading-none">
-          <ShoppingBag size={22} className="stroke-[1.5]" />
+          <ShoppingBag size={18} className="stroke-[1.5]" />
           {cartCount > 0 && (
-            <span className="absolute -top-1.5 -right-2 w-4 h-4 flex items-center justify-center rounded-full bg-brand-primary text-white text-[9px] font-bold px-0.5 leading-none ring-2 ring-white">
+            <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-brand-primary text-white text-[8px] font-bold px-0.5 leading-none ring-1 ring-white">
+              {cartCount > 9 ? "9+" : cartCount}
+            </span>
+          )}
+        </span>
+      ),
+      activeIcon: (
+        <span className="relative flex items-center justify-center leading-none">
+          <ShoppingBag size={18} fill="currentColor" className="stroke-[1.5]" />
+          {cartCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-brand-primary text-white text-[8px] font-bold px-0.5 leading-none ring-1 ring-white">
               {cartCount > 9 ? "9+" : cartCount}
             </span>
           )}
@@ -95,7 +112,10 @@ export default function BottomNavbar({
     },
     {
       label: t.profile,
-      icon: <User size={22} className="stroke-[1.5]" />,
+      icon: <User size={18} className="stroke-[1.5]" />,
+      activeIcon: (
+        <User size={18} fill="currentColor" className="stroke-[1.5]" />
+      ),
       href: "/profile",
     },
   ];
@@ -114,7 +134,7 @@ export default function BottomNavbar({
               key={item.label}
               href={item.href ? base(item.href) : base("")}
               onClick={item.onClick}
-              className="flex flex-col items-center justify-center w-full h-full gap-1.5 tap-highlight-transparent group"
+              className="flex flex-col items-center justify-center w-full h-full gap-1 tap-highlight-transparent group"
             >
               <div
                 className={`transition-colors duration-200 text-lg ${
@@ -123,13 +143,13 @@ export default function BottomNavbar({
                     : "text-gray-800 group-hover:text-gray-600"
                 }`}
               >
-                {item.icon}
+                {active ? item.activeIcon : item.icon}
               </div>
 
               <span
-                className={`text-[15px] font-regular transition-colors duration-200 ${
+                className={`text-xs font-regular transition-colors duration-200 ${
                   active
-                    ? "text-brand-primary font-bold"
+                    ? "text-brand-primary font-semibold"
                     : "text-gray-800 group-hover:text-gray-700"
                 }`}
               >
