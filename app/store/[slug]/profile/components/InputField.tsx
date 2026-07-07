@@ -19,7 +19,7 @@ export default function InputField({
 }: Props) {
   return (
     <div>
-      <label className="text-xs sm:text-sm font-semibold text-gray-900 block mb-2">
+      <label className="text-xs sm:text-sm font-medium text-gray-900 block mb-2">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>

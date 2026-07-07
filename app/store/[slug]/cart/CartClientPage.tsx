@@ -288,12 +288,34 @@ export default function CartClientPage({ store }: Props) {
 
       const data = await response.json();
 
-      // ... (previous code above this remains the same)
       if (!response.ok) {
-        const errorMsg =
+        let errorMsg =
           data.message ||
           t.checkoutFailed ||
           (isArabic ? "فشل إتمام الطلب" : "Checkout failed");
+
+        // ✅ INTERCEPT OUT OF STOCK MESSAGE
+        // We catch the backend message if it includes "out of stock" and map the ID to the Product Name
+        if (
+          typeof data.message === "string" &&
+          data.message.toLowerCase().includes("out of stock")
+        ) {
+          const outOfStockItem = activeItems.find((item) =>
+            data.message.includes(String(item.product.id)),
+          );
+
+          if (outOfStockItem) {
+            // Check for localized name if your product schema supports name_ar, fallback to standard name
+            const productName = isArabic
+              ? outOfStockItem.product.name_ar || outOfStockItem.product.name
+              : outOfStockItem.product.name;
+
+            errorMsg = isArabic
+              ? `عذراً، المنتج "${productName}" غير متوفر بالكمية المطلوبة`
+              : `Sorry, the product "${productName}" is out of stock.`;
+          }
+        }
+
         setError(errorMsg);
         showCustomToast("error", errorMsg);
         clearBuyNowSession();
@@ -338,6 +360,7 @@ export default function CartClientPage({ store }: Props) {
         description={t.emptyCartDesc}
         continueShoppingLabel={t.continueShopping}
         onContinueShopping={() => router.push(`/`)}
+        isArabic={isArabic}
       />
     );
   }
@@ -577,7 +600,6 @@ export default function CartClientPage({ store }: Props) {
               city={city}
               setCity={setCity}
               address={address}
-              setAddress={setAddress}
               notes={notes}
               setNotes={setNotes}
               currencySymbol={currencySymbol}
@@ -590,6 +612,7 @@ export default function CartClientPage({ store }: Props) {
               paymentMethods={paymentMethods}
               selectedPaymentMethod={selectedPaymentMethod}
               onPaymentMethodChange={setSelectedPaymentMethod}
+              setAddress={setAddress}
             />
 
             {error && (

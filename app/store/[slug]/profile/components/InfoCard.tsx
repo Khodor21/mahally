@@ -11,7 +11,7 @@ export default function InfoCard({ label, value, icon }: Props) {
         {icon && <span className="text-brand-primary">{icon}</span>}
         <p className="text-xs sm:text-xs text-gray-500 font-medium">{label}</p>
       </div>
-      <h3 className="text-sm sm:text-base font-semibold text-gray-900">
+      <h3 className="text-sm sm:text-base font-medium text-gray-900">
         {value}
       </h3>
     </div>

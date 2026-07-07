@@ -66,35 +66,35 @@ export default function CartItemsList({
 
   return (
     <div className="bg-white">
-      <div className="space-y-4">
+      <div className="space-y-5">
         {items.map((item) => (
           <div
             key={item.product.id}
-            className="flex gap-4 pb-4 border-b border-gray-100 last:border-0"
+            className="flex gap-4 pb-5 border-b border-gray-100 last:border-0 last:pb-0"
           >
             {/* Product Image */}
             {item.product.image && (
-              <div className="flex-shrink-0 w-24 h-auto bg-gray-50 rounded-xl border border-gray-100 overflow-hidden relative">
+              <div className="flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 bg-gray-50/50 rounded-2xl border border-gray-100 overflow-hidden relative">
                 <Image
                   src={item.product.image}
                   alt={item.product.title}
                   fill
-                  className="object-cover"
+                  className="object-cover transition-transform duration-300 hover:scale-105"
                 />
               </div>
             )}
 
             {/* Product Details */}
-            <div className="flex-1 min-w-0 py-1">
-              <div className="flex justify-between items-start gap-2">
+            <div className="flex-1 min-w-0 py-0.5 flex flex-col justify-between">
+              <div className="flex justify-between items-start gap-3">
                 <div className="min-w-0">
                   {/* Product Title */}
-                  <p className="font-bold text-gray-900 text-sm truncate">
+                  <p className="font-bold text-gray-900 text-sm sm:text-base leading-snug line-clamp-2">
                     {item.product.title}
                   </p>
 
                   {/* Price */}
-                  <p className="text-sm font-bold text-brand-primary mt-1">
+                  <p className="text-sm font-extrabold text-brand-primary mt-1.5">
                     {currencySymbol}
                     {item.product.price !== undefined
                       ? item.product.price.toLocaleString()
@@ -103,7 +103,8 @@ export default function CartItemsList({
                 </div>
                 <button
                   onClick={() => handleDeleteClick(item)}
-                  className="text-red-500 hover:text-red-800 transition-colors flex-shrink-0 p-1"
+                  className="text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0 p-2 rounded-lg"
+                  aria-label="Remove item"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -116,24 +117,25 @@ export default function CartItemsList({
                     onClick={() =>
                       onUpdateQty(item.product.id, Math.max(1, item.qty - 1))
                     }
-                    className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600"
+                    className="w-9 h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600 active:scale-95"
                   >
-                    <Minus className="w-3.5 h-3.5" />
+                    <Minus className="w-4 h-4" />
                   </button>
-                  <span className="w-6 text-center font-bold text-gray-900 text-sm">
+                  <span className="w-8 text-center font-bold text-gray-900 text-sm">
                     {item.qty}
                   </span>
                   <button
                     onClick={() => handleIncrement(item)}
-                    className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600"
+                    className="w-9 h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600 active:scale-95"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-4 h-4" />
                   </button>
                 </div>
 
                 {/* Out of Stock Warning */}
                 {warningId === item.product.id.toString() && (
-                  <p className="text-xs text-red-500 font-bold mt-2 animate-fade-in">
+                  <p className="text-xs text-red-500 font-bold mt-2.5 animate-in slide-in-from-top-1 fade-in duration-200 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5" />
                     {isArabic
                       ? "تم الوصول للحد الأقصى للمخزون المتوفر"
                       : "Max available stock reached"}
@@ -147,15 +149,15 @@ export default function CartItemsList({
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm.show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 p-4">
           <div
-            className="w-[calc(100vw-2rem)] sm:w-96 bg-white rounded-2xl shadow-2xl p-6 animate-in zoom-in-95 duration-200"
+            className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 animate-in zoom-in-95 duration-200"
             dir={isArabic ? "rtl" : "ltr"}
           >
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0 border border-red-100">
                   <AlertTriangle className="w-5 h-5 text-red-600" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-900">
@@ -166,14 +168,14 @@ export default function CartItemsList({
                 onClick={() =>
                   setDeleteConfirm({ show: false, itemId: null, itemTitle: "" })
                 }
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                className="text-gray-400 hover:text-gray-700 transition-colors p-1"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Message */}
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
               {isArabic
                 ? `هل أنت متأكد أنك تريد حذف "${deleteConfirm.itemTitle}" من السلة؟`
                 : `Are you sure you want to remove "${deleteConfirm.itemTitle}" from your cart?`}
@@ -185,13 +187,13 @@ export default function CartItemsList({
                 onClick={() =>
                   setDeleteConfirm({ show: false, itemId: null, itemTitle: "" })
                 }
-                className="flex-1 h-11 rounded-lg border border-gray-300 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
+                className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
               >
                 {isArabic ? "إلغاء" : "Cancel"}
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className="flex-1 h-11 rounded-lg bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 h-11 rounded-xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-colors flex items-center justify-center gap-2 shadow-sm shadow-red-500/20"
               >
                 <Trash2 className="w-4 h-4" />
                 {isArabic ? "حذف" : "Delete"}

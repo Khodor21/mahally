@@ -4,6 +4,7 @@ import { Heart, ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useShop } from "../../context";
 import ProductCard from "./components/ProductCard";
+import EmptyState from "./components/EmptyState"; // Adjust path if you saved it elsewhere
 
 const FAVORITES_TRANSLATIONS = {
   ar: {
@@ -35,6 +36,7 @@ export default function FavoritesClient({ store, slug }: Props) {
   // Safely evaluate language with strict fallback
   const language = (store?.language === "en" ? "en" : "ar") as "en" | "ar";
   const t = FAVORITES_TRANSLATIONS[language];
+  const isArabic = language === "ar";
 
   const { favorites } = useShop();
 
@@ -52,48 +54,54 @@ export default function FavoritesClient({ store, slug }: Props) {
     stock: item.stock ?? 1,
   }));
 
+  // ── Unified Empty State ─────────────────────────────────────
   if (!mappedFavorites || mappedFavorites.length === 0) {
     return (
       <div
-        dir={language === "ar" ? "rtl" : "ltr"}
-        className="min-h-screen bg-white py-12 px-4"
+        dir={isArabic ? "rtl" : "ltr"}
+        className="min-h-[70vh] bg-white flex flex-col items-center justify-center py-12 px-4"
       >
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center py-16">
-            <div className="w-20 h-20 rounded-sm bg-gray-100 flex items-center justify-center mx-auto">
-              <Heart className="w-10 h-10 text-gray-400" />
-            </div>
-            <h3 className="mt-6 text-2xl font-bold text-gray-900">
-              {t.emptyTitle}
-            </h3>
-            <p className="mt-2 text-sm text-gray-500">{t.emptyDesc}</p>
-            <button
-              onClick={() => router.push(`/store/${slug}`)}
-              className="mt-8 h-11 px-8 rounded-xs bg-gray-900 text-white font-medium text-sm hover:bg-gray-800 transition inline-flex items-center gap-2"
-            >
-              <ShoppingBag className="w-4 h-4" />
-              {t.browseProducts}
-            </button>
-          </div>
+        <div className="max-w-2xl mx-auto w-full">
+          <EmptyState
+            title={t.emptyTitle}
+            description={t.emptyDesc}
+            onContinueShopping={() => router.push("/")}
+            isArabic={isArabic}
+            continueShoppingLabel={t.browseProducts}
+          />
         </div>
       </div>
     );
   }
 
+  // ── Populated State ─────────────────────────────────────────
   return (
     <div
-      dir={language === "ar" ? "rtl" : "ltr"}
-      className="min-h-screen bg-white py-8 px-4"
+      dir={isArabic ? "rtl" : "ltr"}
+      className="min-h-screen bg-white py-10 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-300"
     >
       <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg sm:text-xl font-bold text-gray-900">{t.title}</h3>
-          <p className="text-sm text-brand-primary">
-            {mappedFavorites.length} {t.items}
-          </p>
+        {/* Premium Header Layout */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-gray-100">
+          <div>
+            <h3 className="text-2xl font-bold text-gray-900 tracking-tight">
+              {t.title}
+            </h3>
+            <p className="text-sm text-gray-500 mt-1 font-medium">
+              {t.subtitle}
+            </p>
+          </div>
+
+          {/* Badge Pill for Item Count */}
+          <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-brand-primary/10 border border-brand-primary/20 self-start sm:self-auto shadow-sm">
+            <span className="text-sm font-bold text-brand-primary">
+              {mappedFavorites.length} {t.items}
+            </span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+        {/* Responsive Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
           {mappedFavorites.map((product) => (
             <ProductCard
               key={product.id}

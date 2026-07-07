@@ -1,6 +1,6 @@
 "use client";
 
-import { ShoppingCart, ShoppingBag } from "lucide-react";
+import { Heart, ShoppingBag } from "lucide-react";
 
 type Props = {
   title: string;
@@ -22,7 +22,7 @@ export default function EmptyCartState({
       dir={isArabic ? "rtl" : "ltr"}
       className="w-full min-h-screen flex flex-col items-center justify-center text-center py-16 px-4 animate-in fade-in zoom-in-95 duration-300"
     >
-      <ShoppingCart className="w-8 h-8 mb-3 text-gray-400 stroke-[1.5]" />
+      <Heart className="w-8 h-8 mb-3 text-gray-400 stroke-[1.5]" />
 
       <h3 className="text-lg sm:text-xl font-bold text-gray-900">{title}</h3>
 
