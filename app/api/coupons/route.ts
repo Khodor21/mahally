@@ -5,31 +5,33 @@ import { requireStoreSession } from "@/lib/store";
 
 // ==================== SCHEMAS ====================
 
-const CreateCouponSchema = z.object({
-  code: z
-    .string()
-    .min(3, "Code must be at least 3 characters")
-    .max(20, "Code must be at most 20 characters")
-    .toUpperCase()
-    .regex(
-      /^[A-Z0-9\-]+$/,
-      "Code can only contain uppercase letters, numbers, and hyphens",
-    ),
-  type: z.enum(["percentage", "fixed"]),
-  discount: z
-    .number()
-    .positive("Discount must be greater than 0")
-    .refine((val) => val <= 100, "Percentage discount cannot exceed 100%"),
-  description: z.string().max(500, "Description too long").optional(),
-  minPurchase: z.number().nonnegative().default(0),
-  maxUses: z
-    .number()
-    .positive("Max uses must be greater than 0")
-    .default(999999),
-  maxUsesPerCustomer: z.number().positive().default(1),
-  expiryDate: z.string().datetime("Invalid date format"),
-  isActive: z.boolean().default(true),
-});
+const CreateCouponSchema = z
+  .object({
+    code: z
+      .string()
+      .min(3, "Code must be at least 3 characters")
+      .max(20, "Code must be at most 20 characters")
+      .toUpperCase()
+      .regex(
+        /^[A-Z0-9\-]+$/,
+        "Code can only contain uppercase letters, numbers, and hyphens",
+      ),
+    type: z.enum(["percentage", "fixed"]),
+    discount: z.number().positive("Discount must be greater than 0"),
+    description: z.string().max(500, "Description too long").optional(),
+    minPurchase: z.number().nonnegative().default(0),
+    maxUses: z
+      .number()
+      .positive("Max uses must be greater than 0")
+      .default(999999),
+    maxUsesPerCustomer: z.number().positive().default(1),
+    expiryDate: z.string().datetime("Invalid date format"),
+    isActive: z.boolean().default(true),
+  })
+  .refine((data) => data.type === "fixed" || data.discount <= 100, {
+    message: "Percentage discount cannot exceed 100%",
+    path: ["discount"],
+  });
 
 const UpdateCouponSchema = CreateCouponSchema.partial({
   code: true,
