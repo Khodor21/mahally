@@ -122,10 +122,10 @@ export default function BottomNavbar({
 
   return (
     <nav
-      className="fixed md:hidden bottom-0 left-0 right-0 z-[60] bg-white border-t border-brand-primary/30 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] pb-safe rounded-t-2xl overflow-hidden"
+      className="fixed md:hidden bottom-0 left-0 right-0 z-[60] bg-white border-t border-brand-primary/30 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] pb-safe overflow-hidden"
       dir={lang === "ar" ? "rtl" : "ltr"}
     >
-      <div className="flex justify-around items-center rounded-t-xl h-20 px-2">
+      <div className="flex justify-around items-center h-14 px-2">
         {navItems.map((item) => {
           const active = isActive(item.href);
 
@@ -137,19 +137,19 @@ export default function BottomNavbar({
               className="flex flex-col items-center justify-center w-full h-full gap-1 tap-highlight-transparent group"
             >
               <div
-                className={`transition-colors duration-200 text-lg ${
+                className={`transition-colors duration-200 text-xl ${
                   active
                     ? "text-brand-primary"
                     : "text-gray-800 group-hover:text-gray-600"
                 }`}
               >
-                {active ? item.activeIcon : item.icon}
+                {active ? item.icon : item.icon}
               </div>
 
               <span
-                className={`text-xs font-regular transition-colors duration-200 ${
+                className={`text-[17px] font-regular transition-colors duration-200 ${
                   active
-                    ? "text-brand-primary font-semibold"
+                    ? "text-brand-primary font-medium"
                     : "text-gray-800 group-hover:text-gray-700"
                 }`}
               >
