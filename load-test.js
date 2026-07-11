@@ -1,71 +1,33 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
 
+const BASE_URL = "https://turs-bookstore.mahally.app";
+
 export const options = {
-  // ── FIX: Explicit DNS mapping for the local subdomain ──
-  hosts: {
-    "turs-bookstore.localhost:3000": "127.0.0.1:3000",
-  },
-  scenarios: {
-    checkout_load: {
-      executor: "ramping-vus",
-      startVUs: 0,
-      stages: [
-        { duration: "2m", target: 50 },
-        { duration: "3m", target: 100 },
-        { duration: "4m", target: 100 },
-        { duration: "1m", target: 0 },
-      ],
-    },
-  },
+  stages: [
+    { duration: "20s", target: 50 }, // محاكاة دخول مفاجئ لـ 50 مستخدم
+    { duration: "1m", target: 50 }, // استقرار العدد لمدة دقيقة للتصفح
+    { duration: "20s", target: 0 }, // خروج المستخدمين تدريجياً
+  ],
   thresholds: {
-    http_req_duration: ["p(95)<2000"],
+    // تحميل صفحة الـ HTML بالكامل يجب أن يكون تحت 1.5 ثانية (الواجهات الأمامية أثقل من الـ APIs)
+    http_req_duration: ["p(95)<1500"],
     http_req_failed: ["rate<0.01"],
   },
 };
 
-// ... the rest of the script remains the same ...
-
-const BASE_URL = "http://turs-bookstore.localhost:3000";
-const STORE_ID = "237f4275-12c5-4a16-af27-18a06cffe5d6";
-
-const PRODUCTS = [
-  "13e7d00a-fb24-42a2-b6b9-3d9eb5e81b8b",
-  "71fd0d37-d16c-4d5e-9988-861a7f382543",
-  "ba57533a-c2d9-4f6f-a5cb-c828ae935183",
-];
-
 export default function () {
-  const randomProductId = PRODUCTS[Math.floor(Math.random() * PRODUCTS.length)];
+  // محاكاة طلب فتح الصفحة الرئيسية للمتجر
+  const response = http.get(BASE_URL);
 
-  const payload = JSON.stringify({
-    storeId: STORE_ID,
-    customerName: `Khodor LoadTest ${__VU}`,
-    customerPhone: "+96171708103",
-    city: "Tripoli",
-    address: "Test Address North Governorate",
-    shipping: 2,
-    couponCode: "",
-    items: [
-      {
-        productId: randomProductId,
-        qty: 1,
-      },
-    ],
+  // التحقق من نجاح تحميل الصفحة وأن الاستجابة هي HTML وليست خطأ برمجي
+  check(response, {
+    "Status 200": (r) => r.status === 200,
+    "Is HTML Document": (r) =>
+      r.headers["Content-Type"] &&
+      r.headers["Content-Type"].includes("text/html"),
   });
 
-  const params = {
-    headers: {
-      "Content-Type": "application/json",
-      Host: "turs-bookstore.localhost:3000", // Ensure port is included here to match middleware expectations
-    },
-  };
-
-  const res = http.post(`${BASE_URL}/api/checkout`, payload, params);
-
-  check(res, {
-    "checkout status is 201": (r) => r.status === 201,
-  });
-
+  // محاكاة بقاء المستخدم في الصفحة الرئيسية لمدة ثانية لقراءة المحتوى قبل أي إجراء آخر
   sleep(1);
 }

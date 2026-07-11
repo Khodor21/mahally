@@ -35,7 +35,7 @@ export async function getCurrentStore() {
     .select(
       `
       id, admin_name, admin_email, store_name,
-      slug, location, phone, store_type, created_at, is_active
+      slug, location, phone, store_type, created_at, is_active, payment_methods
     `,
     )
     .eq("id", storeId)

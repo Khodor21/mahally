@@ -25,6 +25,12 @@ export default function NotificationPrompt({ onClose, lang = "en" }: Props) {
         console.log("❌ Notification permission denied");
       }
 
+      // Mark as shown
+      const customerId = localStorage.getItem("current_customer_id");
+      if (customerId) {
+        localStorage.setItem(`push_reg_${customerId}`, "true");
+      }
+
       setIsVisible(false);
       onClose();
     } catch (error) {
@@ -35,6 +41,12 @@ export default function NotificationPrompt({ onClose, lang = "en" }: Props) {
   };
 
   const handleDismiss = () => {
+    // Mark as shown regardless of decline
+    const customerId = localStorage.getItem("current_customer_id");
+    if (customerId) {
+      localStorage.setItem(`push_reg_${customerId}`, "true");
+    }
+
     setIsVisible(false);
     onClose();
   };
@@ -70,12 +82,11 @@ export default function NotificationPrompt({ onClose, lang = "en" }: Props) {
       />
 
       {/* Notification Card - z-50 (ON TOP) */}
-      <div 
+      <div
         className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6 pointer-events-none"
         dir={dir}
       >
         <div className="max-w-[340px] w-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 p-6 sm:p-7 animate-in fade-in zoom-in-95 duration-300 ease-out pointer-events-auto relative overflow-hidden">
-          
           {/* Close Button */}
           <button
             onClick={handleDismiss}

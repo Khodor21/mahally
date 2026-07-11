@@ -19,6 +19,25 @@ export default function AccountTab({
   setFormData,
   SaveButton,
 }: AccountTabProps) {
+  // ✅ Guard: Don't render if store is still loading
+  if (!store) {
+    return (
+      <div className="bg-white rounded-sm border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
+        <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
+          <h3 className="font-bold text-[rgb(60_28_84)] flex items-center gap-2">
+            <User className="w-5 h-5" />
+            {tr.accountSettings}
+          </h3>
+        </div>
+        <div className="p-6 flex items-center justify-center py-12">
+          <div className="text-sm text-[rgb(60_28_84)]/50">
+            {lang === "ar" ? "جاري التحميل..." : "Loading..."}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-sm border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
       <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">

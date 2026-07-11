@@ -86,7 +86,7 @@ export default function SettingsPanel() {
     store_type: "",
     admin_name: "",
     admin_email: "",
-    language: "ar",
+    language: "ar" as "ar" | "en",
     primary_color: "#3C1C54",
     promo_text: "",
     delivery_cost: 0,
@@ -101,6 +101,7 @@ export default function SettingsPanel() {
     tiktok_url: "",
     twitter_url: "",
     snapchat_url: "",
+    payment_methods: "[]",
   });
 
   const handleStoreSuccess = useCallback((data: StoreData) => {
@@ -126,6 +127,10 @@ export default function SettingsPanel() {
       tiktok_url: data.tiktok_url || "",
       twitter_url: data.twitter_url || "",
       snapchat_url: data.snapchat_url || "",
+      payment_methods:
+        typeof data.payment_methods === "string"
+          ? data.payment_methods
+          : JSON.stringify(data.payment_methods || []),
     });
   }, []);
 
@@ -227,9 +232,21 @@ export default function SettingsPanel() {
   const handleSave = async () => {
     if (!store) return;
     setSaved(false);
-
     try {
-      await updateStore({ ...formData, id: store.id });
+      const paymentMethods = (() => {
+        try {
+          const parsed = JSON.parse(formData.payment_methods || "[]");
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      })();
+
+      await updateStore({
+        ...formData,
+        id: store.id,
+        payment_methods: paymentMethods,
+      });
       setSaved(true);
       showToast(
         lang === "ar"
@@ -541,9 +558,6 @@ export default function SettingsPanel() {
           formData={formData}
           setFormData={setFormData}
           store={store}
-          isUploadingLogo={isUploadingLogo}
-          setIsUploadingLogo={setIsUploadingLogo}
-          handleImageUpload={handleImageUpload}
           socialMediaFields={socialMediaFields}
           createdDate={createdDate}
           SaveButton={SaveButton}

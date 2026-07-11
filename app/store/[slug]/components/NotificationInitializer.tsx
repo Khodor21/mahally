@@ -12,8 +12,13 @@ export default function NotificationInitializer() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check if customer is logged in (via API)
+    let pollInterval: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout;
+    let attempts = 0;
+    const maxAttempts = 10; // Poll up to 10 times (5 seconds)
+
     const checkAuth = async () => {
+      attempts++;
       try {
         const res = await fetch("/api/customer/auth-status");
         const data = await res.json();
@@ -27,18 +32,37 @@ export default function NotificationInitializer() {
           );
 
           if (!isRegistered) {
-            const timer = setTimeout(() => {
+            timeoutId = setTimeout(() => {
               setShowPrompt(true);
-            }, 2000);
-
-            return () => clearTimeout(timer);
-          } else {
+            }, 1000);
           }
+
+          // Clear polling once authenticated
+          if (pollInterval) clearInterval(pollInterval);
+        } else if (attempts >= maxAttempts) {
+          // Stop polling after max attempts
+          if (pollInterval) clearInterval(pollInterval);
         }
-      } catch (error) {}
+      } catch (error) {
+        console.error("Auth status check failed:", error);
+        if (attempts >= maxAttempts && pollInterval) {
+          clearInterval(pollInterval);
+        }
+      }
     };
 
+    // Initial immediate check
     checkAuth();
+
+    // Poll every 500ms for up to 5 seconds
+    if (attempts < maxAttempts) {
+      pollInterval = setInterval(checkAuth, 500);
+    }
+
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, []);
 
   // ONLY call the hook when showPrompt is true AND we have customerId

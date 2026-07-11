@@ -1,7 +1,7 @@
-import { Store, Loader2 } from "lucide-react";
-import { StoreData } from "@/types/api";
+import { Store, Check, CreditCard } from "lucide-react";
 import { ComponentType } from "react";
 import { LucideProps } from "lucide-react";
+import { StoreData } from "../types"; // Use ONE import path
 
 interface StoreTabProps {
   lang: string;
@@ -9,10 +9,7 @@ interface StoreTabProps {
   tr: any;
   formData: any;
   setFormData: (data: any) => void;
-  store: StoreData | null;
-  isUploadingLogo: boolean;
-  setIsUploadingLogo: (value: boolean) => void;
-  handleImageUpload: (file: File) => Promise<string | null>;
+  store: StoreData | undefined; // Changed from null to undefined to match useStore return type
   socialMediaFields: Array<{
     label: string;
     key: string;
@@ -22,6 +19,15 @@ interface StoreTabProps {
   SaveButton: React.ComponentType;
 }
 
+const PAYMENT_OPTIONS = [
+  {
+    id: "cash_on_delivery",
+    label: { ar: "دفع عند الاستلام", en: "Cash on Delivery" },
+  },
+  { id: "whish_money", label: { ar: "ويش موني", en: "Whish Money" } },
+  { id: "bob_finance", label: { ar: "بوب فينانس", en: "Bob Finance" } },
+];
+
 export default function StoreTab({
   lang,
   dir,
@@ -29,13 +35,27 @@ export default function StoreTab({
   formData,
   setFormData,
   store,
-  isUploadingLogo,
-  setIsUploadingLogo,
-  handleImageUpload,
   socialMediaFields,
   createdDate,
   SaveButton,
 }: StoreTabProps) {
+  // FIX: Single declaration of currentMethods
+  const currentMethods: string[] = formData.payment_methods
+    ? JSON.parse(formData.payment_methods)
+    : [];
+
+  const togglePaymentMethod = (methodId: string) => {
+    // FIX: Use the outer currentMethods, don't redeclare
+    const updated = currentMethods.includes(methodId)
+      ? currentMethods.filter((m: string) => m !== methodId)
+      : [...currentMethods, methodId];
+
+    setFormData((prev: any) => ({
+      ...prev,
+      payment_methods: JSON.stringify(updated),
+    }));
+  };
+
   return (
     <div className="bg-white rounded-sm border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
       <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
@@ -72,68 +92,30 @@ export default function StoreTab({
           ))}
 
           <div>
-            <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
-              {lang === "ar" ? "شعار المتجر (Logo)" : "Store Logo"}
+            <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-3">
+              {lang === "ar"
+                ? "طرق الدفع المتاحة"
+                : "Available Payment Methods"}
             </label>
-
-            <input
-              type="file"
-              accept="image/*"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  setIsUploadingLogo(true);
-                  const url = await handleImageUpload(file);
-                  if (url)
-                    setFormData((prev: any) => ({
-                      ...prev,
-                      logo_url: url,
-                    }));
-                  setIsUploadingLogo(false);
-                }
-              }}
-              className="w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2 text-sm text-[rgb(60_28_84)] file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[rgb(60_28_84)] file:text-white hover:file:bg-[rgb(60_28_84)]/90 outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all cursor-pointer"
-            />
-
-            {isUploadingLogo && (
-              <div className="mt-2 text-xs font-semibold text-emerald-600 flex items-center gap-1.5">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                {lang === "ar" ? "جاري الرفع..." : "Uploading..."}
-              </div>
-            )}
-
-            {formData.logo_url && (
-              <div className="mt-3 p-2 bg-[rgb(244_242_245)] rounded-sm inline-block">
-                <img
-                  src={formData.logo_url}
-                  alt="Logo"
-                  className="h-10 object-contain"
-                />
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
-              {tr.storeType}
-            </label>
-
-            <select
-              value={formData.store_type}
-              onChange={(e) =>
-                setFormData((prev: any) => ({
-                  ...prev,
-                  store_type: e.target.value,
-                }))
-              }
-              className="w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
-              dir={dir}
-            >
-              <option value="">Select Type</option>
-              <option value="retail">Retail</option>
-              <option value="wholesale">Wholesale</option>
-              <option value="service">Service</option>
-            </select>
+            <div className="grid grid-cols-1 gap-2">
+              {PAYMENT_OPTIONS.map((method) => (
+                <button
+                  key={method.id}
+                  type="button"
+                  onClick={() => togglePaymentMethod(method.id)}
+                  className={`flex items-center justify-between px-4 py-2.5 rounded-sm border text-sm transition-all ${
+                    currentMethods.includes(method.id)
+                      ? "border-[rgb(60_28_84)] bg-[rgb(60_28_84)] text-white"
+                      : "border-[rgb(244_242_245)] bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:border-[rgb(207_195_223)]"
+                  }`}
+                >
+                  {method.label[lang as "ar" | "en"]}
+                  {currentMethods.includes(method.id) && (
+                    <Check className="w-4 h-4" />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

@@ -13,7 +13,7 @@ const Page = async () => {
 
   return (
     <div className="w-full">
-      <Dashboard store={store} /> 
+      <Dashboard store={store} />
     </div>
   );
 };

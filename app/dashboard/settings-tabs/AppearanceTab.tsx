@@ -213,6 +213,8 @@ export default function AppearanceTab(props: AppearanceTabProps) {
   const [deletingFeature, setDeletingFeature] = useState<
     string | number | null
   >(null);
+
+  const { setActiveNav } = useDashboard();
   const [isDeletingFeature, setIsDeletingFeature] = useState(false);
   const [editingFeature, setEditingFeature] = useState<any>(null);
 
@@ -427,6 +429,7 @@ export default function AppearanceTab(props: AppearanceTabProps) {
       </AccordionSection>
 
       {/* Site Sections Quick Access */}
+      {/* Site Sections Quick Access */}
       <AccordionSection
         section={SECTIONS[1]}
         isOpen={expandedSections.includes("site_sections")}
@@ -435,12 +438,15 @@ export default function AppearanceTab(props: AppearanceTabProps) {
         dir={dir}
       >
         <div className="space-y-4">
-          <a href="#sections" className="block">
-            <button className="w-full flex items-center justify-center gap-3 px-5 py-3 text-sm font-semibold bg-[rgb(60_28_84)] text-white rounded-sm hover:bg-[rgb(60_28_84)]/90 transition-all shadow-sm">
-              <Settings className="w-4 h-4" />
-              {lang === "ar" ? "إدارة أقسام الموقع" : "Manage Site Sections"}
-            </button>
-          </a>
+          {/* REPLACE the <a> tag with a <button> that triggers navigation */}
+          <button
+            onClick={() => setActiveNav("sections")} // This updates the global state
+            className="w-full flex items-center justify-center gap-3 px-5 py-3 text-sm font-semibold bg-[rgb(60_28_84)] text-white rounded-sm hover:bg-[rgb(60_28_84)]/90 transition-all shadow-sm"
+          >
+            <Settings className="w-4 h-4" />
+            {lang === "ar" ? "إدارة أقسام الموقع" : "Manage Site Sections"}
+          </button>
+
           <p className="text-xs text-[rgb(60_28_84)]/50 text-center mt-3">
             {lang === "ar"
               ? "انتقل إلى علامة التبويب أقسام للتحكم في الفئات والمنتجات"
@@ -448,7 +454,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
           </p>
         </div>
       </AccordionSection>
-
       {/* Banners Section */}
       <AccordionSection
         section={SECTIONS[2]}

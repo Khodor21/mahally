@@ -63,7 +63,7 @@ export interface UseFetchOptions<T> {
 }
 
 export interface UseFetchResult<T> {
-  data: T | null;
+  data: T | undefined;
   loading: boolean;
   error: Error | null;
   execute: () => Promise<void>;
@@ -81,7 +81,7 @@ export function useFetch<T>(
   fetcher: () => Promise<T>,
   options: UseFetchOptions<T> = {},
 ): UseFetchResult<T> {
-  const [data, setData] = useState<T | null>(null);
+  const [data, setData] = useState<T | undefined>(undefined);
   const [loading, setLoading] = useState(!options.skip);
   const [error, setError] = useState<Error | null>(null);
 
@@ -238,100 +238,131 @@ export function useCustomers(options: UseFetchOptions<Customer[]> = {}) {
 // COUPONS
 // ============================================
 
+// Add/replace these hooks in your useApi.ts file
+
+// ===== GET COUPONS =====
 export function useCoupons(options: UseFetchOptions<Coupon[]> = {}) {
   return useFetch(() => getCoupons(), options);
 }
 
-export function useCouponCreate() {
+// ===== CREATE COUPON =====
+export const useCouponCreate = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
 
-  const execute = useCallback(async (form: CouponFormData) => {
+  const execute = useCallback(async (payload: any) => {
     setLoading(true);
-    setError(null);
     try {
-      return await createCoupon(form);
-    } catch (err) {
-      const error =
-        err instanceof Error ? err : new Error("Failed to create coupon");
-      setError(error);
-      throw error;
+      const response = await fetch("/api/coupons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Error: ${response.status}`);
+      }
+
+      const json = await response.json();
+      return json.data;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  return { execute, loading, error };
-}
+  return { execute, loading };
+};
 
-export function useCouponUpdate() {
+// ===== UPDATE COUPON =====
+export const useCouponUpdate = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
 
-  const execute = useCallback(
-    async (couponId: string, form: CouponFormData) => {
-      setLoading(true);
-      setError(null);
-      try {
-        return await updateCoupon(couponId, form);
-      } catch (err) {
-        const error =
-          err instanceof Error ? err : new Error("Failed to update coupon");
-        setError(error);
-        throw error;
-      } finally {
-        setLoading(false);
+  const execute = useCallback(async (couponId: string, payload: any) => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/coupons", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          couponId, // ✅ Include couponId in body
+          ...payload,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Error: ${response.status}`);
       }
-    },
-    [],
-  );
 
-  return { execute, loading, error };
-}
+      const json = await response.json();
+      return json.data;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-export function useCouponDelete() {
+  return { execute, loading };
+};
+
+// ===== DELETE COUPON =====
+export const useCouponDelete = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
 
   const execute = useCallback(async (couponId: string) => {
     setLoading(true);
-    setError(null);
     try {
-      await deleteCoupon(couponId);
-    } catch (err) {
-      const error =
-        err instanceof Error ? err : new Error("Failed to delete coupon");
-      setError(error);
-      throw error;
+      // ✅ Pass couponId as query parameter
+      const response = await fetch(
+        `/api/coupons?couponId=${encodeURIComponent(couponId)}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Error: ${response.status}`);
+      }
+
+      return await response.json();
     } finally {
       setLoading(false);
     }
   }, []);
 
-  return { execute, loading, error };
-}
+  return { execute, loading };
+};
 
-export function useCouponToggle() {
+// ===== TOGGLE COUPON ACTIVE STATUS =====
+export const useCouponToggle = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
 
   const execute = useCallback(async (couponId: string, isActive: boolean) => {
     setLoading(true);
-    setError(null);
     try {
-      return await toggleCouponStatus(couponId, isActive);
-    } catch (err) {
-      const error =
-        err instanceof Error ? err : new Error("Failed to toggle coupon");
-      setError(error);
-      throw error;
+      const response = await fetch("/api/coupons", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          couponId, // ✅ Include couponId in body
+          isActive,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Error: ${response.status}`);
+      }
+
+      const json = await response.json();
+      return json.data;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  return { execute, loading, error };
-}
+  return { execute, loading };
+};
 
 // ============================================
 // CATEGORIES

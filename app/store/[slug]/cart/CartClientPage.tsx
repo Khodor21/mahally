@@ -50,6 +50,8 @@ export default function CartClientPage({ store }: Props) {
         ? store.payment_methods
         : []
     : [];
+  console.log("Store payment methods:", store?.payment_methods);
+  console.log("Parsed payment methods:", paymentMethods);
   // ── Auth & Auto-fill ────────────────────────────────────
   const { customer, loading: authLoading } = useAuth(store?.id);
 

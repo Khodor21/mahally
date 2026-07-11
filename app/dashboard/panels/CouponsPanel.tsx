@@ -27,6 +27,7 @@ import {
   useCouponToggle,
 } from "@/hooks/useApi";
 import Toast from "../components/Toast";
+import ConfirmModal from "../components/ConfirmModal"; // Make sure to adjust this import path
 import type { Coupon, StoreData } from "@/types/api";
 
 interface ToastState {
@@ -54,6 +55,11 @@ export default function CouponsPanel({ store }: CouponsPanelProps) {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+
+  // Delete Modal States
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [couponToDelete, setCouponToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const submitting = isCreating || isUpdating;
 
@@ -90,6 +96,7 @@ export default function CouponsPanel({ store }: CouponsPanelProps) {
     try {
       const payload = {
         ...formData,
+        code: formData.code.trim().toUpperCase(), // ✅ UPPERCASE THE CODE
         discount: parseFloat(formData.discount.toString()),
         minPurchase: parseFloat(formData.minPurchase.toString()),
         maxUses: parseInt(formData.maxUses.toString()),
@@ -118,16 +125,30 @@ export default function CouponsPanel({ store }: CouponsPanelProps) {
     }
   };
 
-  const handleDelete = async (couponId: string) => {
-    if (!window.confirm(lang === "ar" ? "هل أنت متأكد؟" : "Are you sure?"))
-      return;
+  // Triggered when clicking the delete button on a coupon card
+  const handleDeleteClick = (couponId: string) => {
+    setCouponToDelete(couponId);
+    setDeleteModalOpen(true);
+  };
 
+  // Triggered when confirming inside the ConfirmModal
+  const confirmDelete = async () => {
+    if (!couponToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await deleteCoupon(couponId);
-      showToast("Coupon deleted successfully", "success");
+      await deleteCoupon(couponToDelete);
+      showToast(
+        lang === "ar" ? "تم حذف الكوبون بنجاح" : "Coupon deleted successfully",
+        "success",
+      );
       fetchCoupons();
     } catch (error: any) {
       showToast(error.message || "Failed to delete coupon", "error");
+    } finally {
+      setIsDeleting(false);
+      setDeleteModalOpen(false);
+      setCouponToDelete(null);
     }
   };
 
@@ -492,7 +513,7 @@ export default function CouponsPanel({ store }: CouponsPanelProps) {
                   </button>
 
                   <button
-                    onClick={() => handleDelete(coupon.id)}
+                    onClick={() => handleDeleteClick(coupon.id)}
                     className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-all font-bold text-xs"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -773,6 +794,26 @@ export default function CouponsPanel({ store }: CouponsPanelProps) {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        open={deleteModalOpen}
+        title={lang === "ar" ? "حذف الكوبون" : "Delete Coupon"}
+        description={
+          lang === "ar"
+            ? "هل أنت متأكد أنك تريد حذف هذا الكوبون؟ لا يمكن التراجع عن هذا الإجراء."
+            : "Are you sure you want to delete this coupon? This action cannot be undone."
+        }
+        confirmText={lang === "ar" ? "حذف" : "Delete"}
+        cancelText={lang === "ar" ? "إلغاء" : "Cancel"}
+        danger={true}
+        loading={isDeleting}
+        onConfirm={confirmDelete}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setCouponToDelete(null);
+        }}
+      />
 
       {/* Toast */}
       {toast && (

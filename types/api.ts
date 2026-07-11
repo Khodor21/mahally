@@ -138,7 +138,7 @@ export interface StoreData {
   id: string;
   admin_name: string;
   admin_email: string;
-  language: string;
+  language: "ar" | "en";
   email?: string;
   store_name: string;
   slug: string;

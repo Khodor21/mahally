@@ -239,6 +239,7 @@ export default function ProductCard({
               src={product.image}
               alt={product.title}
               fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className={`object-contain p-2 mix-blend-multiply transition-transform duration-500 group-hover:scale-110 ${
                 isOutOfStock ? "grayscale" : ""
               }`}
@@ -359,6 +360,7 @@ export default function ProductCard({
                     src={product.image}
                     alt={product.title}
                     fill
+                    sizes="64px"
                     className="object-contain p-1 mix-blend-multiply"
                   />
                 </div>
@@ -400,6 +402,7 @@ export default function ProductCard({
                     src={product.image}
                     alt={product.title}
                     fill
+                    sizes="64px"
                     className="object-contain p-1 mix-blend-multiply"
                   />
                 </div>

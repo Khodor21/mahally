@@ -55,8 +55,11 @@ export async function GET() {
     language: store.language || "en",
     plan_type: store.plan_type || "Starter",
     delivery_cost: store.delivery_cost ?? 0,
-    payment_methods: store.payment_methods || ["cash_on_delivery"],
-
+    payment_methods: store.payment_methods
+      ? typeof store.payment_methods === "string"
+        ? JSON.parse(store.payment_methods)
+        : store.payment_methods
+      : ["cash_on_delivery"],
     // Contact info
     email: store.admin_email,
 
