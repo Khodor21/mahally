@@ -36,10 +36,12 @@ console.log("✅ Firebase Messaging ready");
 messaging.onBackgroundMessage((payload) => {
   console.log("📬 Background message received:", payload);
 
-  const notificationTitle = payload.notification?.title || "Notification";
+  // FIXED: Reading from payload.data instead of payload.notification.
+  // This pairs with a data-only payload from your backend to prevent double notifications.
+  const notificationTitle = payload.data?.title || "Notification";
   const notificationOptions = {
-    body: payload.notification?.body || "",
-    icon: payload.notification?.icon || "/icon-192x192.png",
+    body: payload.data?.body || "",
+    icon: payload.data?.icon || "/icon-192x192.png",
     badge: "/badge-72x72.png",
     tag: "notification",
     requireInteraction: true,
