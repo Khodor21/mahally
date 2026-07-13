@@ -1,76 +1,110 @@
-// public/firebase-messaging-sw.js
+// Public/firebase-messaging-sw.js
+// This file MUST be in the /public folder for Service Worker to access it
 
-// Import Firebase scripts
-importScripts(
-  "https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js",
-);
-importScripts(
-  "https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js",
-);
+import { initializeApp } from "firebase/app";
+import { getMessaging, onMessage } from "firebase/messaging";
 
-// Make sure these match your .env.local NEXT_PUBLIC_FIREBASE_* variables
+// Firebase config (use placeholder values, will be injected)
 const firebaseConfig = {
-  apiKey: "AIzaSyBQZoA1lhg8TZ0jIAkRrn_QgW8nmpp0XeQ",
-  authDomain: "mahally-notification.firebaseapp.com",
-  projectId: "mahally-notification",
-  storageBucket: "mahally-notification.appspot.com",
-  messagingSenderId: "893549676994",
-  appId: "1:893549676994:web:1a66a47ab644619c6bee5b",
+  apiKey: self.FIREBASE_API_KEY || "",
+  authDomain: self.FIREBASE_AUTH_DOMAIN || "",
+  projectId: self.FIREBASE_PROJECT_ID || "",
+  messagingSenderId: self.FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: self.FIREBASE_APP_ID || "",
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const messaging = firebase.messaging();
+// Initialize Firebase in Service Worker context
+let app;
+let messaging;
 
-console.log("🔥 Service Worker: Firebase initialized");
+try {
+  app = initializeApp(firebaseConfig);
+  messaging = getMessaging(app);
+  console.log("✅ Firebase initialized in Service Worker");
+} catch (error) {
+  console.error("❌ Firebase initialization error in SW:", error);
+}
 
-// Handle background messages (when app is NOT in focus)
-messaging.onBackgroundMessage((payload) => {
-  console.log("🔔 Service Worker: Background message received:", payload);
+// Handle background messages
+self.addEventListener("push", (event) => {
+  console.log("📬 Push message received in SW:", event);
 
-  const notificationTitle = payload.notification?.title || "Notification";
-  const notificationOptions = {
-    body: payload.notification?.body || "",
-    icon: "/logo.png",
-    badge: "/badge.png",
-    // Optional: Add data to notification
-    data: payload.data || {},
+  if (!event.data) {
+    console.warn("⚠️ No data in push event");
+    return;
+  }
+
+  let notificationData = {};
+
+  try {
+    notificationData = event.data.json();
+  } catch (e) {
+    // If JSON parse fails, treat as text
+    notificationData = {
+      title: "Notification",
+      body: event.data.text(),
+    };
+  }
+
+  const {
+    title = "Notification",
+    body = "",
+    icon,
+    badge,
+    tag,
+    requireInteraction = true,
+  } = notificationData;
+
+  const options = {
+    body,
+    icon: icon || "/icon-192x192.png",
+    badge: badge || "/badge-72x72.png",
+    tag: tag || "notification",
+    requireInteraction,
+    actions: [
+      {
+        action: "open",
+        title: "Open",
+      },
+      {
+        action: "close",
+        title: "Close",
+      },
+    ],
   };
 
-  // Show the notification
-  return self.registration.showNotification(
-    notificationTitle,
-    notificationOptions,
-  );
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 // Handle notification clicks
 self.addEventListener("notificationclick", (event) => {
-  console.log("👆 Notification clicked:", event.notification.title);
+  console.log("🖱️ Notification clicked:", event.notification.tag);
 
   event.notification.close();
 
+  if (event.action === "close") {
+    return;
+  }
+
+  // Focus or open window
   event.waitUntil(
-    clients.matchAll({ type: "window" }).then((clientList) => {
-      // Try to find an open window
-      for (let i = 0; i < clientList.length; i++) {
-        const client = clientList[i];
-
-        // Focus existing window
-        if (client.url === "/" && "focus" in client) {
-          return client.focus();
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        // Check if there's already a window/tab open
+        for (let client of clientList) {
+          if (client.url === "/" && "focus" in client) {
+            return client.focus();
+          }
         }
-      }
-
-      // If no window found, open new one
-      if (clients.openWindow) {
-        return clients.openWindow("/");
-      }
-    }),
+        // Otherwise, open a new window
+        if (clients.openWindow) {
+          return clients.openWindow("/");
+        }
+      }),
   );
 });
 
-// Optional: Handle notification close
 self.addEventListener("notificationclose", (event) => {
-  console.log("✋ Notification closed:", event.notification.title);
+  console.log("✖️ Notification closed:", event.notification.tag);
 });

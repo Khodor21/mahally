@@ -61,13 +61,23 @@ export function usePushNotifications(
         // 2. Register service worker
         console.log("📝 Registering Service Worker...");
         try {
+          // Use updateViaCache to avoid cached SW on mobile HTTPS
           const reg = await navigator.serviceWorker.register(
             "/firebase-messaging-sw.js",
-            { scope: "/" },
+            {
+              scope: "/",
+              updateViaCache: "none", // Critical for mobile HTTPS updates
+            },
           );
           console.log("✅ Service Worker registered:", reg);
+
+          // Force update check (important for mobile)
+          reg
+            .update()
+            .catch((err) => console.warn("SW update check failed:", err));
         } catch (err) {
           console.error("❌ Service Worker registration failed:", err);
+          console.error("📍 Stack:", (err as Error).stack);
           return;
         }
 
@@ -97,43 +107,108 @@ export function usePushNotifications(
         // 5. Get FCM token
         console.log("🎫 Getting FCM token...");
         const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-        console.log("🔑 VAPID Key length:", vapidKey?.length);
-        console.log(
-          "🔑 VAPID Key (first 30 chars):",
-          vapidKey?.substring(0, 30),
-        );
 
         if (!vapidKey) {
           console.error("❌ VAPID key missing in environment variables");
+          console.error("⚠️ Add NEXT_PUBLIC_FIREBASE_VAPID_KEY to .env.local");
           return;
         }
 
-        const token = await getToken(messaging, { vapidKey });
-        console.log("🎫 Generated token:", token);
+        console.log("🔑 VAPID Key length:", vapidKey.length);
+        console.log(
+          "🔑 VAPID Key (first 30 chars):",
+          vapidKey.substring(0, 30),
+        );
+
+        // Validate VAPID key format
+        if (vapidKey.length < 100) {
+          console.warn(
+            "⚠️ VAPID key seems short. Expected ~152 chars, got:",
+            vapidKey.length,
+          );
+        }
+
+        let token;
+        try {
+          token = await getToken(messaging, { vapidKey });
+          console.log("🎫 Generated token:", token);
+        } catch (tokenError) {
+          console.error("❌ Token generation failed:", tokenError);
+          const err = tokenError as Error;
+
+          // Common mobile HTTPS errors
+          if (
+            err.message?.includes(
+              "messaging/failed-service-worker-registration",
+            )
+          ) {
+            console.error(
+              "📱 Service Worker registration issue (mobile HTTPS)",
+            );
+          }
+          if (err.message?.includes("messaging/unsupported-browser")) {
+            console.error("📱 Browser doesn't support messaging");
+          }
+          if (err.message?.includes("NotAllowedError")) {
+            console.error("📱 Permission denied - user rejected notifications");
+          }
+
+          return;
+        }
 
         if (!token) {
-          console.error("❌ No token generated");
+          console.error("❌ No token generated - empty response");
           return;
         }
 
-        // 6. Register token with backend
+        // 6. Register token with backend (with retry logic for mobile)
         console.log("📤 Sending token to backend...");
-        const response = await fetch("/api/notifications/register-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        });
 
-        console.log("📊 Response status:", response.status);
-        const data = await response.json();
-        console.log("📊 Response data:", data);
+        let retries = 0;
+        const maxRetries = 3;
+        let registrationSuccess = false;
 
-        if (data.success) {
-          console.log("✅✅✅ TOKEN REGISTERED SUCCESSFULLY!");
-          markRegistrationCached(customerId);
-        } else {
-          console.error("❌ Token registration failed:", data.message);
-          // Clear cache so we retry next time
+        while (retries < maxRetries && !registrationSuccess) {
+          try {
+            const response = await fetch("/api/notifications/register-token", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ token }),
+            });
+
+            console.log("📊 Response status:", response.status);
+            const data = await response.json();
+            console.log("📊 Response data:", data);
+
+            if (response.ok && data.success) {
+              console.log("✅✅✅ TOKEN REGISTERED SUCCESSFULLY!");
+              markRegistrationCached(customerId);
+              registrationSuccess = true;
+            } else {
+              console.error("❌ Token registration failed:", data.message);
+              retries++;
+
+              if (retries < maxRetries) {
+                console.log(`🔄 Retrying... (${retries}/${maxRetries})`);
+                await new Promise((resolve) =>
+                  setTimeout(resolve, 1000 * retries),
+                ); // Exponential backoff
+              }
+            }
+          } catch (fetchError) {
+            console.error("❌ Fetch error:", fetchError);
+            retries++;
+
+            if (retries < maxRetries) {
+              console.log(`🔄 Retrying... (${retries}/${maxRetries})`);
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * retries),
+              );
+            }
+          }
+        }
+
+        if (!registrationSuccess) {
           clearRegistrationCache(customerId);
         }
       } catch (error) {

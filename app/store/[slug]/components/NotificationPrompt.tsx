@@ -8,9 +8,14 @@ import { Bell, X } from "lucide-react";
 type Props = {
   onClose: () => void;
   lang?: "en" | "ar";
+  customerId?: string | null;
 };
 
-export default function NotificationPrompt({ onClose, lang = "en" }: Props) {
+export default function NotificationPrompt({
+  onClose,
+  lang = "en",
+  customerId,
+}: Props) {
   const [isVisible, setIsVisible] = useState(true);
 
   if (!isVisible) return null;
@@ -26,7 +31,6 @@ export default function NotificationPrompt({ onClose, lang = "en" }: Props) {
       }
 
       // Mark as shown
-      const customerId = localStorage.getItem("current_customer_id");
       if (customerId) {
         localStorage.setItem(`push_reg_${customerId}`, "true");
       }
@@ -42,7 +46,6 @@ export default function NotificationPrompt({ onClose, lang = "en" }: Props) {
 
   const handleDismiss = () => {
     // Mark as shown regardless of decline
-    const customerId = localStorage.getItem("current_customer_id");
     if (customerId) {
       localStorage.setItem(`push_reg_${customerId}`, "true");
     }

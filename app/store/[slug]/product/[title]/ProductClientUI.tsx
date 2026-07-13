@@ -14,6 +14,7 @@ import {
   ChevronRight,
   X,
   CheckCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { useShop } from "@/app/store/context";
 import ShareIcons from "./components/ShareIcons";
@@ -105,7 +106,14 @@ export default function ProductClientUI({
   children,
 }: ProductClientUIProps) {
   const router = useRouter();
-  const { addToCart, toggleFavorite, isFavorite, cartItems } = useShop();
+  const {
+    addToCart,
+    toggleFavorite,
+    isFavorite,
+    cartItems,
+    updateCartQty,
+    removeFromCart,
+  } = useShop();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   const t = {
@@ -217,29 +225,66 @@ export default function ProductClientUI({
     variantGroups.forEach((group) => {
       const variantPrice = selectedVariants[group.id]?.price;
       if (group.allowPrice && variantPrice !== undefined) {
-        totalPrice = variantPrice;
+        totalPrice = Number(variantPrice);
       }
     });
 
     return totalPrice;
   };
 
-  // Calculate active stock based on selected variant options
   const calculateStock = (): number => {
     const stockTrackingGroups = variantGroups.filter((g) => g.allowStock);
-    if (stockTrackingGroups.length === 0) return product.stock || 0;
 
-    let minStock = 99999;
+    // If no variants track stock, use base product stock
+    if (stockTrackingGroups.length === 0) {
+      return Number(product.stock || 0);
+    }
+
+    // Start with base product stock as fallback
+    let minStock = Number(product.stock) || 99999;
+
+    // Check each variant group
     stockTrackingGroups.forEach((group) => {
-      const stock = selectedVariants[group.id]?.stock ?? 0;
-      minStock = Math.min(minStock, stock);
+      const selectedOption = selectedVariants[group.id];
+
+      // If variant has stock defined, use it; otherwise use base stock
+      if (selectedOption?.stock !== undefined) {
+        minStock = Math.min(minStock, Number(selectedOption.stock));
+      }
+      // If variant has NO stock property, skip it (don't use 0)
     });
 
-    return minStock === 99999 ? 0 : minStock;
+    return minStock === 99999 ? Number(product.stock || 0) : minStock;
   };
 
   const activePrice = calculatePrice();
   const activeStock = calculateStock();
+
+  // Safely calculate exactly how many of this product are already in the cart
+  const existingCartQty = useMemo(() => {
+    if (!cartItems || !Array.isArray(cartItems)) return 0;
+    return cartItems
+      .filter(
+        (item: any) =>
+          item?.product && String(item.product.id) === String(productId),
+      )
+      .reduce(
+        (sum: number, item: any) =>
+          sum + Number(item.qty || item.quantity || 0),
+        0,
+      );
+  }, [cartItems, productId]);
+
+  // 🔑 KEY FIX: Initialize/sync quantity based on whether item is in cart
+  useEffect(() => {
+    if (existingCartQty > 0) {
+      // Item is in cart: sync to cart quantity
+      setQuantity(existingCartQty);
+    } else {
+      // Item not in cart: start fresh at 1
+      setQuantity(1);
+    }
+  }, [existingCartQty]);
 
   // Build variant description for cart
   const variantDescription = variantGroups
@@ -259,46 +304,88 @@ export default function ProductClientUI({
 
   // --- Handlers ---
 
-  const increment = () =>
-    setQuantity((q) => Math.min(q + 1, activeStock || 99));
-  const decrement = () => setQuantity((q) => Math.max(q - 1, 1));
+  // 🔑 KEY FIX: Different logic for "editing cart item" vs "adding new item"
+  const increment = () => {
+    setQuantity((prev) => {
+      const newQty = Math.min(prev + 1, activeStock);
 
-  useEffect(() => {
-    if (quantity > activeStock) {
-      setQuantity(Math.max(1, activeStock));
-    }
-  }, [selectedVariants, activeStock, quantity]);
+      // If item is already in cart, sync immediately
+      if (existingCartQty > 0) {
+        updateCartQty(productId, newQty);
+      }
 
-  // ✅ VALIDATION HELPER: Check cart contents against active stock
-  const isStockLimitReached = () => {
-    const existingCartQty = cartItems
-      .filter((item: any) => String(item.product.id) === productId)
-      .reduce((sum: number, item: any) => sum + item.qty, 0);
-
-    return existingCartQty + quantity > activeStock;
+      return newQty;
+    });
   };
 
-  const handleAddToCart = () => {
-    if (activeStock < 1) return;
+  const decrement = () => {
+    setQuantity((prev) => {
+      const newQty = Math.max(prev - 1, 0);
 
-    if (isStockLimitReached()) {
+      // If item is in cart, sync to cart (or remove if 0)
+      if (existingCartQty > 0) {
+        if (newQty === 0) {
+          removeFromCart(productId);
+        } else {
+          updateCartQty(productId, newQty);
+        }
+      }
+
+      return newQty;
+    });
+  };
+
+  // 🔑 KEY FIX: Only cap quantity if item NOT in cart (adding new)
+  useEffect(() => {
+    if (existingCartQty === 0 && quantity > activeStock && activeStock > 0) {
+      // Item not in cart: cap at activeStock when adding new
+      setQuantity(Math.max(1, activeStock));
+    }
+  }, [activeStock, existingCartQty, quantity]);
+
+  // 🔑 KEY FIX: Separate logic for button disable state
+  // When adding NEW item: check if quantity exceeds stock
+  // When editing existing: no limit (just cap at stock total)
+  const isStockLimitReached = () => {
+    if (existingCartQty === 0) {
+      // Adding new: check if quantity exceeds stock
+      return quantity > activeStock;
+    }
+    // Editing existing: not limited (already in cart)
+    return false;
+  };
+
+  const isActionDisabled = activeStock < 1 || isStockLimitReached();
+
+  const handleAddToCart = () => {
+    if (isActionDisabled) {
       setStockWarning(true);
       return;
     }
 
-    addToCart(normalizedProduct);
-    setAdded(true);
+    if (existingCartQty > 0) {
+      // Already in cart, quantity is synced via increment/decrement
+      setAdded(true);
+    } else {
+      // First time adding
+      addToCart(normalizedProduct, quantity);
+      setAdded(true);
+    }
   };
 
   const handleBuyNow = () => {
-    if (activeStock < 1) return;
-
-    if (isStockLimitReached()) {
+    if (isActionDisabled) {
       setStockWarning(true);
       return;
     }
 
-    addToCart(normalizedProduct);
+    if (existingCartQty > 0) {
+      // Item already in cart, use current quantity
+      addToCart(normalizedProduct, quantity);
+    } else {
+      // First time adding
+      addToCart(normalizedProduct, quantity);
+    }
     router.push("/cart");
   };
 
@@ -350,7 +437,7 @@ export default function ProductClientUI({
     if (favToast) {
       setFavProgress(100);
       const timer1 = setTimeout(() => setFavProgress(0), 50);
-      const timer2 = setTimeout(() => setFavToast(false), 3000); // Hide after 3s
+      const timer2 = setTimeout(() => setFavToast(false), 3000);
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);
@@ -421,7 +508,6 @@ export default function ProductClientUI({
               </div>
             )}
 
-            {/* Changed from bg-grey & mix-blend to transparent, natural dimensions */}
             <div className="relative flex-1 rounded-2xl overflow-hidden aspect-square md:aspect-auto flex items-center justify-center">
               {images.map((img: string, idx: number) => (
                 <div
@@ -496,7 +582,7 @@ export default function ProductClientUI({
                             {group.allowPrice &&
                               singleOption.price !== undefined && (
                                 <span className="text-xs ml-1.5 opacity-70">
-                                  (${singleOption.price!.toFixed(2)})
+                                  ({singleOption.price!.toFixed(2)})
                                 </span>
                               )}
                           </span>
@@ -525,7 +611,7 @@ export default function ProductClientUI({
                                   {option.value}
                                   {group.allowPrice && option.price && (
                                     <span className="text-xs mx-1.5 opacity-70">
-                                      - (${option.price.toFixed(2)})
+                                      - ({option.price.toFixed(2)})
                                     </span>
                                   )}
                                 </button>
@@ -557,39 +643,52 @@ export default function ProductClientUI({
             )}
 
             {/* Quantity & Price Summary */}
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 py-4 border-t border-gray-100">
-              <div className="flex items-center justify-between sm:justify-start gap-4">
-                <span className="text-black font-medium">{t.quantity}</span>
-                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden h-8 w-28 bg-white">
-                  <button
-                    onClick={increment}
-                    disabled={quantity >= activeStock}
-                    className="w-8 h-full flex items-center justify-center hover:bg-gray-50 text-gray-600 disabled:opacity-50"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
-                  <div className="flex-1 text-sm h-full flex items-center justify-center font-bold text-gray-900 border-x border-gray-200">
-                    {quantity}
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 py-4 border-t border-gray-100">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between sm:justify-start gap-4">
+                  <span className="text-black font-medium">{t.quantity}</span>
+                  <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden h-8 w-28 bg-white">
+                    <button
+                      onClick={increment}
+                      disabled={quantity >= activeStock}
+                      className="w-8 h-full flex items-center justify-center hover:bg-gray-50 text-gray-600 disabled:opacity-50"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                    <div className="flex-1 text-sm h-full flex items-center justify-center font-bold text-gray-900 border-x border-gray-200">
+                      {quantity}
+                    </div>
+                    <button
+                      onClick={decrement}
+                      disabled={quantity <= (existingCartQty > 0 ? 0 : 1)}
+                      className="w-8 h-full flex items-center justify-center hover:bg-gray-50 text-gray-600 disabled:opacity-50"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
                   </div>
-                  <button
-                    onClick={decrement}
-                    disabled={quantity <= 1}
-                    className="w-8 h-full flex items-center justify-center hover:bg-gray-50 text-gray-600 disabled:opacity-50"
-                  >
-                    <Minus className="w-3 h-3" />
-                  </button>
                 </div>
+                {/* INLINE WARNING */}
+                {isActionDisabled && existingCartQty === 0 && (
+                  <p className="text-xs text-red-500 font-bold mt-1.5 animate-in slide-in-from-top-1 fade-in duration-200 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    {lang === "ar"
+                      ? "تم الوصول للحد الأقصى للمخزون المتوفر"
+                      : "Max available stock reached"}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-start gap-2 justify-between sm:justify-start">
-                <span className="text-black/80 font-medium">{t.total}:</span>
-                <div className="text-brand-primary font-medium text-xl">
+                <span className="text-black/80 font-medium sm:mt-1">
+                  {t.total}:
+                </span>
+                <div className="text-brand-primary font-medium text-xl sm:mt-0.5">
                   {totalPrice}
                 </div>
               </div>
             </div>
 
-            {/* Share Buttons (Moved after Quantity/Pricing, before Action Buttons) */}
+            {/* Share Buttons */}
             <div className="my-6">
               <ShareIcons
                 productTitle={product.title}
@@ -601,23 +700,25 @@ export default function ProductClientUI({
             </div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-auto">
-              <button
-                onClick={handleAddToCart}
-                disabled={activeStock < 1}
-                className="flex items-center justify-center gap-2 bg-brand-primary text-white py-2 rounded-sm font-medium hover:bg-[rgb(244_242_245)] hover:text-brand-primary hover:border hover:border-brand-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ShoppingBag className="w-5 h-5" />
-                {t.addToCart}
-              </button>
-              <button
-                onClick={handleBuyNow}
-                disabled={activeStock < 1}
-                className="flex items-center justify-center gap-2 bg-white border-2 border-brand-primary text-brand-primary py-2 rounded-sm font-medium hover:bg-[rgb(244_242_245)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <CreditCard className="w-5 h-5" />
-                {t.buyNow}
-              </button>
+            <div className="mt-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={isActionDisabled}
+                  className="flex items-center justify-center gap-2 bg-brand-primary text-white py-2 rounded-sm font-medium hover:bg-[rgb(244_242_245)] hover:text-brand-primary hover:border hover:border-brand-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ShoppingBag className="w-5 h-5" />
+                  {t.addToCart}
+                </button>
+                <button
+                  onClick={handleBuyNow}
+                  disabled={isActionDisabled}
+                  className="flex items-center justify-center gap-2 bg-white border-2 border-brand-primary text-brand-primary py-2 rounded-sm font-medium hover:bg-[rgb(244_242_245)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CreditCard className="w-5 h-5" />
+                  {t.buyNow}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -738,9 +839,9 @@ export default function ProductClientUI({
                   />
                 </div>
                 <div className="flex-1 flex flex-col justify-center">
-                  <h4 className="text-sm font-bold text-gray-900 line-clamp-2 text-right">
+                  <h3 className="text-sm font-bold text-gray-900 line-clamp-2 text-right">
                     {product.title}
-                  </h4>
+                  </h3>
                   <p className="text-sm font-bold text-brand-primary mt-1.5 text-right flex items-center justify-end gap-2">
                     {quantity > 1 && (
                       <span className="text-xs text-gray-500">
@@ -759,9 +860,9 @@ export default function ProductClientUI({
             ) : (
               <>
                 <div className="flex-1 flex flex-col justify-center">
-                  <h4 className="text-sm font-bold text-gray-900 line-clamp-2 text-left">
+                  <h3 className="text-sm font-bold text-gray-900 line-clamp-2 text-left">
                     {product.title}
-                  </h4>
+                  </h3>
                   <p className="text-sm font-bold text-brand-primary mt-1.5 text-left flex items-center justify-start gap-2">
                     {formattedPrice}
                     {quantity > 1 && (

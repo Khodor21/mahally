@@ -10,6 +10,7 @@ export default function NotificationInitializer() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [lang, setLang] = useState<"en" | "ar">("en");
 
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
@@ -51,6 +52,10 @@ export default function NotificationInitializer() {
       }
     };
 
+    // Detect language from document
+    const docLang = document.documentElement.lang as "en" | "ar";
+    if (docLang) setLang(docLang);
+
     // Initial immediate check
     checkAuth();
 
@@ -70,6 +75,12 @@ export default function NotificationInitializer() {
 
   // Don't render anything - the prompt handles itself
   return (
-    showPrompt && <NotificationPrompt onClose={() => setShowPrompt(false)} />
+    showPrompt && (
+      <NotificationPrompt
+        onClose={() => setShowPrompt(false)}
+        customerId={customerId}
+        lang={lang}
+      />
+    )
   );
 }

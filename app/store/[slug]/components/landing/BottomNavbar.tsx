@@ -147,7 +147,7 @@ export default function BottomNavbar({
               </div>
 
               <span
-                className={`text-[17px] font-regular transition-colors duration-200 ${
+                className={`text-[15px] font-regular transition-colors duration-200 ${
                   active
                     ? "text-brand-primary font-medium"
                     : "text-gray-800 group-hover:text-gray-700"
