@@ -1,6 +1,6 @@
 "use client";
 
-import { Facebook, Twitter, Mail, Copy } from "lucide-react";
+import { Facebook, Instagram, Mail, Copy } from "lucide-react";
 import { useState } from "react";
 
 export interface ShareIconsProps {
@@ -49,11 +49,17 @@ export default function ShareIcons({
         )}`;
         window.open(fbUrl, "_blank", "width=600,height=400");
         break;
-      case "twitter":
-        const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-          `Check out: ${productTitle}`,
-        )}&url=${encodeURIComponent(productUrl)}`;
-        window.open(tweetUrl, "_blank", "width=600,height=400");
+      case "instagram":
+        // Instagram has no web share URL API.
+        // UX Fallback: Copy link to clipboard and open Instagram.
+        try {
+          await navigator.clipboard.writeText(productUrl);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+          window.open("https://www.instagram.com", "_blank");
+        } catch (err) {
+          console.error("Failed to copy for Instagram:", err);
+        }
         break;
       case "whatsapp":
         const waUrl = `https://wa.me/?text=${encodeURIComponent(
@@ -81,7 +87,7 @@ export default function ShareIcons({
 
   const platforms = [
     { id: "facebook", icon: Facebook, label: "Facebook" },
-    { id: "twitter", icon: Twitter, label: "X" },
+    { id: "instagram", icon: Instagram, label: "Instagram" },
     { id: "whatsapp", icon: WhatsAppIcon, label: "WhatsApp" },
     { id: "email", icon: Mail, label: "Email" },
     { id: "copy", icon: Copy, label: "Copy" },
@@ -96,7 +102,9 @@ export default function ShareIcons({
         {platforms.map((platform) => {
           const Icon = platform.icon;
           const isActive = activeShare === platform.id;
-          const isCopied = copied && platform.id === "copy";
+          // Trigger visual copied state for both direct copy and the Instagram fallback
+          const isCopied =
+            copied && (platform.id === "copy" || platform.id === "instagram");
 
           return (
             <button

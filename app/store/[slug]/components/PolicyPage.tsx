@@ -314,7 +314,10 @@ export default function PolicyPage({
                   {section.heading}
                 </h3>
               </div>
-              <p className="text-gray-600">{section.content}</p>
+              {/* Added whitespace-pre-wrap to properly render database line breaks */}
+              <p className="text-gray-600 whitespace-pre-wrap">
+                {section.content}
+              </p>
             </div>
           ))}
         </div>
