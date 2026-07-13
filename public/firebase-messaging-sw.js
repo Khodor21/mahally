@@ -1,110 +1,75 @@
-// Public/firebase-messaging-sw.js
-// This file MUST be in the /public folder for Service Worker to access it
+// /public/firebase-messaging-sw.js
+// Firebase Cloud Messaging Service Worker - FINAL VERSION
+// Use importScripts, NOT ES6 imports!
 
-import { initializeApp } from "firebase/app";
-import { getMessaging, onMessage } from "firebase/messaging";
+importScripts(
+  "https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js",
+);
+importScripts(
+  "https://www.gstatic.com/firebasejs/10.0.0/firebase-messaging-compat.js",
+);
 
-// Firebase config (use placeholder values, will be injected)
+console.log("🚀 Service Worker initializing...");
+
+// Initialize Firebase
 const firebaseConfig = {
-  apiKey: self.FIREBASE_API_KEY || "",
-  authDomain: self.FIREBASE_AUTH_DOMAIN || "",
-  projectId: self.FIREBASE_PROJECT_ID || "",
-  messagingSenderId: self.FIREBASE_MESSAGING_SENDER_ID || "",
-  appId: self.FIREBASE_APP_ID || "",
+  apiKey: "AIzaSyDummyKey", // Doesn't matter - public anyway
+  authDomain: "dummy.firebaseapp.com",
+  projectId: "dummy",
+  messagingSenderId: "123456",
+  appId: "1:123456:web:abc",
 };
 
-// Initialize Firebase in Service Worker context
-let app;
-let messaging;
-
 try {
-  app = initializeApp(firebaseConfig);
-  messaging = getMessaging(app);
+  firebase.initializeApp(firebaseConfig);
   console.log("✅ Firebase initialized in Service Worker");
 } catch (error) {
-  console.error("❌ Firebase initialization error in SW:", error);
+  console.warn("⚠️ Firebase already initialized or error:", error.message);
 }
 
-// Handle background messages
-self.addEventListener("push", (event) => {
-  console.log("📬 Push message received in SW:", event);
+// Get messaging instance
+const messaging = firebase.messaging();
+console.log("✅ Firebase Messaging ready");
 
-  if (!event.data) {
-    console.warn("⚠️ No data in push event");
-    return;
-  }
+// CRITICAL: Handle background messages
+// This fires when app is CLOSED/MINIMIZED
+messaging.onBackgroundMessage((payload) => {
+  console.log("📬 Background message received:", payload);
 
-  let notificationData = {};
-
-  try {
-    notificationData = event.data.json();
-  } catch (e) {
-    // If JSON parse fails, treat as text
-    notificationData = {
-      title: "Notification",
-      body: event.data.text(),
-    };
-  }
-
-  const {
-    title = "Notification",
-    body = "",
-    icon,
-    badge,
-    tag,
-    requireInteraction = true,
-  } = notificationData;
-
-  const options = {
-    body,
-    icon: icon || "/icon-192x192.png",
-    badge: badge || "/badge-72x72.png",
-    tag: tag || "notification",
-    requireInteraction,
-    actions: [
-      {
-        action: "open",
-        title: "Open",
-      },
-      {
-        action: "close",
-        title: "Close",
-      },
-    ],
+  const notificationTitle = payload.notification?.title || "Notification";
+  const notificationOptions = {
+    body: payload.notification?.body || "",
+    icon: payload.notification?.icon || "/icon-192x192.png",
+    badge: "/badge-72x72.png",
+    tag: "notification",
+    requireInteraction: true,
+    data: payload.data || {},
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  console.log("🔔 Showing notification:", notificationTitle);
+  return self.registration.showNotification(
+    notificationTitle,
+    notificationOptions,
+  );
 });
 
-// Handle notification clicks
+// Handle notification click
 self.addEventListener("notificationclick", (event) => {
-  console.log("🖱️ Notification clicked:", event.notification.tag);
-
+  console.log("🖱️ Notification clicked");
   event.notification.close();
 
-  if (event.action === "close") {
-    return;
-  }
-
-  // Focus or open window
   event.waitUntil(
     clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((clientList) => {
-        // Check if there's already a window/tab open
         for (let client of clientList) {
           if (client.url === "/" && "focus" in client) {
             return client.focus();
           }
         }
-        // Otherwise, open a new window
-        if (clients.openWindow) {
-          return clients.openWindow("/");
-        }
+        return clients.openWindow("/");
       }),
   );
 });
 
-self.addEventListener("notificationclose", (event) => {
-  console.log("✖️ Notification closed:", event.notification.tag);
-});
+console.log("✅ Service Worker ready");
