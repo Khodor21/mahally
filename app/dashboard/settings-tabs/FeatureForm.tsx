@@ -205,40 +205,6 @@ export default function FeatureForm({
         )}
       </div>
 
-      {/* Description Field */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50">
-            {t.description}
-          </label>
-          <span className="text-xs text-[rgb(60_28_84)]/30">
-            {formData.description.length}/500
-          </span>
-        </div>
-        <textarea
-          value={formData.description}
-          onChange={(e) => {
-            setFormData({ ...formData, description: e.target.value });
-            if (errors.description) setErrors({ ...errors, description: "" });
-          }}
-          placeholder={t.desc_placeholder}
-          rows={3}
-          className={`w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2.5 text-sm outline-none border transition-colors resize-none ${
-            errors.description
-              ? "border-red-500 focus:border-red-500"
-              : "border-transparent focus:border-[rgb(207_195_223)]"
-          }`}
-          dir={dir}
-          maxLength={500}
-        />
-        {errors.description && (
-          <div className="flex items-center gap-1 mt-2 text-red-500">
-            <AlertCircle className="w-3 h-3 flex-shrink-0" />
-            <span className="text-xs">{errors.description}</span>
-          </div>
-        )}
-      </div>
-
       {/* Icon Field */}
       <div>
         <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
