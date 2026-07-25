@@ -36,6 +36,21 @@ export async function POST(req: NextRequest) {
 
     const storeId = store.id;
 
+    // Fetch the store's logo from store_settings
+    const { data: settings, error: settingsError } = await supabaseAdmin
+      .from("store_settings")
+      .select("logo_url")
+      .eq("store_id", storeId)
+      .maybeSingle();
+
+    if (settingsError) {
+      console.warn("⚠️ Could not fetch store settings:", settingsError.message);
+    }
+
+    // Determine the icon to use (must be a valid absolute HTTPS URL)
+    const storeIcon =
+      settings?.logo_url || "https://mahalli.com/icon-192x192.png"; // Replace with your actual default absolute URL if needed
+
     // Query for this store's subscriptions
     const { data: subscriptions, error: fetchError } = await supabaseAdmin
       .from("push_subscriptions")
@@ -89,9 +104,10 @@ export async function POST(req: NextRequest) {
     let response;
     try {
       response = await messaging.sendEachForMulticast({
-        notification: {
+        data: {
           title: title.trim(),
           body: body.trim(),
+          icon: storeIcon, // Injects the dynamic multi-tenant logo here
         },
         tokens,
       });
@@ -107,10 +123,10 @@ export async function POST(req: NextRequest) {
         response.responses.forEach((resp: any, idx: number) => {
           if (!resp.success) {
             console.log(`   Token ${idx}:`);
-            console.log(`      Error Code: ${resp.error?.code}`);
-            console.log(`      Error Message: ${resp.error?.message}`);
+            console.log(`     Error Code: ${resp.error?.code}`);
+            console.log(`     Error Message: ${resp.error?.message}`);
             console.log(
-              `      Token (first 50): ${tokens[idx].substring(0, 50)}`,
+              `     Token (first 50): ${tokens[idx].substring(0, 50)}`,
             );
           }
         });

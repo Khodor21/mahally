@@ -84,6 +84,9 @@ export async function GET() {
 
     // Testimonials
     testimonials: settings?.testimonials || { testimonials: [] },
+
+    // FAQ (Questions & Answers) - Language-dependent
+    faq: settings?.faq || { faqs: [] },
   };
 
   return NextResponse.json({
@@ -96,21 +99,40 @@ export async function GET() {
     TESTIMONIAL VALIDATION SCHEMAS
 ───────────────────────────────────────────── */
 const BilingualTextSchema = z.object({
-  ar: z.string().min(1, "نص عربي مطلوب").max(500),
-  en: z.string().min(1, "English text required").max(500),
+  // ✅ Removed .min(1) to allow empty strings when store uses only one language
+  ar: z.string().max(500).optional().default(""),
+  en: z.string().max(500).optional().default(""),
 });
 
 const TestimonialSchema = z.object({
-  id: z.number().optional(),
+  id: z.union([z.string(), z.number()]).optional(),
   name: BilingualTextSchema,
   role: BilingualTextSchema,
   content: BilingualTextSchema,
-  rating: z.number().min(1).max(5, "Rating must be between 1 and 5"),
+  rating: z.coerce.number().min(1).max(5, "Rating must be between 1 and 5"),
   avatar: z.string().url().optional().or(z.literal("")),
 });
 
 const TestimonialsListSchema = z.object({
   testimonials: z.array(TestimonialSchema),
+});
+
+const BilingualFaqItemSchema = z.object({
+  id: z.union([z.string(), z.number()]).optional(),
+  question: z.object({
+    // ✅ Removed .min(1) to allow empty strings when store uses only one language
+    ar: z.string().max(500).optional().default(""),
+    en: z.string().max(500).optional().default(""),
+  }),
+  answer: z.object({
+    // ✅ Removed .min(1) to allow empty strings when store uses only one language
+    ar: z.string().max(500).optional().default(""),
+    en: z.string().max(500).optional().default(""),
+  }),
+});
+
+const BilingualFaqListSchema = z.object({
+  faqs: z.array(BilingualFaqItemSchema),
 });
 
 /* ─────────────────────────────────────────────
@@ -167,7 +189,6 @@ const CreateStoreSchema = z.object({
     ])
     .optional(),
 
-  // ✅ NEW: Payment Methods validation
   paymentMethods: PaymentMethodsSchema.default(["cash_on_delivery"]),
 
   slug: z
@@ -276,154 +297,140 @@ function checkRateLimit(key: string): {
 
 export async function POST(request: NextRequest) {
   const ipKey = getRateLimitKey(request);
-  const rateLimit = checkRateLimit(ipKey);
+  const rateLimitCheck = checkRateLimit(ipKey);
 
-  if (!rateLimit.allowed) {
+  if (!rateLimitCheck.allowed) {
     return NextResponse.json(
-      { error: "طلبات كثيرة جداً، يرجى المحاولة لاحقاً" },
+      {
+        error: "Too many signup requests. Please try again later.",
+        retryAfter: rateLimitCheck.retryAfter,
+      },
       {
         status: 429,
-        headers: {
-          "Retry-After": String(rateLimit.retryAfter ?? 3600),
-          "X-RateLimit-Limit": String(MAX_REQUESTS),
-        },
+        headers: { "Retry-After": String(rateLimitCheck.retryAfter) },
       },
     );
   }
 
-  let rawBody: unknown;
   try {
-    rawBody = await request.json();
-  } catch {
-    return NextResponse.json({ error: "طلب غير صالح" }, { status: 400 });
-  }
-
-  const parsed = CreateStoreSchema.safeParse(rawBody);
-
-  if (!parsed.success) {
-    const firstError = parsed.error.issues[0];
-
-    return NextResponse.json(
-      {
-        error: firstError.message,
-        field:
-          typeof firstError.path[0] === "string"
-            ? firstError.path[0]
-            : undefined,
-
-        ...(process.env.NODE_ENV === "development" && {
-          errors: parsed.error.issues,
-        }),
-      },
-      { status: 422 },
-    );
-  }
-
-  const {
-    adminName,
-    adminEmail,
-    phone,
-    location,
-    storeName,
-    storeType,
-    paymentMethods,
-    slug,
-    password,
-  } = parsed.data;
-
-  if (RESERVED_SLUGS.has(slug)) {
-    return NextResponse.json(
-      { error: "هذا الرابط محجوز، يرجى اختيار رابط آخر", field: "slug" },
-      { status: 409 },
-    );
-  }
-
-  const [slugCheck, emailCheck] = await Promise.all([
-    supabaseAdmin.from("stores").select("id").eq("slug", slug).maybeSingle(),
-    supabaseAdmin
-      .from("stores")
-      .select("id")
-      .eq("admin_email", adminEmail)
-      .maybeSingle(),
-  ]);
-
-  if (slugCheck.error || emailCheck.error) {
-    const err = slugCheck.error ?? emailCheck.error;
-    console.error("SUPABASE ERROR:", JSON.stringify(err, null, 2));
-    return NextResponse.json(
-      { error: err?.message ?? "DB error" },
-      { status: 500 },
-    );
-  }
-
-  if (slugCheck.data) {
-    return NextResponse.json(
-      { error: "هذا الرابط محجوز، يرجى اختيار رابط آخر", field: "slug" },
-      { status: 409 },
-    );
-  }
-
-  if (emailCheck.data) {
-    return NextResponse.json(
-      { error: "هذا البريد الإلكتروني مسجّل مسبقاً", field: "email" },
-      { status: 409 },
-    );
-  }
-
-  const passwordHash = await bcrypt.hash(password, 12);
-
-  const { data: newStore, error: insertError } = await supabaseAdmin
-    .from("stores")
-    .insert({
-      admin_name: adminName,
-      admin_email: adminEmail,
-      phone: phone || null,
-      location: location || null,
-      store_name: storeName,
-      store_type: storeType || null,
+    const {
+      adminName,
+      adminEmail,
+      phone,
+      location,
+      storeName,
+      storeType,
       slug,
-      password_hash: passwordHash,
-      language: "en", // ✅ Default language is English
-      payment_methods: JSON.stringify(paymentMethods), // ✅ NEW: Store payment methods as JSON
-      delivery_cost: 0, // ✅ Default delivery cost
-      is_active: true,
-      created_at: new Date().toISOString(),
-    })
-    .select("id, slug, store_name, admin_email")
-    .single();
+      password,
+      paymentMethods = ["cash_on_delivery"],
+    } = CreateStoreSchema.parse(await request.json());
 
-  if (insertError) {
-    console.error("Insert error:", insertError);
-
-    if (insertError.code === "23505") {
-      const isSlug = insertError.message.includes("slug");
+    if (RESERVED_SLUGS.has(slug.toLowerCase())) {
       return NextResponse.json(
-        {
-          error: isSlug
-            ? "هذا الرابط محجوز، يرجى اختيار رابط آخر"
-            : "هذا البريد الإلكتروني مسجّل مسبقاً",
-          field: isSlug ? "slug" : "email",
-        },
+        { error: "هذا الرابط محجوز، يرجى اختيار رابط آخر", field: "slug" },
         { status: 409 },
       );
     }
 
+    const [slugCheck, emailCheck] = await Promise.all([
+      supabaseAdmin.from("stores").select("id").eq("slug", slug).maybeSingle(),
+      supabaseAdmin
+        .from("stores")
+        .select("id")
+        .eq("admin_email", adminEmail)
+        .maybeSingle(),
+    ]);
+
+    if (slugCheck.error || emailCheck.error) {
+      const err = slugCheck.error ?? emailCheck.error;
+      console.error("SUPABASE ERROR:", JSON.stringify(err, null, 2));
+      return NextResponse.json(
+        { error: err?.message ?? "DB error" },
+        { status: 500 },
+      );
+    }
+
+    if (slugCheck.data) {
+      return NextResponse.json(
+        { error: "هذا الرابط محجوز، يرجى اختيار رابط آخر", field: "slug" },
+        { status: 409 },
+      );
+    }
+
+    if (emailCheck.data) {
+      return NextResponse.json(
+        { error: "هذا البريد الإلكتروني مسجّل مسبقاً", field: "email" },
+        { status: 409 },
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const { data: newStore, error: insertError } = await supabaseAdmin
+      .from("stores")
+      .insert({
+        admin_name: adminName,
+        admin_email: adminEmail,
+        phone: phone || null,
+        location: location || null,
+        store_name: storeName,
+        store_type: storeType || null,
+        slug,
+        password_hash: passwordHash,
+        language: "en",
+        payment_methods: JSON.stringify(paymentMethods),
+        delivery_cost: 0,
+        is_active: true,
+        created_at: new Date().toISOString(),
+      })
+      .select("id, slug, store_name, admin_email")
+      .single();
+
+    if (insertError) {
+      console.error("Insert error:", insertError);
+
+      if (insertError.code === "23505") {
+        const isSlug = insertError.message.includes("slug");
+        return NextResponse.json(
+          {
+            error: isSlug
+              ? "هذا الرابط محجوز، يرجى اختيار رابط آخر"
+              : "هذا البريد الإلكتروني مسجّل مسبقاً",
+            field: isSlug ? "slug" : "email",
+          },
+          { status: 409 },
+        );
+      }
+
+      return NextResponse.json(
+        { error: "فشل إنشاء المتجر، يرجى المحاولة مجدداً" },
+        { status: 500 },
+      );
+    }
+
     return NextResponse.json(
-      { error: "فشل إنشاء المتجر، يرجى المحاولة مجدداً" },
-      { status: 500 },
+      {
+        success: true,
+        store: {
+          slug: newStore.slug,
+          storeName: newStore.store_name,
+        },
+      },
+      { status: 201 },
+    );
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Validation error", details: err.issues },
+        { status: 400 },
+      );
+    }
+    console.error("POST /stores error:", err);
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
     );
   }
-
-  return NextResponse.json(
-    {
-      success: true,
-      store: {
-        slug: newStore.slug,
-        storeName: newStore.store_name,
-      },
-    },
-    { status: 201 },
-  );
 }
 
 /* ─────────────────────────────────────────────
@@ -466,6 +473,7 @@ export async function PUT(request: NextRequest) {
       whatsapp_number,
       testimonials,
       promo_text,
+      faq,
     } = body;
 
     /* ─────────────────────────────
@@ -489,7 +497,6 @@ export async function PUT(request: NextRequest) {
       storeUpdate.language = language;
     }
 
-    // Validate and update Plan Type
     if (plan_type !== undefined) {
       if (!["Starter", "Pro"].includes(plan_type)) {
         return NextResponse.json(
@@ -500,7 +507,6 @@ export async function PUT(request: NextRequest) {
       storeUpdate.plan_type = plan_type;
     }
 
-    // ✅ Validate and update Delivery Cost
     if (delivery_cost !== undefined) {
       const parsedCost = Number(delivery_cost);
       if (isNaN(parsedCost) || parsedCost < 0) {
@@ -515,7 +521,6 @@ export async function PUT(request: NextRequest) {
       storeUpdate.delivery_cost = parsedCost;
     }
 
-    // Validate and update Payment Methods
     if (payment_methods !== undefined) {
       const paymentParsed = PaymentMethodsSchema.safeParse(payment_methods);
       if (!paymentParsed.success) {
@@ -570,7 +575,12 @@ export async function PUT(request: NextRequest) {
       settingsUpdate.whatsapp_number = whatsapp_number;
 
     if (testimonials !== undefined) {
-      const testimonialsParsed = TestimonialsListSchema.safeParse(testimonials);
+      const testimonialsPayload = Array.isArray(testimonials)
+        ? { testimonials }
+        : testimonials;
+
+      const testimonialsParsed =
+        TestimonialsListSchema.safeParse(testimonialsPayload);
       if (!testimonialsParsed.success) {
         return NextResponse.json(
           {
@@ -581,6 +591,23 @@ export async function PUT(request: NextRequest) {
         );
       }
       settingsUpdate.testimonials = testimonialsParsed.data;
+    }
+
+    if (faq !== undefined) {
+      const faqPayload = Array.isArray(faq) ? { faqs: faq } : faq;
+
+      const faqParsed = BilingualFaqListSchema.safeParse(faqPayload);
+      if (!faqParsed.success) {
+        console.error("FAQ validation failed:", faqParsed.error.issues);
+        return NextResponse.json(
+          {
+            error: "Invalid FAQ format",
+            details: faqParsed.error.issues,
+          },
+          { status: 422 },
+        );
+      }
+      settingsUpdate.faq = faqParsed.data;
     }
 
     settingsUpdate.updated_at = new Date().toISOString();

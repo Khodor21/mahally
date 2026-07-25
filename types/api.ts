@@ -70,6 +70,22 @@ export interface TestimonialsList {
   testimonials: Testimonial[];
 }
 
+export interface FaqItem {
+  id?: number;
+  question: {
+    ar: string;
+    en: string;
+  };
+  answer: {
+    ar: string;
+    en: string;
+  };
+}
+
+export interface FaqList {
+  faqs: FaqItem[];
+}
+
 export interface OrderItem {
   id: string;
   qty: number;
@@ -166,6 +182,7 @@ export interface StoreData {
   snapchat_url?: string;
 
   testimonials?: TestimonialsList;
+  faq?: FaqList;
 }
 
 export interface HeroBanner {

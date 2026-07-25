@@ -485,9 +485,11 @@ export function useHeroBanners(
   storeId: string,
   options: UseFetchOptions<HeroBanner[]> = {},
 ) {
-  return useFetch(() => getHeroBanners(storeId), options);
+  return useFetch(() => getHeroBanners(storeId), {
+    ...options,
+    skip: !storeId || options.skip,
+  });
 }
-
 export function useHeroBannerCreate() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -598,10 +600,8 @@ export function useHeroBannerToggle() {
     setError(null);
 
     try {
-      // IMPORTANT: use your existing PUT-based API
       return await updateHeroBanner(bannerId, {
         active,
-        image: "",
       });
     } catch (err) {
       const error =

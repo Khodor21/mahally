@@ -334,6 +334,7 @@ export async function getStore(): Promise<StoreData> {
 export async function updateStore(
   updates: Partial<StoreData>,
 ): Promise<StoreData> {
+  console.log("📤 Sending to PUT /api/stores:", updates);
   const res = await fetch("/api/stores", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -361,6 +362,11 @@ export async function getHeroBanners(storeId: string): Promise<HeroBanner[]> {
   const res = await fetch(`/api/hero?storeId=${storeId}&admin=true`, {
     cache: "no-store",
   });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch banners");
+  }
+
   const data = await res.json();
 
   if (!data.success) {
@@ -394,13 +400,16 @@ export async function updateHeroBanner(
   bannerId: string,
   form: Partial<HeroBannerFormData>,
 ): Promise<HeroBanner> {
+  const payload = {
+    id: bannerId,
+    ...form,
+  };
+
+
   const res = await fetch(`/api/hero`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      id: bannerId,
-      ...form,
-    }),
+    body: JSON.stringify(payload),
   });
 
   const data = await res.json();

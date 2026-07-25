@@ -22,6 +22,7 @@ import {
   Music,
   Camera,
   Palette,
+  HelpCircle,
 } from "lucide-react";
 import AppearanceTab from "../settings-tabs/AppearanceTab";
 import FeaturesTab from "../components/Features";
@@ -102,9 +103,22 @@ export default function SettingsPanel() {
     twitter_url: "",
     snapchat_url: "",
     payment_methods: "[]",
+    faq: "{}",
   });
 
   const handleStoreSuccess = useCallback((data: StoreData) => {
+    // ✅ FIX: Properly parse FAQ data from store
+    let faqData: any = { faqs: [] };
+    if (data.faq) {
+      try {
+        faqData =
+          typeof data.faq === "string" ? JSON.parse(data.faq) : data.faq;
+      } catch (e) {
+        console.error("Failed to parse FAQ:", e);
+        faqData = { faqs: [] };
+      }
+    }
+
     setFormData({
       store_name: data.store_name || "",
       location: data.location || "",
@@ -131,6 +145,7 @@ export default function SettingsPanel() {
         typeof data.payment_methods === "string"
           ? data.payment_methods
           : JSON.stringify(data.payment_methods || []),
+      faq: JSON.stringify(faqData),
     });
   }, []);
 
@@ -190,7 +205,7 @@ export default function SettingsPanel() {
   });
 
   const [activeTab, setActiveTab] = useState<
-    "appearance" | "store" | "account" | "notifications" | "policies"
+    "appearance" | "store" | "account" | "notifications" | "policies" | "faq"
   >("appearance");
 
   const [notificationTitle, setNotificationTitle] = useState("");
@@ -242,10 +257,28 @@ export default function SettingsPanel() {
         }
       })();
 
+      const faqData = (() => {
+        try {
+          const parsed = JSON.parse(formData.faq || "{}");
+          return {
+            faqs: Array.isArray(parsed.faqs) ? parsed.faqs : [],
+          };
+        } catch {
+          return { faqs: [] };
+        }
+      })();
+      console.log("FAQ data being sent:", faqData);
+      console.log("Complete payload:", {
+        ...formData,
+        id: store.id,
+        payment_methods: paymentMethods,
+        faq: faqData,
+      });
       await updateStore({
         ...formData,
         id: store.id,
         payment_methods: paymentMethods,
+        faq: faqData,
       });
       setSaved(true);
       showToast(
@@ -361,6 +394,55 @@ export default function SettingsPanel() {
   };
 
   // ============================================
+  // FAQ HELPERS
+  // ============================================
+
+  const getParsedFaq = () => {
+    try {
+      const parsed = JSON.parse(formData.faq || "{}");
+      return Array.isArray(parsed.faqs) ? parsed.faqs : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const updateFaq = (newFaqs: any[]) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      faq: JSON.stringify({ faqs: newFaqs }),
+    }));
+  };
+
+  const addFaqItem = () => {
+    const faqs = getParsedFaq();
+    updateFaq([
+      ...faqs,
+      { question: { ar: "", en: "" }, answer: { ar: "", en: "" } },
+    ]);
+  };
+
+  const removeFaqItem = (index: number) => {
+    const faqs = getParsedFaq();
+    updateFaq(faqs.filter((_: any, i: number) => i !== index));
+  };
+
+  const updateFaqField = (
+    index: number,
+    field: "question" | "answer",
+    langKey: "ar" | "en",
+    value: string,
+  ) => {
+    const faqs = getParsedFaq();
+    if (faqs[index]) {
+      faqs[index] = {
+        ...faqs[index],
+        [field]: { ...(faqs[index][field] || {}), [langKey]: value },
+      };
+      updateFaq([...faqs]);
+    }
+  };
+
+  // ============================================
   // COMPUTED VALUES
   // ============================================
 
@@ -404,6 +486,11 @@ export default function SettingsPanel() {
       id: "policies" as const,
       label: lang === "ar" ? "السياسات" : "Policies",
       icon: ShieldCheck,
+    },
+    {
+      id: "faq" as const,
+      label: lang === "ar" ? "الأسئلة الشائعة" : "FAQ",
+      icon: HelpCircle,
     },
   ];
 
@@ -599,6 +686,152 @@ export default function SettingsPanel() {
           setFormData={setFormData}
           SaveButton={SaveButton}
         />
+      )}
+
+      {/* FAQ TAB */}
+      {activeTab === "faq" && (
+        <div className="bg-white rounded-sm border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
+          <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
+            <h3 className="font-bold text-[rgb(60_28_84)] flex items-center gap-2">
+              <HelpCircle className="w-5 h-5" />
+              {lang === "ar" ? "الأسئلة الشائعة" : "Frequently Asked Questions"}
+            </h3>
+            <p className="text-sm text-[rgb(60_28_84)]/60 mt-2">
+              {lang === "ar"
+                ? "أضف أسئلة شائعة بلغات متعددة. ستظهر للعملاء حسب اللغة المختارة."
+                : "Add FAQs in multiple languages. They'll display to customers based on their language preference."}
+            </p>
+          </div>
+          <div className="p-6 space-y-6">
+            {getParsedFaq().length === 0 ? (
+              <p className="text-center text-sm text-[rgb(60_28_84)]/50 py-6">
+                {lang === "ar" ? "لا توجد أسئلة شائعة حالياً" : "No FAQs yet"}
+              </p>
+            ) : (
+              getParsedFaq().map((item: any, index: number) => (
+                <div
+                  key={index}
+                  className="p-4 bg-[rgb(244_242_245)] rounded-sm space-y-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-[rgb(60_28_84)]">
+                      {lang === "ar"
+                        ? `سؤال ${index + 1}`
+                        : `Question ${index + 1}`}
+                    </span>
+                    <button
+                      onClick={() => removeFaqItem(index)}
+                      className="text-red-400 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* ✅ SINGLE LANGUAGE INPUT - Changes based on lang */}
+                  {lang === "ar" && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-bold text-[rgb(60_28_84)]/70 mb-1">
+                          السؤال
+                        </label>
+                        <input
+                          type="text"
+                          value={item.question?.ar || ""}
+                          onChange={(e) =>
+                            updateFaqField(
+                              index,
+                              "question",
+                              "ar",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="اكتب السؤال بالعربي..."
+                          className="w-full bg-white rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
+                          dir="rtl"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-[rgb(60_28_84)]/70 mb-1">
+                          الجواب
+                        </label>
+                        <textarea
+                          value={item.answer?.ar || ""}
+                          onChange={(e) =>
+                            updateFaqField(
+                              index,
+                              "answer",
+                              "ar",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="اكتب الجواب بالعربي..."
+                          rows={3}
+                          className="w-full bg-white rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all resize-y"
+                          dir="rtl"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {lang === "en" && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-bold text-[rgb(60_28_84)]/70 mb-1">
+                          Question
+                        </label>
+                        <input
+                          type="text"
+                          value={item.question?.en || ""}
+                          onChange={(e) =>
+                            updateFaqField(
+                              index,
+                              "question",
+                              "en",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Type question in English..."
+                          className="w-full bg-white rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
+                          dir="ltr"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-[rgb(60_28_84)]/70 mb-1">
+                          Answer
+                        </label>
+                        <textarea
+                          value={item.answer?.en || ""}
+                          onChange={(e) =>
+                            updateFaqField(
+                              index,
+                              "answer",
+                              "en",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Type answer in English..."
+                          rows={3}
+                          className="w-full bg-white rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all resize-y"
+                          dir="ltr"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))
+            )}
+
+            <button
+              onClick={addFaqItem}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-sm text-sm font-semibold text-[rgb(60_28_84)] bg-[rgb(244_242_245)] hover:bg-[rgb(207_195_223)] transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              {lang === "ar" ? "إضافة سؤال جديد" : "Add New Question"}
+            </button>
+
+            <SaveButton />
+          </div>
+        </div>
       )}
     </div>
   );
