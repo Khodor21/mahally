@@ -404,7 +404,7 @@ export default function MiniCatalogue({
         {/* Products Grid */}
         <div className="mb-12 min-h-[400px]">
           {paginatedProducts.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
               {mappedProducts.map((product) => (
                 <div
                   key={product.id}

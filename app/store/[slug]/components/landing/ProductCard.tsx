@@ -113,7 +113,7 @@ export default function ProductCard({
   const content = {
     en: {
       addToCart: "Add to Cart",
-      selectOptions: "Choose Options", // 👈 ADD THIS
+      selectOptions: "Choose Options",
       buyNow: "Buy Now",
       toastTitle: "Added to cart",
       viewCart: "View Cart",
@@ -126,7 +126,7 @@ export default function ProductCard({
     },
     ar: {
       addToCart: "إضافـة إلـى السلّـة",
-      selectOptions: "اختر الخيارات", // 👈 ADD THIS
+      selectOptions: "اختر الخيارات",
       buyNow: "اشتر الآن",
       toastTitle: "تمت الإضافة إلى سلة التسوق",
       viewCart: "عرض السلة",
@@ -149,13 +149,6 @@ export default function ProductCard({
   const handleAddToCart = () => {
     if (isOutOfStock) return;
 
-    // 👉 If product has variants, redirect to product detail page
-    if (hasVariants(product.variantGroups)) {
-      router.push(productUrl);
-      return;
-    }
-
-    // Existing logic for variant-free products
     const existingCartItem = cartItems.find(
       (item: any) => String(item.product.id) === productId,
     );
@@ -216,6 +209,8 @@ export default function ProductCard({
   const discountPercent = hasDiscount
     ? calculateDiscount(product.price ?? 0, product.discount_price!)
     : 0;
+
+  const productHasVariants = hasVariants(product.variantGroups);
 
   if (!product) return null;
 
@@ -307,27 +302,34 @@ export default function ProductCard({
                 </p>
               )}
             </div>
-            {/* ADD TO CART BUTTON - NOW WITH VARIANT CHECK */}
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleAddToCart();
-              }}
-              disabled={isOutOfStock}
-              className={`relative z-20 w-full mt-4 flex items-center justify-center gap-1 py-2 rounded-sm text-xs md:text-sm font-medium border transition-all duration-300 ${
-                isOutOfStock
-                  ? "border-gray-300 text-gray-400 bg-gray-50 cursor-not-allowed"
-                  : "border-[rgb(var(--color-brand-primary))] text-[rgb(var(--color-brand-primary))] bg-white hover:bg-[rgb(var(--color-brand-primary))] hover:text-white"
-              }`}
-            >
-              <ShoppingBag size={16} />
-              {isOutOfStock
-                ? t.outOfStock
-                : hasVariants(product.variantGroups)
-                  ? t.selectOptions
-                  : t.addToCart}
-            </button>
+
+            {/* ADD TO CART / CHOOSE OPTIONS BUTTON */}
+            {productHasVariants && !isOutOfStock ? (
+              <a
+                href={productUrl}
+                className="relative z-20 w-full mt-4 flex items-center justify-center gap-1 py-2 rounded-sm text-xs md:text-sm font-medium border transition-all duration-300 border-[rgb(var(--color-brand-primary))] text-[rgb(var(--color-brand-primary))] bg-white hover:bg-[rgb(var(--color-brand-primary))] hover:text-white"
+              >
+                <ShoppingBag size={16} />
+                {t.selectOptions}
+              </a>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleAddToCart();
+                }}
+                disabled={isOutOfStock}
+                className={`relative z-20 w-full mt-4 flex items-center justify-center gap-1 py-2 rounded-sm text-xs md:text-sm font-medium border transition-all duration-300 ${
+                  isOutOfStock
+                    ? "border-gray-300 text-gray-400 bg-gray-50 cursor-not-allowed"
+                    : "border-[rgb(var(--color-brand-primary))] text-[rgb(var(--color-brand-primary))] bg-white hover:bg-[rgb(var(--color-brand-primary))] hover:text-white"
+                }`}
+              >
+                <ShoppingBag size={16} />
+                {isOutOfStock ? t.outOfStock : t.addToCart}
+              </button>
+            )}
           </div>
         </div>
       </article>
