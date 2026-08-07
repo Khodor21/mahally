@@ -46,6 +46,7 @@ export interface MiniCatalogueProps {
   storeSlug: string;
   storeDescription?: string;
   logoUrl?: string;
+  coverImage?: string;
   products: Product[];
   categories?: Category[];
   lang: "en" | "ar";
@@ -120,6 +121,7 @@ export default function MiniCatalogue({
   storePhone,
   storeLocation,
   storeHours,
+  coverImage,
 }: MiniCatalogueProps) {
   const isRtl = lang === "ar";
   const t = CONTENT_DICTIONARY[lang] || CONTENT_DICTIONARY.en;
