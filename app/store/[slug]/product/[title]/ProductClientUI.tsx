@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,7 +20,6 @@ import ShareIcons from "./components/ShareIcons";
 import FavoriteToast from "./components/FavoriteToast";
 
 // --- Types & Interfaces ---
-
 export interface VariantOption {
   id: string;
   value: string;
@@ -61,7 +59,6 @@ export type ProductClientUIProps = {
 };
 
 // --- Utility Functions & Hooks ---
-
 function formatPrice(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -79,7 +76,6 @@ function useAddedFlash(duration = 5000): [boolean, (val: boolean) => void] {
     if (val) {
       setAddedRaw(true);
       if (timerRef.current) clearTimeout(timerRef.current);
-
       timerRef.current = setTimeout(() => {
         setAddedRaw(false);
       }, duration);
@@ -98,7 +94,6 @@ function useAddedFlash(duration = 5000): [boolean, (val: boolean) => void] {
 }
 
 // --- Main Component ---
-
 export default function ProductClientUI({
   product,
   storeSlug,
@@ -114,6 +109,7 @@ export default function ProductClientUI({
     updateCartQty,
     removeFromCart,
   } = useShop();
+
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   const t = {
@@ -169,6 +165,7 @@ export default function ProductClientUI({
 
   const images = product.images?.length ? product.images : ["/placeholder.jpg"];
   const hasMultipleImages = images.length > 1;
+
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [activeTab, setActiveTab] = useState("details");
 
@@ -221,14 +218,12 @@ export default function ProductClientUI({
   // Calculate active price based on selected variant options
   const calculatePrice = (): number => {
     let totalPrice = Number(product.price || 0);
-
     variantGroups.forEach((group) => {
       const variantPrice = selectedVariants[group.id]?.price;
       if (group.allowPrice && variantPrice !== undefined) {
         totalPrice = Number(variantPrice);
       }
     });
-
     return totalPrice;
   };
 
@@ -246,12 +241,10 @@ export default function ProductClientUI({
     // Check each variant group
     stockTrackingGroups.forEach((group) => {
       const selectedOption = selectedVariants[group.id];
-
       // If variant has stock defined, use it; otherwise use base stock
       if (selectedOption?.stock !== undefined) {
         minStock = Math.min(minStock, Number(selectedOption.stock));
       }
-      // If variant has NO stock property, skip it (don't use 0)
     });
 
     return minStock === 99999 ? Number(product.stock || 0) : minStock;
@@ -286,13 +279,30 @@ export default function ProductClientUI({
     }
   }, [existingCartQty]);
 
-  // Build variant description for cart
+  // Build variant description for display
   const variantDescription = variantGroups
     .map(
       (group) =>
         `${group.title}: ${selectedVariants[group.id]?.value || "N/A"}`,
     )
     .join(", ");
+
+  // UPDATED: Build variant selections object for cart
+  const variantSelectionsForCart = useMemo(() => {
+    if (Object.keys(selectedVariants).length === 0) return undefined;
+
+    return Object.entries(selectedVariants).reduce(
+      (acc, [groupId, option]) => {
+        acc[groupId] = {
+          id: option.id,
+          value: option.value,
+          stock: option.stock,
+        };
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
+  }, [selectedVariants]);
 
   const normalizedProduct = {
     ...product,
@@ -303,17 +313,14 @@ export default function ProductClientUI({
   };
 
   // --- Handlers ---
-
   // 🔑 KEY FIX: Different logic for "editing cart item" vs "adding new item"
   const increment = () => {
     setQuantity((prev) => {
       const newQty = Math.min(prev + 1, activeStock);
-
       // If item is already in cart, sync immediately
       if (existingCartQty > 0) {
         updateCartQty(productId, newQty);
       }
-
       return newQty;
     });
   };
@@ -321,7 +328,6 @@ export default function ProductClientUI({
   const decrement = () => {
     setQuantity((prev) => {
       const newQty = Math.max(prev - 1, 0);
-
       // If item is in cart, sync to cart (or remove if 0)
       if (existingCartQty > 0) {
         if (newQty === 0) {
@@ -330,7 +336,6 @@ export default function ProductClientUI({
           updateCartQty(productId, newQty);
         }
       }
-
       return newQty;
     });
   };
@@ -344,19 +349,16 @@ export default function ProductClientUI({
   }, [activeStock, existingCartQty, quantity]);
 
   // 🔑 KEY FIX: Separate logic for button disable state
-  // When adding NEW item: check if quantity exceeds stock
-  // When editing existing: no limit (just cap at stock total)
   const isStockLimitReached = () => {
     if (existingCartQty === 0) {
-      // Adding new: check if quantity exceeds stock
       return quantity > activeStock;
     }
-    // Editing existing: not limited (already in cart)
     return false;
   };
 
   const isActionDisabled = activeStock < 1 || isStockLimitReached();
 
+  // UPDATED: Pass variantSelections to cart
   const handleAddToCart = () => {
     if (isActionDisabled) {
       setStockWarning(true);
@@ -364,15 +366,14 @@ export default function ProductClientUI({
     }
 
     if (existingCartQty > 0) {
-      // Already in cart, quantity is synced via increment/decrement
       setAdded(true);
     } else {
-      // First time adding
-      addToCart(normalizedProduct, quantity);
+      addToCart(normalizedProduct, quantity, variantSelectionsForCart);
       setAdded(true);
     }
   };
 
+  // UPDATED: Pass variantSelections to cart
   const handleBuyNow = () => {
     if (isActionDisabled) {
       setStockWarning(true);
@@ -380,11 +381,9 @@ export default function ProductClientUI({
     }
 
     if (existingCartQty > 0) {
-      // Item already in cart, use current quantity
-      addToCart(normalizedProduct, quantity);
+      addToCart(normalizedProduct, quantity, variantSelectionsForCart);
     } else {
-      // First time adding
-      addToCart(normalizedProduct, quantity);
+      addToCart(normalizedProduct, quantity, variantSelectionsForCart);
     }
     router.push("/cart");
   };
@@ -411,7 +410,6 @@ export default function ProductClientUI({
   };
 
   // --- Effects ---
-
   useEffect(() => {
     if (added) {
       setProgress(100);
@@ -432,7 +430,6 @@ export default function ProductClientUI({
     }
   }, [stockWarning]);
 
-  // Handle Favorite Toast animation and timing
   useEffect(() => {
     if (favToast) {
       setFavProgress(100);
@@ -460,7 +457,11 @@ export default function ProductClientUI({
 
   return (
     <>
-      <div dir={dir} className="animate-in fade-in duration-500 relative">
+      {/* Added pb-36 md:pb-0 to prevent content from hiding behind mobile bottom bar */}
+      <div
+        dir={dir}
+        className="animate-in fade-in duration-500 relative pb-36 md:pb-0"
+      >
         <nav className="flex items-center md:gap-2 text-sm text-gray-500 mb-8 font-medium">
           <Link
             href={`/`}
@@ -507,7 +508,6 @@ export default function ProductClientUI({
                 ))}
               </div>
             )}
-
             <div className="relative flex-1 rounded-2xl overflow-hidden aspect-square md:aspect-auto flex items-center justify-center">
               {images.map((img: string, idx: number) => (
                 <div
@@ -592,7 +592,6 @@ export default function ProductClientUI({
                           <label className="font-medium text-gray-800 mb-2.5 block">
                             {group.title}
                           </label>
-
                           {/* Select Type (Dropdown Buttons) */}
                           {group.type === "select" ? (
                             <div className="flex flex-wrap gap-2">
@@ -642,9 +641,10 @@ export default function ProductClientUI({
               </div>
             )}
 
-            {/* Quantity & Price Summary */}
+            {/* Quantity & Price Summary (DESKTOP ONLY Quantity) */}
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 py-4 border-t border-gray-100">
-              <div className="flex flex-col gap-2">
+              {/* Desktop Quantity (Hidden on mobile) */}
+              <div className="hidden md:flex flex-col gap-2">
                 <div className="flex items-center justify-between sm:justify-start gap-4">
                   <span className="text-black font-medium">{t.quantity}</span>
                   <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden h-8 w-28 bg-white">
@@ -678,11 +678,12 @@ export default function ProductClientUI({
                 )}
               </div>
 
+              {/* Price Total (Kept visible on mobile for context) */}
               <div className="flex items-start gap-2 justify-between sm:justify-start">
                 <span className="text-black/80 font-medium sm:mt-1">
                   {t.total}:
                 </span>
-                <div className="text-brand-primary font-medium text-xl sm:mt-0.5">
+                <div className="text-brand-primary font-medium text-lg sm:mt-0.5">
                   {totalPrice}
                 </div>
               </div>
@@ -699,8 +700,8 @@ export default function ProductClientUI({
               />
             </div>
 
-            {/* Action Buttons */}
-            <div className="mt-auto">
+            {/* Action Buttons (DESKTOP ONLY) */}
+            <div className="mt-auto hidden md:block">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
                   onClick={handleAddToCart}
@@ -748,7 +749,6 @@ export default function ProductClientUI({
                 {t.reviews}
               </button>
             </div>
-
             <div className="flex-1">
               {activeTab === "details" ? (
                 <div className="prose prose-lg max-w-none text-black/90 font-regular">
@@ -764,7 +764,47 @@ export default function ProductClientUI({
             </div>
           </div>
         </div>
+
         {children}
+      </div>
+
+      {/* --- MOBILE FIXED BOTTOM BAR (matches image_e7ad89.png) --- */}
+      <div
+        dir={dir}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 px-4 py-4 pb-6 shadow-[0_-4px_15px_rgba(0,0,0,0.04)]"
+      >
+        <div className="flex flex-col gap-3">
+          {/* Mobile Quantity Selector (Full Width) */}
+          <div className="flex items-center w-full border border-gray-200 rounded-sm overflow-hidden h-12 bg-white">
+            <button
+              onClick={increment}
+              disabled={quantity >= activeStock}
+              className="w-16 h-full flex items-center justify-center hover:bg-gray-50 text-gray-900 disabled:opacity-50 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+            <div className="flex-1 text-base h-full flex items-center justify-center font-bold text-gray-900 border-x border-gray-200">
+              {quantity}
+            </div>
+            <button
+              onClick={decrement}
+              disabled={quantity <= (existingCartQty > 0 ? 0 : 1)}
+              className="w-16 h-full flex items-center justify-center hover:bg-gray-50 text-gray-900 disabled:opacity-50 transition-colors"
+            >
+              <Minus className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Mobile Add to Cart Button (Black style per image) */}
+          <button
+            onClick={handleAddToCart}
+            disabled={isActionDisabled}
+            className="w-full h-12 flex items-center justify-center gap-2 bg-brand-primary text-white rounded-sm font-medium hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {t.addToCart}
+            <ShoppingBag className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* FAVORITE TOAST (NEW COMPONENT) */}

@@ -1,5 +1,3 @@
-// app/store/[slug]/components/NotificationInitializer.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -18,6 +16,10 @@ export default function NotificationInitializer() {
     let attempts = 0;
     const maxAttempts = 10; // Poll up to 10 times (5 seconds)
 
+    // Check if user just signed up
+    const justSignedUp =
+      localStorage.getItem("_mahally_just_signed_up") === "true";
+
     const checkAuth = async () => {
       attempts++;
       try {
@@ -33,9 +35,15 @@ export default function NotificationInitializer() {
           );
 
           if (!isRegistered) {
-            timeoutId = setTimeout(() => {
+            // Show prompt immediately (no delay if just signed up)
+            if (justSignedUp) {
               setShowPrompt(true);
-            }, 1000);
+              localStorage.removeItem("_mahally_just_signed_up");
+            } else {
+              timeoutId = setTimeout(() => {
+                setShowPrompt(true);
+              }, 1000);
+            }
           }
 
           // Clear polling once authenticated
@@ -56,12 +64,17 @@ export default function NotificationInitializer() {
     const docLang = document.documentElement.lang as "en" | "ar";
     if (docLang) setLang(docLang);
 
-    // Initial immediate check
-    checkAuth();
+    // If just signed up, do immediate check without polling delay
+    if (justSignedUp) {
+      checkAuth();
+    } else {
+      // Initial immediate check for existing users
+      checkAuth();
 
-    // Poll every 500ms for up to 5 seconds
-    if (attempts < maxAttempts) {
-      pollInterval = setInterval(checkAuth, 500);
+      // Poll every 500ms for up to 5 seconds
+      if (attempts < maxAttempts) {
+        pollInterval = setInterval(checkAuth, 500);
+      }
     }
 
     return () => {

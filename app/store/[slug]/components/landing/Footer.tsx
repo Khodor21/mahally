@@ -114,7 +114,6 @@ export default function Footer({
       bobFinance: "BoB Finance",
       links: [
         { label: "Privacy Policy", href: "/privacy" },
-        { label: "Terms & Conditions", href: "/terms" },
         { label: "Returns & Exchange Policy", href: "/return-policy" },
         { label: "Shipping & Delivery", href: "/shipping" },
         { label: "FAQs", href: "/faq" },

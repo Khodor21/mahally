@@ -89,7 +89,7 @@ export default function NotificationPrompt({
         className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6 pointer-events-none"
         dir={dir}
       >
-        <div className="max-w-[340px] w-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 p-6 sm:p-7 animate-in fade-in zoom-in-95 duration-300 ease-out pointer-events-auto relative overflow-hidden">
+        <div className="max-w-[640px] w-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 p-6 sm:p-7 animate-in fade-in zoom-in-95 duration-300 ease-out pointer-events-auto relative overflow-hidden">
           {/* Close Button */}
           <button
             onClick={handleDismiss}

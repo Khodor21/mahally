@@ -7,21 +7,18 @@ type Props = {
   params: {
     slug: string;
   };
-  searchParams: {
-    lang?: "en" | "ar";
-  };
 };
 
-export default async function AuthPage({ params, searchParams }: Props) {
-  const lang = searchParams.lang === "en" ? "en" : "ar";
-
+export default async function AuthPage({ params }: Props) {
   const { data: store } = await supabaseAdmin
     .from("stores")
-    .select("id")
+    .select("id, language")
     .eq("slug", params.slug)
     .maybeSingle();
 
   if (!store) notFound();
+
+  const lang = store.language === "en" ? "en" : "ar";
 
   return <CustomerAuth storeId={store.id} lang={lang} />;
 }

@@ -60,7 +60,9 @@ export default function ProductFormModal({
 }: Props) {
   const [form, setForm] = useState<any>(EMPTY_FORM);
   const [errors, setErrors] = useState<
-    Partial<Record<keyof ProductFormData | "discount_price", string>>
+    Partial<
+      Record<keyof ProductFormData | "discount_price" | "variants", string>
+    >
   >({});
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>("");
@@ -85,13 +87,24 @@ export default function ProductFormModal({
         let rawGroups =
           (product as any).variantGroups ?? (product as any).variant_groups;
 
+        // 👇 DEBUG LOGS
+        console.log("🔍 DEBUG: Edit mode - product object:", product);
+        console.log("🔍 DEBUG: rawGroups value:", rawGroups);
+        console.log("🔍 DEBUG: rawGroups type:", typeof rawGroups);
+        console.log("🔍 DEBUG: Is array?", Array.isArray(rawGroups));
+
         if (rawGroups) {
           // 2. Handle double or triple stringification natively
           while (typeof rawGroups === "string" && rawGroups.trim() !== "") {
             try {
+              console.log(
+                "🔍 DEBUG: Attempting to parse string:",
+                rawGroups.substring(0, 100),
+              );
               rawGroups = JSON.parse(rawGroups);
+              console.log("🔍 DEBUG: After JSON.parse:", rawGroups);
             } catch (e) {
-              // Break loop if it's a string but fails to parse, preserving the current state
+              console.error("🔍 DEBUG: JSON.parse failed:", e);
               break;
             }
           }
@@ -102,10 +115,22 @@ export default function ProductFormModal({
               ...g,
               options: Array.isArray(g?.options) ? g.options : [],
             }));
+            console.log(
+              "🔍 DEBUG: Successfully set parsedVariantGroups:",
+              parsedVariantGroups,
+            );
+          } else {
+            console.log(
+              "🔍 DEBUG: rawGroups is not an array:",
+              typeof rawGroups,
+              rawGroups,
+            );
           }
+        } else {
+          console.log("🔍 DEBUG: No rawGroups found");
         }
       } catch (error) {
-        console.error("Failed to parse variant groups:", error);
+        console.error("❌ Failed to parse variant groups:", error);
       }
 
       setForm({
@@ -145,7 +170,7 @@ export default function ProductFormModal({
 
   function validate(): boolean {
     const errs: Partial<
-      Record<keyof ProductFormData | "discount_price", string>
+      Record<keyof ProductFormData | "discount_price" | "variants", string>
     > = {};
 
     if (!form.title.trim()) errs.title = tr.titleRequired;
@@ -163,8 +188,46 @@ export default function ProductFormModal({
     }
 
     const s = parseInt(form.stock);
-    if (form.stock !== "" && (isNaN(s) || s < 0))
+    const isMainStockEmpty =
+      form.stock === "" || form.stock === null || form.stock === undefined;
+    const mainStock = isMainStockEmpty ? Infinity : isNaN(s) ? 0 : s;
+
+    if (!isMainStockEmpty && (isNaN(s) || s < 0)) {
       errs.stock = tr.stockInvalid || "Invalid stock";
+    }
+
+    // VARIANT STOCK VALIDATION
+    if (form.variantGroups && form.variantGroups.length > 0) {
+      for (const group of form.variantGroups) {
+        if (group.allowStock) {
+          const groupTotalStock = group.options.reduce(
+            (sum: number, opt: any) => {
+              const optStock = parseInt(opt.stock);
+              return sum + (isNaN(optStock) ? 0 : optStock);
+            },
+            0,
+          );
+
+          if (groupTotalStock > mainStock && mainStock !== Infinity) {
+            const groupName =
+              group.title || (dir === "rtl" ? "بدون اسم" : "untitled");
+            const errMsg =
+              dir === "rtl"
+                ? `إجمالي الكمية في مجموعة "${groupName}" (${groupTotalStock}) يتجاوز المخزون الرئيسي (${mainStock}).`
+                : `Total stock in group "${groupName}" (${groupTotalStock}) exceeds the main product stock (${mainStock}).`;
+
+            errs.variants = errMsg;
+            errs.stock =
+              dir === "rtl"
+                ? "كمية الخيارات تتجاوز المخزون"
+                : "Variants exceed main stock";
+
+            setExpandedVariantGroup(group.id);
+            break;
+          }
+        }
+      }
+    }
 
     setErrors(errs as any);
     return Object.keys(errs).length === 0;
@@ -174,7 +237,6 @@ export default function ProductFormModal({
     e.preventDefault();
     if (!validate() || uploading) return;
 
-    // Filter out empty variant groups and options
     const cleanedVariantGroups = form.variantGroups
       .map((group: any) => ({
         ...group,
@@ -263,7 +325,6 @@ export default function ProductFormModal({
       variantGroups: [...(f.variantGroups || []), newGroup],
     }));
 
-    // Auto-expand new group
     setExpandedVariantGroup(newGroup.id);
   };
 
@@ -520,118 +581,8 @@ export default function ProductFormModal({
               </label>
             </div>
 
-            {/* Images */}
-            <div>
-              <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-3">
-                {dir === "rtl" ? "صور المنتج" : "Product Images"}
-              </label>
-
-              {form.images.length > 0 && (
-                <p className="text-[10px] text-[rgb(60_28_84)]/60 mb-3">
-                  {dir === "rtl"
-                    ? "الصورة الأولى سيتم استخدامها كغلاف في المتجر"
-                    : "The first image with the 'Main Cover' badge will be used as the product card thumbnail. Click 'Make Cover' on any image to change it."}
-                </p>
-              )}
-
-              {uploading && uploadProgress && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 text-blue-600 animate-spin shrink-0" />
-                    <p className="text-xs text-blue-700 font-medium">
-                      {uploadProgress}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {form.images.map((url: string, idx: number) => (
-                  <div
-                    key={idx}
-                    className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all ${
-                      idx === 0
-                        ? "border-[rgb(60_28_84)] shadow-md"
-                        : "border-[rgb(207_195_223)] bg-[rgb(244_242_245)]"
-                    }`}
-                  >
-                    <img
-                      src={url}
-                      alt={`Product ${idx + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-
-                    {idx === 0 && (
-                      <div className="absolute top-2 left-2 right-2 flex justify-center">
-                        <div className="bg-[rgb(60_28_84)]/90 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5">
-                          <Star className="w-3 h-3 fill-white" />
-                          {dir === "rtl" ? "الغلاف الرئيسي" : "Main Cover"}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/0 group-hover:bg-black/50 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-[1px]">
-                      {idx !== 0 && (
-                        <button
-                          type="button"
-                          onClick={() => makeMainImage(idx)}
-                          className="bg-white text-[rgb(60_28_84)] text-[10px] font-bold px-4 py-2 rounded-lg shadow-lg hover:bg-gray-100 transition-transform hover:scale-105"
-                        >
-                          {dir === "rtl" ? "تعيين كغلاف" : "Make Cover"}
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => removeImage(idx)}
-                        disabled={uploading || loading}
-                        className="bg-red-500 text-white rounded-full p-2.5 shadow-lg hover:bg-red-600 transition-colors disabled:opacity-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {form.images.length < 5 && (
-                  <label
-                    className={`flex flex-col items-center justify-center aspect-square rounded-xl border-2 border-dashed transition-all bg-[rgb(244_242_245)] ${
-                      uploading || loading
-                        ? "border-[rgb(60_28_84)]/40 cursor-not-allowed opacity-50"
-                        : "border-[rgb(207_195_223)] hover:border-[rgb(60_28_84)] hover:bg-white cursor-pointer"
-                    }`}
-                  >
-                    {uploading ? (
-                      <Loader2 className="w-6 h-6 text-[rgb(60_28_84)] animate-spin" />
-                    ) : (
-                      <>
-                        <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center mb-2 border border-[rgb(207_195_223)]">
-                          <Plus className="w-5 h-5 text-[rgb(60_28_84)]" />
-                        </div>
-                        <span className="text-[11px] font-bold text-[rgb(60_28_84)]/60">
-                          {tr.addImageUrl || "Add Image"}
-                        </span>
-                      </>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      multiple
-                      disabled={uploading || loading}
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                  </label>
-                )}
-              </div>
-              <p className="text-[10px] font-medium text-[rgb(60_28_84)]/50 mt-3 flex items-center gap-1.5">
-                <Info className="w-3.5 h-3.5" />
-                {tr.imageUploadHint ||
-                  "Max 5 images. Supported: JPEG, PNG, WebP (max 5MB each)."}
-              </p>
-            </div>
-
             {/* ============================================ */}
-            {/* VARIANT GROUPS SECTION - UPDATED */}
+            {/* ⭐ VARIANT GROUPS SECTION - NOW BEFORE IMAGES ⭐ */}
             {/* ============================================ */}
             <div className="pt-4 border-t border-[rgb(244_242_245)]">
               <div className="flex items-center justify-between mb-4">
@@ -921,6 +872,127 @@ export default function ProductFormModal({
                   ))}
                 </div>
               )}
+
+              {errors.variants && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 animate-in fade-in zoom-in-95 duration-300">
+                  <Info className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-700 font-medium leading-relaxed">
+                    {errors.variants}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* ============================================ */}
+            {/* IMAGES SECTION - NOW AFTER VARIANTS */}
+            {/* ============================================ */}
+            <div>
+              <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-3">
+                {dir === "rtl" ? "صور المنتج" : "Product Images"}
+              </label>
+
+              {form.images.length > 0 && (
+                <p className="text-[10px] text-[rgb(60_28_84)]/60 mb-3">
+                  {dir === "rtl"
+                    ? "الصورة الأولى سيتم استخدامها كغلاف في المتجر"
+                    : "The first image with the 'Main Cover' badge will be used as the product card thumbnail. Click 'Make Cover' on any image to change it."}
+                </p>
+              )}
+
+              {uploading && uploadProgress && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 text-blue-600 animate-spin shrink-0" />
+                    <p className="text-xs text-blue-700 font-medium">
+                      {uploadProgress}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {form.images.map((url: string, idx: number) => (
+                  <div
+                    key={idx}
+                    className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all ${
+                      idx === 0
+                        ? "border-[rgb(60_28_84)] shadow-md"
+                        : "border-[rgb(207_195_223)] bg-[rgb(244_242_245)]"
+                    }`}
+                  >
+                    <img
+                      src={url}
+                      alt={`Product ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+
+                    {idx === 0 && (
+                      <div className="absolute top-2 left-2 right-2 flex justify-center">
+                        <div className="bg-[rgb(60_28_84)]/90 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5">
+                          <Star className="w-3 h-3 fill-white" />
+                          {dir === "rtl" ? "الغلاف الرئيسي" : "Main Cover"}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/0 group-hover:bg-black/50 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-[1px]">
+                      {idx !== 0 && (
+                        <button
+                          type="button"
+                          onClick={() => makeMainImage(idx)}
+                          className="bg-white text-[rgb(60_28_84)] text-[10px] font-bold px-4 py-2 rounded-lg shadow-lg hover:bg-gray-100 transition-transform hover:scale-105"
+                        >
+                          {dir === "rtl" ? "تعيين كغلاف" : "Make Cover"}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        disabled={uploading || loading}
+                        className="bg-red-500 text-white rounded-full p-2.5 shadow-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {form.images.length < 5 && (
+                  <label
+                    className={`flex flex-col items-center justify-center aspect-square rounded-xl border-2 border-dashed transition-all bg-[rgb(244_242_245)] ${
+                      uploading || loading
+                        ? "border-[rgb(60_28_84)]/40 cursor-not-allowed opacity-50"
+                        : "border-[rgb(207_195_223)] hover:border-[rgb(60_28_84)] hover:bg-white cursor-pointer"
+                    }`}
+                  >
+                    {uploading ? (
+                      <Loader2 className="w-6 h-6 text-[rgb(60_28_84)] animate-spin" />
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center mb-2 border border-[rgb(207_195_223)]">
+                          <Plus className="w-5 h-5 text-[rgb(60_28_84)]" />
+                        </div>
+                        <span className="text-[11px] font-bold text-[rgb(60_28_84)]/60">
+                          {tr.addImageUrl || "Add Image"}
+                        </span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      multiple
+                      disabled={uploading || loading}
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+              <p className="text-[10px] font-medium text-[rgb(60_28_84)]/50 mt-3 flex items-center gap-1.5">
+                <Info className="w-3.5 h-3.5" />
+                {tr.imageUploadHint ||
+                  "Max 5 images. Supported: JPEG, PNG, WebP (max 5MB each)."}
+              </p>
             </div>
           </div>
         </form>

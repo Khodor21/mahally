@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
-// 1. Add couponCode and paymentMethod to your schema
+// UPDATED: Add variantSelections to schema for variant-specific stock tracking
 const CheckoutSchema = z.object({
   storeId: z.string().uuid(),
 
@@ -23,6 +23,17 @@ const CheckoutSchema = z.object({
       z.object({
         productId: z.string().uuid(),
         qty: z.number().min(1),
+        // NEW: Variant selections {groupId: {id, value, stock}}
+        variantSelections: z
+          .record(
+            z.string(),
+            z.object({
+              id: z.string(),
+              value: z.string(),
+              stock: z.number().optional(),
+            }),
+          )
+          .optional(),
       }),
     )
     .min(1),
@@ -134,6 +145,7 @@ export async function POST(request: NextRequest) {
     }
 
     let subtotal = 0;
+    // UPDATED: Include variantSelections and variant_json in order_items
     const orderItems = items.map((item) => {
       const product = products.find((p) => p.id === item.productId);
       if (!product) throw new Error("Product not found");
@@ -146,6 +158,10 @@ export async function POST(request: NextRequest) {
         price: product.price,
         qty: item.qty,
         total: itemTotal,
+        // NEW: Store variant selections as JSON for order history
+        variant_json: item.variantSelections
+          ? JSON.stringify(item.variantSelections)
+          : null,
       };
     });
 
@@ -224,6 +240,8 @@ export async function POST(request: NextRequest) {
         items: items.map((item) => ({
           product_id: item.productId,
           qty: item.qty,
+          // FIXED: Pass as JSONB object, NOT stringified
+          variant_selections: item.variantSelections || null,
         })),
       },
     );

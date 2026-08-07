@@ -7,10 +7,11 @@ import {
   StickyNote,
   ChevronRight,
   ChevronLeft,
+  ArrowRight,
+  ArrowLeft,
   X,
   CheckCircle2,
   AlertCircle,
-  Info,
   ShoppingCart,
   Zap,
 } from "lucide-react";
@@ -50,8 +51,7 @@ export default function CartClientPage({ store }: Props) {
         ? store.payment_methods
         : []
     : [];
-  console.log("Store payment methods:", store?.payment_methods);
-  console.log("Parsed payment methods:", paymentMethods);
+
   // ── Auth & Auto-fill ────────────────────────────────────
   const { customer, loading: authLoading } = useAuth(store?.id);
 
@@ -93,7 +93,6 @@ export default function CartClientPage({ store }: Props) {
   const showCustomToast = (type: "success" | "error", message: string) => {
     setToastState({ show: true, type, message });
     setToastProgress(0);
-    // Slight delay to allow DOM to register the 0% before transitioning to 100%
     setTimeout(() => {
       setToastProgress(100);
     }, 50);
@@ -105,7 +104,7 @@ export default function CartClientPage({ store }: Props) {
       timeoutId = setTimeout(() => {
         setToastState((prev) => ({ ...prev, show: false }));
         setToastProgress(0);
-      }, 3000); // 3 seconds matching the 2950ms CSS transition
+      }, 3000);
     }
     return () => clearTimeout(timeoutId);
   }, [toastState.show]);
@@ -169,13 +168,8 @@ export default function CartClientPage({ store }: Props) {
   };
 
   // ── Cart/Buy Now Switcher ────────────────────────────
-  const switchToCartView = () => {
-    setIsBuyNow(false);
-  };
-
-  const switchToBuyNowView = () => {
-    setIsBuyNow(true);
-  };
+  const switchToCartView = () => setIsBuyNow(false);
+  const switchToBuyNowView = () => setIsBuyNow(true);
 
   // ── Auto-fill from authenticated customer ──────────────
   useEffect(() => {
@@ -188,10 +182,7 @@ export default function CartClientPage({ store }: Props) {
 
   // ── Totals ──────────────────────────────────────────
   const subtotal = useMemo(() => activeSubtotal, [activeSubtotal]);
-
-  // ✅ ACCURATE SHIPPING CALCULATION
   const shipping = subtotal > 0 ? storeDeliveryCost : 0;
-
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const total = Math.max(0, subtotal - discountAmount) + shipping;
 
@@ -284,6 +275,9 @@ export default function CartClientPage({ store }: Props) {
           items: activeItems.map((item) => ({
             productId: item.product.id,
             qty: item.qty,
+            // ✅ ADDED VARIANT SUPPORT TO API PAYLOAD
+            variantSelections: item.variantSelections || null,
+            variantDescription: item.product.variantDescription || "",
           })),
         }),
       });
@@ -296,8 +290,6 @@ export default function CartClientPage({ store }: Props) {
           t.checkoutFailed ||
           (isArabic ? "فشل إتمام الطلب" : "Checkout failed");
 
-        // ✅ INTERCEPT OUT OF STOCK MESSAGE
-        // We catch the backend message if it includes "out of stock" and map the ID to the Product Name
         if (
           typeof data.message === "string" &&
           data.message.toLowerCase().includes("out of stock")
@@ -307,7 +299,6 @@ export default function CartClientPage({ store }: Props) {
           );
 
           if (outOfStockItem) {
-            // Check for localized name if your product schema supports name_ar, fallback to standard name
             const productName = isArabic
               ? outOfStockItem.product.name_ar || outOfStockItem.product.name
               : outOfStockItem.product.name;
@@ -335,7 +326,6 @@ export default function CartClientPage({ store }: Props) {
         } else {
           clearCart();
         }
-
         router.push(`/`);
       }, 1500);
     } catch (err) {
@@ -375,16 +365,20 @@ export default function CartClientPage({ store }: Props) {
     selectedPaymentMethod &&
     activeItems.length > 0;
 
-  const ArrowIcon = isArabic ? ChevronRight : ChevronLeft;
+  // Premium UI Icon Logic Based on Direction
+  const ProceedIcon = isArabic ? ArrowLeft : ArrowRight;
+  const BackIcon = isArabic ? ArrowRight : ArrowLeft;
 
   return (
-    <div className={`w-full bg-white py-8 px-4 ${isArabic ? "rtl" : "ltr"}`}>
+    <div
+      className={`w-full bg-white py-8 px-4 sm:px-6 md:px-8 ${isArabic ? "rtl" : "ltr"}`}
+    >
       {/* ── CUSTOM TOAST INJECTION ── */}
       {toastState.show && (
         <div
           className={`fixed top-4 ${
             isArabic ? "right-4" : "left-4"
-          } z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300`}
+          } z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300`}
           dir={isArabic ? "rtl" : "ltr"}
         >
           {/* PROGRESS BAR */}
@@ -401,7 +395,7 @@ export default function CartClientPage({ store }: Props) {
           <div className="flex items-center justify-between px-4 py-3">
             {isArabic ? (
               <>
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-3">
                   {toastState.type === "success" ? (
                     <CheckCircle2
                       className="flex-shrink-0 text-emerald-500"
@@ -413,7 +407,7 @@ export default function CartClientPage({ store }: Props) {
                       size={18}
                     />
                   )}
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-semibold text-gray-900">
                     {toastState.message}
                   </span>
                 </div>
@@ -421,10 +415,10 @@ export default function CartClientPage({ store }: Props) {
                   onClick={() =>
                     setToastState((prev) => ({ ...prev, show: false }))
                   }
-                  className="text-gray-400 hover:text-gray-700 transition-colors"
+                  className="text-gray-400 hover:text-gray-700 transition-colors p-1 rounded-md hover:bg-gray-100"
                   aria-label="Close"
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </>
             ) : (
@@ -433,13 +427,13 @@ export default function CartClientPage({ store }: Props) {
                   onClick={() =>
                     setToastState((prev) => ({ ...prev, show: false }))
                   }
-                  className="text-gray-400 hover:text-gray-700 transition-colors"
+                  className="text-gray-400 hover:text-gray-700 transition-colors p-1 rounded-md hover:bg-gray-100"
                   aria-label="Close"
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
-                <div className="flex items-center gap-2.5">
-                  <span className="text-sm font-medium text-gray-900">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-gray-900">
                     {toastState.message}
                   </span>
                   {toastState.type === "success" ? (
@@ -462,49 +456,49 @@ export default function CartClientPage({ store }: Props) {
       {/* ── END CUSTOM TOAST ── */}
 
       <div className="max-w-2xl mx-auto">
-        {/* Cart/Buy Now Switcher - On cart view with both items available */}
+        {/* Cart/Buy Now Switcher */}
         {step === "cart" && isBuyNow && cartItems.length > 0 && (
-          <div className="mb-6 flex gap-2">
+          <div className="mb-6 flex flex-col sm:flex-row gap-3">
             <button
               onClick={switchToBuyNowView}
-              className="flex-1 py-3 rounded bg-brand-primary/5 border-[2px] border-brand-primary/40 font-medium text-sm text-brand-primary flex items-center justify-center gap-2"
+              className="flex-1 py-3.5 rounded-xl bg-brand-primary/5 border-2 border-brand-primary/40 font-semibold text-sm text-brand-primary flex items-center justify-center gap-2 transition-colors"
             >
               <Zap className="w-4 h-4" />
               {isArabic
-                ? `قائمة الشراء السريع  (${buyNowItem?.qty || 1})`
+                ? `قائمة الشراء السريع (${buyNowItem?.qty || 1})`
                 : `Quick Buy List (${buyNowItem?.qty || 1})`}
             </button>
             <button
               onClick={switchToCartView}
-              className="flex-1 py-3 rounded bg-black/5 opacity-80 font-medium text-sm text-black/90 flex items-center justify-center gap-2"
+              className="flex-1 py-3.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-sm text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-2 transition-colors"
             >
               <ShoppingCart className="w-4 h-4" />
               {isArabic
                 ? `منتجات السلة (${cartItems.length})`
-                : `Cart Items(${cartItems.length})`}
+                : `Cart Items (${cartItems.length})`}
             </button>
           </div>
         )}
 
         {step === "cart" && !isBuyNow && cartItems.length > 0 && buyNowItem && (
-          <div className="mb-6 flex gap-2">
+          <div className="mb-6 flex flex-col sm:flex-row gap-3">
             <button
               onClick={switchToBuyNowView}
-              className="flex-1 py-3 rounded bg-black/5 opacity-80 font-medium text-sm text-black/90 flex items-center justify-center gap-2"
+              className="flex-1 py-3.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-sm text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-2 transition-colors"
             >
               <Zap className="w-4 h-4" />
               {isArabic
-                ? `قائمة الشراء السريع  (${buyNowItem?.qty || 1})`
+                ? `قائمة الشراء السريع (${buyNowItem?.qty || 1})`
                 : `Quick Buy List (${buyNowItem?.qty || 1})`}
             </button>
             <button
               onClick={switchToCartView}
-              className="flex-1 py-3 rounded bg-brand-primary/5 border-[2px] border-brand-primary/40 font-medium text-sm text-brand-primary flex items-center justify-center gap-2"
+              className="flex-1 py-3.5 rounded-xl bg-brand-primary/5 border-2 border-brand-primary/40 font-semibold text-sm text-brand-primary flex items-center justify-center gap-2 transition-colors"
             >
               <ShoppingCart className="w-4 h-4" />
               {isArabic
                 ? `منتجات السلة (${cartItems.length})`
-                : `Cart Items(${cartItems.length})`}
+                : `Cart Items (${cartItems.length})`}
             </button>
           </div>
         )}
@@ -512,7 +506,7 @@ export default function CartClientPage({ store }: Props) {
         {/* Header */}
         <div className="mb-8">
           <div>
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
               {step === "cart"
                 ? isBuyNow
                   ? isArabic
@@ -521,7 +515,7 @@ export default function CartClientPage({ store }: Props) {
                   : t.cart
                 : t.shippingInfo}
             </h3>
-            <p className="mt-1 text-xs text-gray-500 font-medium">
+            <p className="mt-1.5 text-sm text-gray-500 font-medium">
               {step === "cart"
                 ? isBuyNow
                   ? isArabic
@@ -560,29 +554,30 @@ export default function CartClientPage({ store }: Props) {
               onRemoveCoupon={handleRemoveCoupon}
             />
 
-            {/* Navigation - Enhanced UI */}
-            <div className="flex gap-4 pt-2">
+            {/* Navigation - Enhanced UI & Mobile First */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 mt-6 border-t border-gray-100">
               <button
                 onClick={() => setStep("shipping")}
-                className="flex-[2] h-12 rounded bg-brand-primary text-white font-bold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                className="flex-[2] h-14 sm:h-12 rounded-xl bg-brand-primary text-white font-semibold text-base sm:text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
               >
-                <ArrowIcon className="w-4 h-4" />
-                {isArabic ? "المتابعة للعنوان" : "Continue to Shipping"}
-              </button>{" "}
+                {isArabic ? "المتابعة للتوصيل" : "Proceed to Delivery"}
+                <ProceedIcon className="w-4 h-4" />
+              </button>
               <button
                 onClick={() => {
                   clearBuyNowSession();
                   router.back();
                 }}
-                className="flex-1 h-12 rounded border border-gray-300 text-gray-700 bg-white font-bold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center"
+                className="flex-1 h-14 sm:h-12 rounded-xl border border-gray-200 text-gray-700 bg-white font-semibold text-base sm:text-sm hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-2 shadow-sm order-2 sm:order-1"
               >
+                <BackIcon className="w-4 h-4" />
                 {isBuyNow
                   ? isArabic
-                    ? "← العودة للمتجر"
-                    : "← Back to Store"
+                    ? "العودة للمتجر"
+                    : "Back to Store"
                   : isArabic
-                    ? "← تابع التسوق"
-                    : "← Continue Shopping"}
+                    ? "متابعة التسوق"
+                    : "Continue Shopping"}
               </button>
             </div>
           </div>
@@ -618,40 +613,41 @@ export default function CartClientPage({ store }: Props) {
             />
 
             {error && (
-              <div className="bg-red-50 text-red-600 text-sm font-bold rounded-xl px-4 py-4 border border-red-200 flex items-center justify-center">
+              <div className="bg-red-50 text-red-600 text-sm font-semibold rounded-xl px-4 py-4 border border-red-100 flex items-center justify-center shadow-sm">
+                <AlertCircle className="w-4 h-4 mr-2" />
                 {error}
               </div>
             )}
 
-            {/* Navigation - Enhanced UI */}
-            <div className="flex gap-4 pt-2">
+            {/* Navigation - Enhanced UI & Mobile First */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 mt-6 border-t border-gray-100">
               <button
                 onClick={handleCheckout}
                 disabled={!canCheckout || loading}
-                className="flex-[2] h-12 rounded bg-brand-primary text-white font-bold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
+                className="flex-[2] h-14 sm:h-12 rounded-xl bg-brand-primary text-white font-bold text-base sm:text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-5 h-5 sm:w-4 sm:h-4 animate-spin" />
                     {t.processing}
                   </>
                 ) : (
                   <>
-                    <ShoppingBag className="w-4 h-4" />
-                    {t.completeCheckout}
+                    <ShoppingBag className="w-5 h-5 sm:w-4 sm:h-4" />
+                    {isArabic ? "تأكيد وإتمام الطلب" : "Complete Order"}
                   </>
                 )}
-              </button>{" "}
+              </button>
               <button
                 onClick={() => setStep("cart")}
-                className="flex-1 h-12 rounded border border-brand-primary text-brand-primary bg-transparent font-bold text-sm hover:bg-brand-primary hover:text-white transition-colors flex items-center justify-center gap-2"
+                className="flex-1 h-14 sm:h-12 rounded-xl border-2 border-brand-primary text-brand-primary bg-transparent font-bold text-base sm:text-sm hover:bg-brand-primary/5 transition-all flex items-center justify-center gap-2 order-2 sm:order-1"
               >
+                <BackIcon className="w-4 h-4" />
                 {isArabic ? "تعديل السلة" : "Back to Cart"}
-                <ArrowIcon className="w-4 h-4 rotate-180" />
               </button>
             </div>
 
-            <div className="text-center text-xs font-bold text-gray-400 flex items-center justify-center gap-2">
+            <div className="text-center text-xs font-semibold text-gray-400 flex items-center justify-center gap-2 pt-2">
               <StickyNote className="w-3.5 h-3.5" />
               {t.secureCheckout}
             </div>

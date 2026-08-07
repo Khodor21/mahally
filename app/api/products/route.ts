@@ -100,10 +100,11 @@ export async function GET(req: Request) {
     }
 
     // 3. Fetch products securely for the resolved store
+    // 3. Fetch products securely for the resolved store
     const { data, error } = await supabaseAdmin
       .from("products")
       .select(
-        "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variants, variantGroups, sales_count",
+        "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variantGroups, sales_count",
       )
       .eq("store_id", store_id)
       .order("created_at", { ascending: false });
@@ -115,15 +116,9 @@ export async function GET(req: Request) {
       );
     }
 
-    const data_with_renamed_variants = data.map((product: any) => ({
-      ...product,
-      variantGroups: product.variants, // Map old column to new field name
-      variants: undefined, // Remove old field
-    }));
-
     return NextResponse.json({
       success: true,
-      data: data_with_renamed_variants,
+      data: data,
     });
   } catch (err: any) {
     const isAuth = err.message === "Unauthorized";

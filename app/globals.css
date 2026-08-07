@@ -149,7 +149,12 @@ body {
     font-family: var(--font-body);
     font-weight: 400;
   }
-
+  input,
+  textarea,
+  select,
+  button {
+    font-family: var(--font-body);
+  }
   html[lang="ar"] h3,
   html[dir="rtl"] h3 {
     font-weight: 700;
@@ -217,12 +222,6 @@ body::before {
 /* =========================================================
    FORM ELEMENTS
 ========================================================= */
-input,
-textarea,
-select,
-button {
-  font: inherit;
-}
 
 input:focus,
 textarea:focus,

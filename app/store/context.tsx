@@ -1,5 +1,4 @@
 "use client";
-
 import {
   createContext,
   useContext,
@@ -7,7 +6,6 @@ import {
   useCallback,
   useEffect,
 } from "react";
-
 // ── Types ──────────────────────────────────────────
 export interface Product {
   id: string;
@@ -16,12 +14,21 @@ export interface Product {
   price?: number;
   rating?: number;
   badge?: string;
+  variantDescription?: string; // Display string for UI
   [key: string]: any;
+}
+
+// NEW: Track which variant was selected
+export interface VariantSelection {
+  id: string;     // option ID
+  value: string;  // option value (e.g., "Black")
+  stock?: number; // variant-specific stock
 }
 
 export interface CartItem {
   product: Product;
   qty: number;
+  variantSelections?: Record<string, VariantSelection>; // {groupId: {id, value, stock}}
 }
 
 interface ShopContextType {
@@ -29,18 +36,16 @@ interface ShopContextType {
   cartItems: CartItem[];
   cartCount: number;
   cartTotal: number;
-  addToCart: (product: Product, qty?: number) => void;
+  addToCart: (product: Product, qty?: number, variantSelections?: Record<string, VariantSelection>) => void;
   removeFromCart: (productId: string) => void;
   updateCartQty: (productId: string, qty: number) => void;
   clearCart: () => void;
-
   // Buy Now (single-item express checkout, isolated from persistent cart)
   buyNowItem: CartItem | null;
-  setBuyNowItem: (product: Product, qty?: number) => void;
+  setBuyNowItem: (product: Product, qty?: number, variantSelections?: Record<string, VariantSelection>) => void;
   clearBuyNowItem: () => void;
   checkoutItems: CartItem[]; // buyNowItem if set, otherwise cartItems
   isBuyNowMode: boolean;
-
   // Favorites
   favorites: Product[];
   favCount: number;
@@ -48,7 +53,6 @@ interface ShopContextType {
   removeFromFavorites: (productId: string) => void;
   isFavorite: (productId: string) => boolean;
   clearFavorites: () => void;
-
   // Store Configuration
   currencySymbol: string;
   deliveryCost: number;
@@ -58,7 +62,6 @@ interface ShopContextType {
 }
 
 const ShopContext = createContext<ShopContextType | null>(null);
-
 const CART_STORAGE_KEY = "shop_cart";
 const FAV_STORAGE_KEY = "shop_favorites";
 const BUY_NOW_STORAGE_KEY = "shop_buy_now";
@@ -81,7 +84,6 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function fetchStoreConfig() {
       try {
-        // Use public storefront endpoint (no auth required)
         const res = await fetch("/api/storefront/config");
         if (res.ok) {
           const body = await res.json();
@@ -99,7 +101,6 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         setIsConfigLoading(false);
       }
     }
-
     fetchStoreConfig();
   }, []);
 
@@ -108,10 +109,8 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     try {
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
       const savedFavs = localStorage.getItem(FAV_STORAGE_KEY);
-
       if (savedCart) setCartItems(JSON.parse(savedCart));
       if (savedFavs) setFavorites(JSON.parse(savedFavs));
-
       const savedBuyNow = sessionStorage.getItem(BUY_NOW_STORAGE_KEY);
       if (savedBuyNow) setBuyNowItemState(JSON.parse(savedBuyNow));
     } catch (error) {
@@ -156,15 +155,35 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
   }, [buyNowItem, isHydrated]);
 
   // ── Cart Actions ──────────────────────────────────────────
-  const addToCart = useCallback((product: Product, qty: number = 1) => {
+  // UPDATED: Accept variantSelections parameter
+  const addToCart = useCallback((
+    product: Product,
+    qty: number = 1,
+    variantSelections?: Record<string, VariantSelection>,
+  ) => {
     setCartItems((prev) => {
-      const existing = prev.find((i) => i.product.id === product.id);
+      // NEW: Match by product ID AND variant selections (if product has variants)
+      const existing = prev.find((i) => {
+        if (i.product.id !== product.id) return false;
+        
+        // If no variants, just match by product ID
+        if (!variantSelections || Object.keys(variantSelections).length === 0) {
+          return !i.variantSelections || Object.keys(i.variantSelections).length === 0;
+        }
+        
+        // If variants, must match exactly
+        return (
+          JSON.stringify(i.variantSelections) === JSON.stringify(variantSelections)
+        );
+      });
+
       if (existing) {
         return prev.map((i) =>
-          i.product.id === product.id ? { ...i, qty: i.qty + qty } : i,
+          i === existing ? { ...i, qty: i.qty + qty } : i,
         );
       }
-      return [...prev, { product, qty }];
+
+      return [...prev, { product, qty, variantSelections }];
     });
   }, []);
 
@@ -190,8 +209,13 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // ── Buy Now Actions ────────────────────────────────────────
-  const setBuyNowItem = useCallback((product: Product, qty: number = 1) => {
-    setBuyNowItemState({ product, qty });
+  // UPDATED: Accept variantSelections parameter
+  const setBuyNowItem = useCallback((
+    product: Product,
+    qty: number = 1,
+    variantSelections?: Record<string, VariantSelection>,
+  ) => {
+    setBuyNowItemState({ product, qty, variantSelections });
   }, []);
 
   const clearBuyNowItem = useCallback(() => {
@@ -208,7 +232,6 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
   const checkoutItems = buyNowItem ? [buyNowItem] : cartItems;
   const isBuyNowMode = buyNowItem !== null;
 
-  // Final total matching delivery fee configuration
   const orderTotal = cartTotal + deliveryCost;
 
   // ── Favorites Actions ─────────────────────────────────────
@@ -247,14 +270,12 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         removeFromCart,
         updateCartQty,
         clearCart,
-
         // Buy Now
         buyNowItem,
         setBuyNowItem,
         clearBuyNowItem,
         checkoutItems,
         isBuyNowMode,
-
         // Favorites
         favorites,
         favCount,
@@ -262,7 +283,6 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         isFavorite,
         removeFromFavorites,
         clearFavorites,
-
         // Store Config
         currencySymbol,
         deliveryCost,

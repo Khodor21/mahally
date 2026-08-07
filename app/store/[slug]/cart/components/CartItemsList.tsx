@@ -11,8 +11,10 @@ type CartItem = {
     price?: number;
     image?: string;
     stock?: number;
+    variantDescription?: string;
   };
   qty: number;
+  variantSelections?: Record<string, any>;
 };
 
 type Props = {
@@ -69,7 +71,7 @@ export default function CartItemsList({
       <div className="space-y-5">
         {items.map((item) => (
           <div
-            key={item.product.id}
+            key={`${item.product.id}-${item.product.variantDescription || "base"}`}
             className="flex gap-4 pb-5 border-b border-gray-100 last:border-0 last:pb-0"
           >
             {/* Product Image */}
@@ -87,14 +89,23 @@ export default function CartItemsList({
             {/* Product Details */}
             <div className="flex-1 min-w-0 py-0.5 flex flex-col justify-between">
               <div className="flex justify-between items-start gap-3">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   {/* Product Title */}
                   <p className="font-bold text-gray-900 text-sm sm:text-base leading-snug line-clamp-2">
                     {item.product.title}
                   </p>
 
+                  {/* ── VARIANT BADGE UI ── */}
+                  {item.product.variantDescription && (
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                        {item.product.variantDescription}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Price */}
-                  <p className="text-sm font-extrabold text-brand-primary mt-1.5">
+                  <p className="text-sm sm:text-base font-extrabold text-brand-primary mt-1.5">
                     {currencySymbol}
                     {item.product.price !== undefined
                       ? item.product.price.toLocaleString()
@@ -111,24 +122,24 @@ export default function CartItemsList({
               </div>
 
               {/* Quantity Controls & Warning */}
-              <div className="mt-4">
+              <div className="mt-3">
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() =>
                       onUpdateQty(item.product.id, Math.max(1, item.qty - 1))
                     }
-                    className="w-9 h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600 active:scale-95"
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600 active:scale-95"
                   >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
-                  <span className="w-8 text-center font-bold text-gray-900 text-sm">
+                  <span className="w-6 text-center font-bold text-gray-900 text-sm">
                     {item.qty}
                   </span>
                   <button
                     onClick={() => handleIncrement(item)}
-                    className="w-9 h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600 active:scale-95"
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600 active:scale-95"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                 </div>
 

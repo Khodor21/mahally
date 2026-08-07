@@ -2,6 +2,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   Heart,
@@ -23,6 +24,7 @@ type Product = {
   stock?: number;
   rating?: number;
   badge?: keyof typeof BADGE_STYLES;
+  variantGroups?: string | any[];
 };
 
 type ProductCardProps = {
@@ -31,7 +33,25 @@ type ProductCardProps = {
   lang: "en" | "ar";
 };
 
-// 👉 Replaced hardcoded RGB with the new backend-driven CSS variable
+const hasVariants = (variantGroups?: string | any[]): boolean => {
+  if (!variantGroups) return false;
+
+  if (Array.isArray(variantGroups)) {
+    return variantGroups.length > 0;
+  }
+
+  if (typeof variantGroups === "string") {
+    try {
+      const parsed = JSON.parse(variantGroups);
+      return Array.isArray(parsed) && parsed.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+};
+
 const BADGE_STYLES = {
   New: "bg-[rgb(var(--color-brand-primary))] text-white",
   "Best Seller": "bg-[rgb(207_195_223)] text-[rgb(var(--color-brand-primary))]",
@@ -61,34 +81,39 @@ export default function ProductCard({
   const router = useRouter();
   const { addToCart, toggleFavorite, isFavorite, cartItems } = useShop();
 
-  // 👉 UPDATED: Use product title slug instead of ID
   const productUrl = `/product/${encodeURIComponent(product.title)}?lang=${lang}`;
   const productId = String(product.id);
   const favorited = isFavorite(productId);
 
+  // Portal mount state
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [added, setAdded] = useAddedFlash(5000);
   const [progress, setProgress] = useState(100);
 
-  // 👉 Favorite toast state
   const [favToast, setFavToast] = useAddedFlash(3000);
   const [favProgress, setFavProgress] = useState(100);
   const [favAction, setFavAction] = useState<"added" | "removed">("added");
 
-  // 👉 Stock Warning state
   const [stockWarning, setStockWarning] = useAddedFlash(4000);
   const [stockWarningProgress, setStockWarningProgress] = useState(100);
 
-  // 👉 Check if out of stock
+  // Check if out of stock
   const isOutOfStock = (product.stock ?? 1) === 0;
   const hasDiscount =
     product.discount_price &&
     product.discount_price > 0 &&
     product.discount_price < (product.price ?? 0);
 
-  // 👉 Language Dictionary
+  // Language Dictionary with selectOptions
   const content = {
     en: {
       addToCart: "Add to Cart",
+      selectOptions: "Choose Options", // 👈 ADD THIS
       buyNow: "Buy Now",
       toastTitle: "Added to cart",
       viewCart: "View Cart",
@@ -101,6 +126,7 @@ export default function ProductCard({
     },
     ar: {
       addToCart: "إضافـة إلـى السلّـة",
+      selectOptions: "اختر الخيارات", // 👈 ADD THIS
       buyNow: "اشتر الآن",
       toastTitle: "تمت الإضافة إلى سلة التسوق",
       viewCart: "عرض السلة",
@@ -123,14 +149,19 @@ export default function ProductCard({
   const handleAddToCart = () => {
     if (isOutOfStock) return;
 
-    // ✅ Find existing item in cart to validate against max stock
+    // 👉 If product has variants, redirect to product detail page
+    if (hasVariants(product.variantGroups)) {
+      router.push(productUrl);
+      return;
+    }
+
+    // Existing logic for variant-free products
     const existingCartItem = cartItems.find(
       (item: any) => String(item.product.id) === productId,
     );
     const currentCartQty = existingCartItem ? existingCartItem.qty : 0;
     const maxStock = product.stock ?? Infinity;
 
-    // Block addition if stock ceiling is reached
     if (currentCartQty >= maxStock) {
       setStockWarning(true);
       return;
@@ -276,8 +307,7 @@ export default function ProductCard({
                 </p>
               )}
             </div>
-
-            {/* ADD TO CART BUTTON */}
+            {/* ADD TO CART BUTTON - NOW WITH VARIANT CHECK */}
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -292,308 +322,322 @@ export default function ProductCard({
               }`}
             >
               <ShoppingBag size={16} />
-              {isOutOfStock ? t.outOfStock : t.addToCart}
+              {isOutOfStock
+                ? t.outOfStock
+                : hasVariants(product.variantGroups)
+                  ? t.selectOptions
+                  : t.addToCart}
             </button>
           </div>
         </div>
       </article>
 
-      {/* PREMIUM ADD TO CART TOAST */}
-      {added && (
-        <div
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100vw-2rem)] md:w-[400px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
-          dir={lang === "ar" ? "rtl" : "ltr"}
-        >
-          {/* PROGRESS BAR */}
-          <div
-            className="h-1.5 bg-emerald-500 ease-linear"
-            style={{
-              width: `${progress}%`,
-              transitionDuration: added ? "4950ms" : "0ms",
-              transitionProperty: "width",
-            }}
-          />
-
-          {/* HEADER */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
-            {lang === "ar" ? (
-              <>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="text-emerald-500" size={18} />
-                  <span className="text-sm font-bold text-gray-900">
-                    {t.toastTitle}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setAdded(false)}
-                  className="text-gray-500 hover:text-gray-800 transition-colors"
-                  aria-label="Close"
-                >
-                  <X size={20} />
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => setAdded(false)}
-                  className="text-gray-500 hover:text-gray-800 transition-colors"
-                  aria-label="Close"
-                >
-                  <X size={20} />
-                </button>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-gray-900">
-                    {t.toastTitle}
-                  </span>
-                  <CheckCircle className="text-emerald-500" size={18} />
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* BODY - PRODUCT INFO + IMAGE */}
-          <div className="p-4 flex items-center gap-4">
-            {lang === "ar" ? (
-              <>
-                <div className="relative w-16 h-16 rounded-md overflow-hidden bg-[rgb(244_242_245)] border border-gray-100 flex-shrink-0">
-                  <Image
-                    src={product.image}
-                    alt={product.title}
-                    fill
-                    sizes="64px"
-                    className="object-contain p-1 mix-blend-multiply"
-                  />
-                </div>
-                <div className="flex-1 flex flex-col justify-center">
-                  <h3 className="text-sm font-bold text-gray-900 line-clamp-2 text-right">
-                    {product.title}
-                  </h3>
-                  <div className="flex items-center justify-end gap-2 mt-1.5">
-                    {hasDiscount && (
-                      <p className="text-xs font-medium text-gray-400 line-through">
-                        {originalPrice}
-                      </p>
-                    )}
-                    <p className="text-sm font-bold text-[rgb(var(--color-brand-primary))]">
-                      {displayPrice}
-                    </p>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex-1 flex flex-col justify-center">
-                  <h3 className="text-sm font-bold text-gray-900 line-clamp-2 text-left">
-                    {product.title}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <p className="text-sm font-bold text-[rgb(var(--color-brand-primary))]">
-                      {displayPrice}
-                    </p>
-                    {hasDiscount && (
-                      <p className="text-xs font-medium text-gray-400 line-through">
-                        {originalPrice}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="relative w-16 h-16 rounded-md overflow-hidden bg-[rgb(244_242_245)] border border-gray-100 flex-shrink-0">
-                  <Image
-                    src={product.image}
-                    alt={product.title}
-                    fill
-                    sizes="64px"
-                    className="object-contain p-1 mix-blend-multiply"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* ACTION BUTTONS */}
-          <div className="px-4 pb-4 flex gap-3">
-            {lang === "ar" ? (
-              <>
-                <button
-                  onClick={() => {
-                    setAdded(false);
-                    sessionStorage.setItem(
-                      "TEMP_BUY_NOW_ITEM",
-                      JSON.stringify({
-                        product: product,
-                        qty: 1,
-                      }),
-                    );
-                    router.push(`/cart?lang=${lang}`);
+      {isMounted &&
+        createPortal(
+          <>
+            {/* PREMIUM ADD TO CART TOAST */}
+            {added && (
+              <div
+                className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100vw-2rem)] md:w-[400px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
+                dir={lang === "ar" ? "rtl" : "ltr"}
+              >
+                {/* PROGRESS BAR */}
+                <div
+                  className="h-1.5 bg-emerald-500 ease-linear"
+                  style={{
+                    width: `${progress}%`,
+                    transitionDuration: added ? "4950ms" : "0ms",
+                    transitionProperty: "width",
                   }}
-                  className="flex-1 py-2.5 bg-[rgb(var(--color-brand-primary))] rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                >
-                  {t.buyNow}
-                  <ArrowRight size={18} />
-                </button>
-                <button
-                  onClick={() => {
-                    setAdded(false);
-                    router.push(`/cart?lang=${lang}`);
-                  }}
-                  className="flex-1 py-2.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
-                >
-                  {t.viewCart}
-                  <ShoppingBag size={18} />
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => {
-                    setAdded(false);
-                    router.push(`/cart?lang=${lang}`);
-                  }}
-                  className="flex-1 py-2.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
-                >
-                  <ShoppingBag size={18} />
-                  {t.viewCart}
-                </button>
-                <button
-                  onClick={() => {
-                    setAdded(false);
-                    sessionStorage.setItem(
-                      "TEMP_BUY_NOW_ITEM",
-                      JSON.stringify({
-                        product: product,
-                        qty: 1,
-                      }),
-                    );
-                    router.push(`/cart?lang=${lang}`);
-                  }}
-                  className="flex-1 py-2.5 bg-[rgb(var(--color-brand-primary))] rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                >
-                  {t.buyNow}
-                  <ArrowRight size={18} />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+                />
 
-      {/* FAVORITE TOAST */}
-      {favToast && (
-        <div
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
-          dir={lang === "ar" ? "rtl" : "ltr"}
-        >
-          {/* PROGRESS BAR */}
-          <div
-            className={`h-1 ease-linear ${favAction === "added" ? "bg-rose-500" : "bg-gray-400"}`}
-            style={{
-              width: `${favProgress}%`,
-              transitionDuration: favToast ? "2950ms" : "0ms",
-              transitionProperty: "width",
-            }}
-          />
-          <div className="flex items-center justify-between px-4 py-3">
-            {lang === "ar" ? (
-              <>
-                <div className="flex items-center gap-2.5">
-                  <Heart
-                    className={`flex-shrink-0 ${
-                      favAction === "added"
-                        ? "text-rose-500 fill-rose-500"
-                        : "text-gray-400"
-                    }`}
-                    size={18}
-                  />
-                  <span className="text-sm font-medium text-gray-900">
-                    {favAction === "added" ? t.addedToFav : t.removedFromFav}
-                  </span>
+                {/* HEADER */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
+                  {lang === "ar" ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="text-emerald-500" size={18} />
+                        <span className="text-sm font-bold text-gray-900">
+                          {t.toastTitle}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setAdded(false)}
+                        className="text-gray-500 hover:text-gray-800 transition-colors"
+                        aria-label="Close"
+                      >
+                        <X size={20} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setAdded(false)}
+                        className="text-gray-500 hover:text-gray-800 transition-colors"
+                        aria-label="Close"
+                      >
+                        <X size={20} />
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-gray-900">
+                          {t.toastTitle}
+                        </span>
+                        <CheckCircle className="text-emerald-500" size={18} />
+                      </div>
+                    </>
+                  )}
                 </div>
-                <button
-                  onClick={() => setFavToast(false)}
-                  className="text-gray-400 hover:text-gray-700 transition-colors"
-                  aria-label="Close"
-                >
-                  <X size={18} />
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => setFavToast(false)}
-                  className="text-gray-400 hover:text-gray-700 transition-colors"
-                  aria-label="Close"
-                >
-                  <X size={18} />
-                </button>
-                <div className="flex items-center gap-2.5">
-                  <span className="text-sm font-medium text-gray-900">
-                    {favAction === "added" ? t.addedToFav : t.removedFromFav}
-                  </span>
-                  <Heart
-                    className={`flex-shrink-0 ${
-                      favAction === "added"
-                        ? "text-rose-500 fill-rose-500"
-                        : "text-gray-400"
-                    }`}
-                    size={18}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* STOCK LIMIT WARNING TOAST */}
-      {stockWarning && (
-        <div
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-lg shadow-2xl overflow-hidden border border-red-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
-          dir={lang === "ar" ? "rtl" : "ltr"}
-        >
-          {/* PROGRESS BAR */}
-          <div
-            className="h-1 ease-linear bg-red-500"
-            style={{
-              width: `${stockWarningProgress}%`,
-              transitionDuration: stockWarning ? "3950ms" : "0ms",
-              transitionProperty: "width",
-            }}
-          />
-          <div className="flex items-center justify-between px-4 py-3">
-            {lang === "ar" ? (
-              <>
-                <div className="flex items-center gap-2.5">
-                  <span className="text-sm font-bold text-red-600">
-                    {t.maxStockReached}
-                  </span>
+                {/* BODY - PRODUCT INFO + IMAGE */}
+                <div className="p-4 flex items-center gap-4">
+                  {lang === "ar" ? (
+                    <>
+                      <div className="relative w-16 h-16 rounded-md overflow-hidden bg-[rgb(244_242_245)] border border-gray-100 flex-shrink-0">
+                        <Image
+                          src={product.image}
+                          alt={product.title}
+                          fill
+                          sizes="64px"
+                          className="object-contain p-1 mix-blend-multiply"
+                        />
+                      </div>
+                      <div className="flex-1 flex flex-col justify-center">
+                        <h3 className="text-sm font-bold text-gray-900 line-clamp-2 text-right">
+                          {product.title}
+                        </h3>
+                        <div className="flex items-center justify-end gap-2 mt-1.5">
+                          {hasDiscount && (
+                            <p className="text-xs font-medium text-gray-400 line-through">
+                              {originalPrice}
+                            </p>
+                          )}
+                          <p className="text-sm font-bold text-[rgb(var(--color-brand-primary))]">
+                            {displayPrice}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex-1 flex flex-col justify-center">
+                        <h3 className="text-sm font-bold text-gray-900 line-clamp-2 text-left">
+                          {product.title}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <p className="text-sm font-bold text-[rgb(var(--color-brand-primary))]">
+                            {displayPrice}
+                          </p>
+                          {hasDiscount && (
+                            <p className="text-xs font-medium text-gray-400 line-through">
+                              {originalPrice}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="relative w-16 h-16 rounded-md overflow-hidden bg-[rgb(244_242_245)] border border-gray-100 flex-shrink-0">
+                        <Image
+                          src={product.image}
+                          alt={product.title}
+                          fill
+                          sizes="64px"
+                          className="object-contain p-1 mix-blend-multiply"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
-                <button
-                  onClick={() => setStockWarning(false)}
-                  className="text-gray-400 hover:text-gray-700 transition-colors"
-                  aria-label="Close"
-                >
-                  <X size={18} />
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => setStockWarning(false)}
-                  className="text-gray-400 hover:text-gray-700 transition-colors"
-                  aria-label="Close"
-                >
-                  <X size={18} />
-                </button>
-                <div className="flex items-center gap-2.5">
-                  <span className="text-sm font-bold text-red-600">
-                    {t.maxStockReached}
-                  </span>
+
+                {/* ACTION BUTTONS */}
+                <div className="px-4 pb-4 flex gap-3">
+                  {lang === "ar" ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          setAdded(false);
+                          sessionStorage.setItem(
+                            "TEMP_BUY_NOW_ITEM",
+                            JSON.stringify({
+                              product: product,
+                              qty: 1,
+                            }),
+                          );
+                          router.push(`/cart?lang=${lang}`);
+                        }}
+                        className="flex-1 py-2.5 bg-[rgb(var(--color-brand-primary))] rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                      >
+                        {t.buyNow}
+                        <ArrowRight size={18} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAdded(false);
+                          router.push(`/cart?lang=${lang}`);
+                        }}
+                        className="flex-1 py-2.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
+                      >
+                        {t.viewCart}
+                        <ShoppingBag size={18} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setAdded(false);
+                          router.push(`/cart?lang=${lang}`);
+                        }}
+                        className="flex-1 py-2.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
+                      >
+                        <ShoppingBag size={18} />
+                        {t.viewCart}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAdded(false);
+                          sessionStorage.setItem(
+                            "TEMP_BUY_NOW_ITEM",
+                            JSON.stringify({
+                              product: product,
+                              qty: 1,
+                            }),
+                          );
+                          router.push(`/cart?lang=${lang}`);
+                        }}
+                        className="flex-1 py-2.5 bg-[rgb(var(--color-brand-primary))] rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                      >
+                        {t.buyNow}
+                        <ArrowRight size={18} />
+                      </button>
+                    </>
+                  )}
                 </div>
-              </>
+              </div>
             )}
-          </div>
-        </div>
-      )}
+
+            {/* FAVORITE TOAST */}
+            {favToast && (
+              <div
+                className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
+                dir={lang === "ar" ? "rtl" : "ltr"}
+              >
+                {/* PROGRESS BAR */}
+                <div
+                  className={`h-1 ease-linear ${favAction === "added" ? "bg-rose-500" : "bg-gray-400"}`}
+                  style={{
+                    width: `${favProgress}%`,
+                    transitionDuration: favToast ? "2950ms" : "0ms",
+                    transitionProperty: "width",
+                  }}
+                />
+                <div className="flex items-center justify-between px-4 py-3">
+                  {lang === "ar" ? (
+                    <>
+                      <div className="flex items-center gap-2.5">
+                        <Heart
+                          className={`flex-shrink-0 ${
+                            favAction === "added"
+                              ? "text-rose-500 fill-rose-500"
+                              : "text-gray-400"
+                          }`}
+                          size={18}
+                        />
+                        <span className="text-sm font-medium text-gray-900">
+                          {favAction === "added"
+                            ? t.addedToFav
+                            : t.removedFromFav}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setFavToast(false)}
+                        className="text-gray-400 hover:text-gray-700 transition-colors"
+                        aria-label="Close"
+                      >
+                        <X size={18} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setFavToast(false)}
+                        className="text-gray-400 hover:text-gray-700 transition-colors"
+                        aria-label="Close"
+                      >
+                        <X size={18} />
+                      </button>
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-sm font-medium text-gray-900">
+                          {favAction === "added"
+                            ? t.addedToFav
+                            : t.removedFromFav}
+                        </span>
+                        <Heart
+                          className={`flex-shrink-0 ${
+                            favAction === "added"
+                              ? "text-rose-500 fill-rose-500"
+                              : "text-gray-400"
+                          }`}
+                          size={18}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* STOCK LIMIT WARNING TOAST */}
+            {stockWarning && (
+              <div
+                className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-lg shadow-2xl overflow-hidden border border-red-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
+                dir={lang === "ar" ? "rtl" : "ltr"}
+              >
+                {/* PROGRESS BAR */}
+                <div
+                  className="h-1 ease-linear bg-red-500"
+                  style={{
+                    width: `${stockWarningProgress}%`,
+                    transitionDuration: stockWarning ? "3950ms" : "0ms",
+                    transitionProperty: "width",
+                  }}
+                />
+                <div className="flex items-center justify-between px-4 py-3">
+                  {lang === "ar" ? (
+                    <>
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-sm font-bold text-red-600">
+                          {t.maxStockReached}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setStockWarning(false)}
+                        className="text-gray-400 hover:text-gray-700 transition-colors"
+                        aria-label="Close"
+                      >
+                        <X size={18} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setStockWarning(false)}
+                        className="text-gray-400 hover:text-gray-700 transition-colors"
+                        aria-label="Close"
+                      >
+                        <X size={18} />
+                      </button>
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-sm font-bold text-red-600">
+                          {t.maxStockReached}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </>,
+          document.body,
+        )}
     </>
   );
 }

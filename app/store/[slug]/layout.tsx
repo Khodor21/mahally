@@ -1,4 +1,6 @@
-export const revalidate = 3600;
+// app/store/[slug]/layout.tsx
+export const revalidate = 60; // Changed from 3600 - revalidate every 60 seconds instead of 1 hour
+
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { Metadata, Viewport } from "next";
@@ -29,7 +31,13 @@ export async function generateMetadata({
       description: "This store does not exist.",
     };
   }
-  const { store, settings } = data;
+
+  // Defensive array unwrapping
+  const store = Array.isArray(data.store) ? data.store[0] : data.store || {};
+  const settings = Array.isArray(data.settings)
+    ? data.settings[0]
+    : data.settings || {};
+
   const lang = (store as { language?: "en" | "ar" }).language || "en";
   const storeName = store.store_name || "Store";
   const description = settings?.description || `Welcome to ${storeName}`;
@@ -64,7 +72,10 @@ export async function generateViewport({
   params: { slug: string };
 }): Promise<Viewport> {
   const data = await getCachedStoreData(params.slug);
-  const primaryColor = data?.settings?.primary_color || "#ffffff";
+  const settings = Array.isArray(data?.settings)
+    ? data.settings[0]
+    : data?.settings || {};
+  const primaryColor = settings?.primary_color || "#ffffff";
 
   return {
     themeColor: primaryColor,
@@ -79,12 +90,20 @@ export default async function StoreLayout({
   params: { slug: string };
 }) {
   const data = await getCachedStoreData(params.slug);
-
   if (!data) return notFound();
-  const { store, settings } = data;
+
+  // Defensive array unwrapping
+  const store = Array.isArray(data.store) ? data.store[0] : data.store || {};
+  const settings = Array.isArray(data.settings)
+    ? data.settings[0]
+    : data.settings || {};
 
   const lang = (store as { language?: "en" | "ar" }).language || "en";
+  const planType = (store as { plan_type?: string }).plan_type || "Starter";
+  const isMini = String(planType).toLowerCase() === "mini";
   const primaryColor = settings?.primary_color;
+
+  // Recommendations logic
   const recommendationsRaw = await getCachedRecommendations(store.id);
   const recommendedTitles = recommendationsRaw
     .slice(0, 5)
@@ -104,35 +123,41 @@ export default async function StoreLayout({
       <LangDomSetter lang={lang} />
       <NotificationInitializer />
 
-      <Navbar
-        storeId={store.id}
-        storeName={store.store_name}
-        storeSlug={store.slug}
-        recommendedProducts={recommendedTitles}
-        logoUrl={settings?.logo_url}
-        primaryColor={primaryColor}
-        lang={lang}
-        promoText={settings?.promo_text}
-      />
+      {/* Conditionally hide Starter Plan components if plan is Mini */}
+      {!isMini && (
+        <Navbar
+          storeId={store.id}
+          storeName={store.store_name}
+          storeSlug={store.slug}
+          recommendedProducts={recommendedTitles}
+          logoUrl={settings?.logo_url}
+          primaryColor={primaryColor}
+          lang={lang}
+          promoText={settings?.promo_text}
+        />
+      )}
 
-      <BottomNavbar lang={lang} storeSlug={store.slug} />
+      {!isMini && <BottomNavbar lang={lang} storeSlug={store.slug} />}
 
       <div className="flex flex-col min-h-screen">
         <main className="flex-grow">{children}</main>
-        <Footer
-          storeName={store.store_name}
-          storeSlug={store.slug}
-          storeId={store.id.substring(0, 8).toUpperCase()}
-          logoUrl={settings?.logo_url}
-          primaryColor={primaryColor}
-          phone={settings?.whatsapp_number || store.phone}
-          email={store.admin_email}
-          instagramUrl={settings?.instagram_url}
-          whatsappNumber={settings?.whatsapp_number}
-          description={settings?.description}
-          lang={lang}
-          payment_methods={store.payment_methods}
-        />
+
+        {!isMini && (
+          <Footer
+            storeName={store.store_name}
+            storeSlug={store.slug}
+            storeId={store.id?.substring(0, 8).toUpperCase()}
+            logoUrl={settings?.logo_url}
+            primaryColor={primaryColor}
+            phone={settings?.whatsapp_number || store.phone}
+            email={store.admin_email}
+            instagramUrl={settings?.instagram_url}
+            whatsappNumber={settings?.whatsapp_number}
+            description={settings?.description}
+            lang={lang}
+            payment_methods={store.payment_methods}
+          />
+        )}
       </div>
     </ShopProvider>
   );

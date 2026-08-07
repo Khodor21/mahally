@@ -7,7 +7,7 @@ export const getCachedStoreData = unstable_cache(
     const { data: store, error: storeError } = await supabaseAdmin
       .from("stores")
       .select(
-        "id, store_name, slug, phone, admin_email, language, payment_methods",
+        "id, store_name, slug, phone, admin_email, language, payment_methods, plan_type",
       )
       .eq("slug", slug)
       .maybeSingle();

@@ -405,7 +405,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                 ].map((h, i) => (
                   <th
                     key={i}
-                    className="px-4 md:px-6 py-4 text-start text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap"
+                    className="px-4 md:px-6 py-4 text-start text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap"
                   >
                     {h}
                   </th>
@@ -416,10 +416,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
             <tbody>
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr
-                    key={i}
-                    className="border-b border-gray-50 last:border-0"
-                  >
+                  <tr key={i} className="border-b border-gray-50 last:border-0">
                     <td className="px-4 md:px-6 py-4">
                       <div className="h-4 w-20 rounded bg-gray-100 animate-pulse"></div>
                     </td>
@@ -462,7 +459,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
               ) : (
                 filtered.map((order) => {
                   const paymentConfig = getPaymentConfig(
-                    order.payment_method || ""
+                    order.payment_method || "",
                   );
                   return (
                     <tr
@@ -493,9 +490,8 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
 
                       {/* Items Count */}
                       <td className="px-4 md:px-6 py-4 text-gray-500 font-medium hidden md:table-cell">
-                        <span className="text-xs font-semibold bg-gray-100 px-2.5 py-1 rounded-full text-gray-600">
+                        <span className="text-xs font-semibold  px-2.5 py-1 rounded-full text-gray-600">
                           {order.order_items?.length || 0}{" "}
-                          {tr.items || "عناصر"}
                         </span>
                       </td>
 
@@ -543,7 +539,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                             year: "numeric",
                             month: "short",
                             day: "numeric",
-                          }
+                          },
                         )}
                       </td>
 
@@ -631,7 +627,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                   {/* Payment Method Card */}
                   {(() => {
                     const config = getPaymentConfig(
-                      selectedOrder.payment_method || ""
+                      selectedOrder.payment_method || "",
                     );
                     return (
                       <div
@@ -649,9 +645,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                           <span
                             className={`text-xs font-bold ${config.text} leading-tight`}
                           >
-                            {lang === "ar"
-                              ? config.labelAr
-                              : config.labelEn}
+                            {lang === "ar" ? config.labelAr : config.labelEn}
                           </span>
                         </div>
                       </div>
@@ -719,9 +713,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                           >
                             <span className="text-base">{style.icon}</span>
                             <span>
-                              {lang === "ar"
-                                ? option.label
-                                : option.labelEn}
+                              {lang === "ar" ? option.label : option.labelEn}
                             </span>
                           </button>
                         );
@@ -770,8 +762,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                               className="text-sm font-semibold text-gray-900 hover:text-[rgb(60_28_84)] transition-colors font-mono"
                               dir="ltr"
                               style={{
-                                textAlign:
-                                  dir === "rtl" ? "right" : "left",
+                                textAlign: dir === "rtl" ? "right" : "left",
                               }}
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -834,9 +825,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                           {tr.date || "تاريخ الطلب"}
                         </p>
                         <p className="text-sm font-medium text-gray-900">
-                          {new Date(
-                            selectedOrder.created_at
-                          ).toLocaleString(
+                          {new Date(selectedOrder.created_at).toLocaleString(
                             dir === "rtl" ? "ar-SA" : "en-US",
                             {
                               year: "numeric",
@@ -844,7 +833,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                               day: "numeric",
                               hour: "2-digit",
                               minute: "2-digit",
-                            }
+                            },
                           )}
                         </p>
                       </div>
@@ -871,7 +860,9 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                     </button>
                     <div
                       className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                        notesExpanded ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+                        notesExpanded
+                          ? "max-h-40 opacity-100"
+                          : "max-h-0 opacity-0"
                       }`}
                     >
                       <div className="p-4">
@@ -916,8 +907,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
 
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-gray-900 truncate">
-                            {item.title ||
-                              `منتج #${item.id.slice(0, 8)}`}
+                            {item.title || `منتج #${item.id.slice(0, 8)}`}
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-xs text-gray-500">
@@ -928,7 +918,8 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                             </span>
                             <span className="text-gray-300">·</span>
                             <span className="text-xs text-gray-500">
-                              ${Number(item.price).toLocaleString("en-US", {
+                              $
+                              {Number(item.price).toLocaleString("en-US", {
                                 maximumFractionDigits: 2,
                               })}{" "}
                               {lang === "ar" ? "للواحدة" : "each"}
@@ -967,11 +958,12 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                       </span>
                       <span className="text-gray-900 font-bold">
                         ${" "}
-                        {Number(
-                          selectedOrder.subtotal || 0
-                        ).toLocaleString("en-US", {
-                          maximumFractionDigits: 2,
-                        })}
+                        {Number(selectedOrder.subtotal || 0).toLocaleString(
+                          "en-US",
+                          {
+                            maximumFractionDigits: 2,
+                          },
+                        )}
                       </span>
                     </div>
 
@@ -984,11 +976,12 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                         </span>
                         <span className="text-gray-900 font-bold">
                           ${" "}
-                          {Number(
-                            selectedOrder.shipping
-                          ).toLocaleString("en-US", {
-                            maximumFractionDigits: 2,
-                          })}
+                          {Number(selectedOrder.shipping).toLocaleString(
+                            "en-US",
+                            {
+                              maximumFractionDigits: 2,
+                            },
+                          )}
                         </span>
                       </div>
                     ) : null}
@@ -1009,7 +1002,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                           <span className="text-emerald-600 font-bold">
                             -${" "}
                             {Number(
-                              selectedOrder.discount_amount
+                              selectedOrder.discount_amount,
                             ).toLocaleString("en-US", {
                               maximumFractionDigits: 2,
                             })}
@@ -1025,12 +1018,9 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                       </span>
                       <span className="text-xl md:text-2xl font-black text-[rgb(60_28_84)]">
                         ${" "}
-                        {Number(selectedOrder.total).toLocaleString(
-                          "en-US",
-                          {
-                            maximumFractionDigits: 2,
-                          }
-                        )}
+                        {Number(selectedOrder.total).toLocaleString("en-US", {
+                          maximumFractionDigits: 2,
+                        })}
                       </span>
                     </div>
                   </div>
