@@ -54,7 +54,7 @@ export default function CatalogueFilters({
           placeholder={t.searchPlaceholder}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className={`w-full min-h-[48px] py-3 px-12 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))] focus:border-transparent transition-all text-sm md:text-base shadow-sm hover:border-gray-300 ${
+          className={`w-full min-h-[48px] py-2 px-12 rounded border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))] focus:border-transparent transition-all text-sm md:text-base shadow-sm hover:border-gray-300 ${
             isRtl ? "text-right" : "text-left"
           }`}
         />

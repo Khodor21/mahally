@@ -121,7 +121,6 @@ export default function MiniCatalogue({
   storePhone,
   storeLocation,
   storeHours,
-  coverImage,
 }: MiniCatalogueProps) {
   const isRtl = lang === "ar";
   const t = CONTENT_DICTIONARY[lang] || CONTENT_DICTIONARY.en;
@@ -284,7 +283,7 @@ export default function MiniCatalogue({
                 />
               </div>
             )}
-            <span className="font-bold text-gray-900 text-sm md:text-base truncate max-w-[130px] sm:max-w-xs">
+            <span className="font-medium text-gray-900 text-sm md:text-base">
               {storeName}
             </span>
           </div>
@@ -298,7 +297,7 @@ export default function MiniCatalogue({
               href={`/favorites?lang=${lang}`}
               className="relative text-gray-600 hover:text-[rgb(var(--color-brand-primary))] transition-colors rounded-full hover:bg-gray-50"
             >
-              <Heart size={28} strokeWidth={1.5} />
+              <Heart size={24} strokeWidth={1.5} />
             </Link>
 
             {/* Cart with Dynamic Badge */}
@@ -306,7 +305,7 @@ export default function MiniCatalogue({
               href={`/cart?lang=${lang}`}
               className="relative p-2 text-gray-600 hover:text-[rgb(var(--color-brand-primary))] transition-colors rounded-full hover:bg-gray-50"
             >
-              <ShoppingBag size={28} strokeWidth={1.5} />
+              <ShoppingBag size={24} strokeWidth={1.5} />
               {cartCount > 0 && (
                 <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
                   {cartCount > 99 ? "99+" : cartCount}
@@ -352,11 +351,11 @@ export default function MiniCatalogue({
           dir={isRtl ? "rtl" : "ltr"}
           className="w-full flex flex-col items-center gap-2 mb-8 md:mb-12"
         >
-          <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-center text-gray-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl md:text-4xl font-extrabold text-center text-gray-900 tracking-tight">
             {storeName}
           </h1>
           {storeDescription && (
-            <p className="max-w-4xl text-sm sm:text-base md:text-lg text-gray-500 text-center leading-relaxed px-2">
+            <p className="max-w-5xl text-xs sm:text-sm md:text-base text-gray-500 text-center leading-relaxed px-2">
               {storeDescription}
             </p>
           )}
@@ -405,7 +404,7 @@ export default function MiniCatalogue({
         {/* Products Grid */}
         <div className="mb-12 min-h-[400px]">
           {paginatedProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
               {mappedProducts.map((product) => (
                 <div
                   key={product.id}
