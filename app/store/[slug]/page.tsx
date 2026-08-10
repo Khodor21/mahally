@@ -1,4 +1,3 @@
-// app/store/[slug]/page.tsx
 export const revalidate = 0;
 
 import { Suspense } from "react";

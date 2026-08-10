@@ -44,7 +44,7 @@ export default function CatalogueFilters({
 
   return (
     <div
-      className="mb-4 md:mb-8 flex flex-col gap-3 md:gap-4"
+      className="mb-2 flex flex-col gap-4 md:gap-4"
       dir={isRtl ? "rtl" : "ltr"}
     >
       {/* Premium Search Bar - Full Width */}
@@ -53,13 +53,14 @@ export default function CatalogueFilters({
           className={`absolute top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 transition-colors group-focus-within:text-[rgb(var(--color-brand-primary))] pointer-events-none ${
             isRtl ? "right-4" : "left-4"
           }`}
+          
         />
         <input
           type="text"
           placeholder={t.searchPlaceholder}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className={`w-full h-11 sm:h-12 py-2.5 px-12 rounded border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))]/20 focus:border-[rgb(var(--color-brand-primary))] transition-all text-sm md:text-base shadow-sm hover:border-gray-300 placeholder:text-gray-400 font-medium ${
+          className={`w-full h-10 sm:h-12 py-2 px-12 rounded border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))]/20 focus:border-[rgb(var(--color-brand-primary))] transition-all text-sm md:text-base shadow-sm hover:border-gray-300 placeholder:text-gray-400 font-medium ${
             isRtl ? "text-right" : "text-left"
           }`}
         />
@@ -67,19 +68,19 @@ export default function CatalogueFilters({
 
       {/* MOBILE VIEW: Title & Filter Button Row (< 768px) */}
       <div className="md:hidden flex items-center justify-between w-full pt-2 pb-1">
-        <h2 className="text-lg font-bold text-main tracking-tight capitalize truncate pr-4">
+        <h2 className="text-base md:text-lg font-medium text-main tracking-tight capitalize truncate pr-4">
           {currentCategoryTitle}
         </h2>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center gap-1 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg shadow-sm text-sm font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))]/20 shrink-0"
+          className="flex items-center gap-1 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))]/20 shrink-0"
         >
-          <Filter className="w-3 h-3 text-gray-600" />
-          <span className="text-sm">
+          <Filter className="w-2 h-2 text-gray-600" />
+          <span className="text-xs font-medium">
             {t.filters || (isRtl ? "تصفية" : "Filters")}
           </span>
           <ChevronDown
-            className={`w-3 h-3 text-gray-500 transition-transform duration-300 ease-[cubic-bezier(0.87,_0,_0.13,_1)] ${
+            className={`w-2 h-2 text-gray-500 transition-transform duration-300 ease-[cubic-bezier(0.87,_0,_0.13,_1)] ${
               isDropdownOpen
                 ? "rotate-180 text-[rgb(var(--color-brand-primary))]"
                 : ""
@@ -90,12 +91,8 @@ export default function CatalogueFilters({
 
       {categories.length > 0 && (
         <div className="relative w-full z-20">
-          {/* MOBILE VIEW: Animated Dropdown Menu (< 768px) */}
           <div className="md:hidden relative w-full">
-            {/* 
-              Smooth Animation Wrapper using CSS Grid
-              This transitions height from 0 to auto flawlessly 
-            */}
+          
             <div
               className={`grid transition-[grid-template-rows,opacity,margin] duration-300 ease-[cubic-bezier(0.87,_0,_0.13,_1)] ${
                 isDropdownOpen
@@ -108,9 +105,9 @@ export default function CatalogueFilters({
                 <div className="bg-white border border-gray-100 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex flex-col p-1.5 gap-0.5 mt-1">
                   <button
                     onClick={() => handleMobileSelect(null)}
-                    className={`w-full text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 ${
+                    className={`w-full text-sm font-medium px-3 py-2 rounded transition-all duration-200 ${
                       selectedCategory === null
-                        ? "bg-[rgb(var(--color-brand-primary))] text-white shadow-md shadow-brand/20"
+                        ? "bg-[rgb(var(--color-brand-primary))] text-white"
                         : "text-gray-700 hover:bg-gray-50 active:bg-gray-100 bg-transparent"
                     } ${isRtl ? "text-right" : "text-left"}`}
                   >
@@ -121,7 +118,7 @@ export default function CatalogueFilters({
                     <button
                       key={category.id}
                       onClick={() => handleMobileSelect(category.id)}
-                      className={`w-full text-sm font-medium px-4 py-3 rounded-lg transition-all duration-200 ${
+                      className={`w-full text-sm font-medium px-4 py-3 rounded transition-all duration-200 ${
                         selectedCategory === category.id
                           ? "bg-[rgb(var(--color-brand-primary))] text-white"
                           : "text-gray-700 hover:bg-gray-50 active:bg-gray-100 bg-transparent"

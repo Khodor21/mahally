@@ -30,6 +30,7 @@ type NavbarProps = {
   promoText?: string | null;
   popularSearches?: string[];
   recommendedProducts?: { id: string; title: string }[];
+  isMini?: boolean;
 };
 
 function formatPrice(value: number) {
@@ -51,6 +52,7 @@ export default function Navbar({
   popularSearches = [],
   promoText = "",
   recommendedProducts,
+  isMini = false,
 }: NavbarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -75,7 +77,7 @@ export default function Navbar({
   // Fetch Categories
   useEffect(() => {
     async function fetchNavbarCategories() {
-      if (!storeId) {
+      if (!storeId || isMini) {
         setLoadingCategories(false);
         return;
       }
@@ -98,7 +100,7 @@ export default function Navbar({
     }
 
     fetchNavbarCategories();
-  }, [storeId, lang]);
+  }, [storeId, lang, isMini]);
 
   // Debounced product search
   useEffect(() => {
@@ -201,41 +203,43 @@ export default function Navbar({
               )}
             </Link>
 
-            {/* 2. DESKTOP CENTER (Categories) */}
-            <nav className="hidden md:flex items-center justify-center gap-6 lg:gap-8 flex-1 px-4">
-              {loadingCategories ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-16 h-4 bg-gray-100 animate-pulse rounded-md"
-                  />
-                ))
-              ) : (
-                <>
-                  {categories.slice(0, 6).map((cat) => (
-                    <Link
-                      key={cat.id}
-                      href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
-                      className="text-[18px] font-medium text-gray-800 hover:text-brand-primary transition-colors whitespace-nowrap"
-                    >
-                      {cat.title}
-                    </Link>
-                  ))}
+            {/* 2. DESKTOP CENTER (Categories) - Hidden on Mini Plan */}
+            {!isMini && (
+              <nav className="hidden md:flex items-center justify-center gap-6 lg:gap-8 flex-1 px-4">
+                {loadingCategories ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-16 h-4 bg-gray-100 animate-pulse rounded-md"
+                    />
+                  ))
+                ) : (
+                  <>
+                    {categories.slice(0, 6).map((cat) => (
+                      <Link
+                        key={cat.id}
+                        href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
+                        className="text-[18px] font-medium text-gray-800 hover:text-brand-primary transition-colors whitespace-nowrap"
+                      >
+                        {cat.title}
+                      </Link>
+                    ))}
 
-                  {categories.length > 6 && (
-                    <Link
-                      href={"/categories"}
-                      className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors whitespace-nowrap"
-                    >
-                      {t.shopAll}
-                    </Link>
-                  )}
-                </>
-              )}
-            </nav>
+                    {categories.length > 6 && (
+                      <Link
+                        href={"/categories"}
+                        className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors whitespace-nowrap"
+                      >
+                        {t.shopAll}
+                      </Link>
+                    )}
+                  </>
+                )}
+              </nav>
+            )}
 
             {/* 3. END (Icons) */}
-            <div className="flex items-center justify-end gap-3 sm:gap-3 flex-shrink-0">
+            <div className="flex items-center justify-end gap-3 sm:gap-4 flex-shrink-0">
               {/* Search Icon (Mobile & Desktop) */}
               <button
                 onClick={() => setSearchOpen(true)}
@@ -245,24 +249,26 @@ export default function Navbar({
                 <Search className="w-[22px] h-[22px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
               </button>
 
-              {/* Profile (Desktop Only) */}
-              <Link
-                href={"/profile"}
-                className="hidden md:flex transition-colors text-gray-700 hover:text-brand-primary"
-                aria-label={t.profile}
-              >
-                <User className="w-[26px] h-[26px] stroke-[1.5]" />
-              </Link>
+              {/* Profile (Desktop Only) - Hidden on Mini Plan */}
+              {!isMini && (
+                <Link
+                  href={"/profile"}
+                  className="hidden md:flex transition-colors text-gray-700 hover:text-brand-primary"
+                  aria-label={t.profile}
+                >
+                  <User className="w-[24px] h-[24px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
+                </Link>
+              )}
 
               {/* Favorites (Mobile & Desktop) */}
               <Link
                 href={"/favorites"}
-                className="relative transition-colors text-gray-700 hover:text-brand-primary"
+                className="relative transition-colors text-gray-700 hover:text-brand-primary flex items-center justify-center"
                 aria-label={t.favorites}
               >
                 <Heart className="w-[22px] h-[22px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
                 {favCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center text-[9px] font-bold bg-brand-primary text-white rounded-full ring-2 ring-white">
+                  <span className="absolute -top-1.5 -right-2 min-w-[20px] h-[20px] flex items-center justify-center px-1 text-[11px] font-bold bg-[#F45151] text-white rounded-full ring-2 ring-white shadow-sm">
                     {favCount > 99 ? "99+" : favCount}
                   </span>
                 )}
@@ -271,15 +277,12 @@ export default function Navbar({
               {/* Cart (Desktop Only) */}
               <Link
                 href={"/cart"}
-                className="relative transition-colors text-gray-700 hover:text-brand-primary"
+                className="relative transition-colors text-gray-700 hover:text-brand-primary flex items-center justify-center"
                 aria-label={t.cart}
               >
                 <ShoppingBag className="w-[21px] h-[21px] md:w-[25px] md:h-[25px] stroke-[1.5]" />
                 {cartCount > 0 && (
-                  <span
-                    className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center text-[9px] font-bold text-white rounded-full ring-2 ring-white"
-                    style={{ backgroundColor: primaryColor || "#000" }}
-                  >
+                  <span className="absolute -top-1.5 -right-2 min-w-[20px] h-[20px] flex items-center justify-center px-1 text-[11px] font-bold bg-[#F45151] text-white rounded-full ring-2 ring-white shadow-sm">
                     {cartCount > 99 ? "99+" : cartCount}
                   </span>
                 )}

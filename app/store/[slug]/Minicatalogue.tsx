@@ -160,7 +160,7 @@ export default function MiniCatalogue({
         } catch (error) {
           console.error("Failed to fetch categories:", error);
         }
-      };
+      }
       fetchCategories();
     } else {
       setFetchedCategories(categories);
@@ -271,7 +271,7 @@ export default function MiniCatalogue({
 
   return (
     <div className="min-h-screen bg-white flex flex-col selection:bg-[rgb(var(--color-brand-primary))] selection:text-white">
-      {/* NAVBAR - Using Full Ecommerce Component */}
+      {/* NAVBAR - Using Full Ecommerce Component With Mini Flag */}
       <Navbar
         storeId={storeId}
         storeName={storeName}
@@ -280,6 +280,7 @@ export default function MiniCatalogue({
         primaryColor={primaryColor}
         lang={lang}
         recommendedProducts={[]}
+        isMini={true} // Passed flag to hide categories and profile
       />
 
       {/* HERO & LOGO SECTION */}
@@ -321,7 +322,7 @@ export default function MiniCatalogue({
             {storeName}
           </h1>
           {storeDescription && (
-            <p className="max-w-2xl text-sm md:text-base text-gray-500 text-center leading-relaxed px-2">
+            <p className="max-w-4xl text-sm md:text-base text-gray-500 text-center leading-relaxed px-2">
               {storeDescription}
             </p>
           )}
@@ -369,7 +370,7 @@ export default function MiniCatalogue({
         </div>
 
         {/* Products Grid */}
-        <div className="mb-12 min-h-[400px]">
+        <div className="mb-12">
           {paginatedProducts.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
               {mappedProducts.map((product) => (
@@ -386,7 +387,7 @@ export default function MiniCatalogue({
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-24 text-center mt-8 mx-2 sm:mx-0 bg-gray-50 rounded-2xl border border-gray-100/50">
+            <div className="flex flex-col items-center justify-center py-24 text-center mt-8 mx-2 sm:mx-0  rounded-2xl border border-gray-100/50">
               <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-100">
                 <Search className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
               </div>
