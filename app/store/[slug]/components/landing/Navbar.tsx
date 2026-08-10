@@ -189,7 +189,7 @@ export default function Navbar({
                 <img
                   src={logoUrl}
                   alt={storeName}
-                  className="h-8 md:h-10 w-auto max-w-[100px] md:max-w-[160px] object-contain"
+                  className="h-7 md:h-10 w-auto max-w-[80px] md:max-w-[160px] object-contain"
                 />
               ) : (
                 <div
@@ -239,10 +239,10 @@ export default function Navbar({
               {/* Search Icon (Mobile & Desktop) */}
               <button
                 onClick={() => setSearchOpen(true)}
-                className="flex transition-colors text-gray-700 hover:text-brand-primary"
+                className="hidden md:flex transition-colors text-gray-700 hover:text-brand-primary"
                 aria-label={t.search}
               >
-                <Search className="w-[23px] h-[23px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
+                <Search className="w-[22px] h-[22px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
               </button>
 
               {/* Profile (Desktop Only) */}
@@ -260,7 +260,7 @@ export default function Navbar({
                 className="relative transition-colors text-gray-700 hover:text-brand-primary"
                 aria-label={t.favorites}
               >
-                <Heart className="w-[23px] h-[23px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
+                <Heart className="w-[22px] h-[22px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
                 {favCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center text-[9px] font-bold bg-brand-primary text-white rounded-full ring-2 ring-white">
                     {favCount > 99 ? "99+" : favCount}
@@ -271,7 +271,7 @@ export default function Navbar({
               {/* Cart (Desktop Only) */}
               <Link
                 href={"/cart"}
-                className="hidden md:flex relative transition-colors text-gray-700 hover:text-brand-primary"
+                className="relative transition-colors text-gray-700 hover:text-brand-primary"
                 aria-label={t.cart}
               >
                 <ShoppingBag className="w-[25px] h-[25px] stroke-[1.5]" />

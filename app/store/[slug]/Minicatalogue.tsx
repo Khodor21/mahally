@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useMemo, useCallback, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -243,7 +244,6 @@ export default function MiniCatalogue({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Data Mapping for Cards
   const mappedProducts = paginatedProducts.map((product) => ({
     id: String(product.id),
     title: product.title || "Untitled Product",
@@ -282,7 +282,7 @@ export default function MiniCatalogue({
       />
 
       {/* HERO & LOGO SECTION */}
-      <div className="relative w-full bg-gray-50 border-b border-gray-100">
+      <div className="relative w-full border-b border-gray-100">
         {/* Render HeroSection with coverImage fallback */}
         <div className="w-full">
           <HeroSection storeId={storeId} lang={lang} coverImage={coverImage} />
@@ -291,7 +291,7 @@ export default function MiniCatalogue({
         {/* Overlapping Logo: translate-y-1/2 centers it exactly on the bottom edge */}
         {logoUrl && (
           <div className="absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-1/2 z-20">
-            <div className="relative border border-[0.5px] border-brand-primary w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 overflow-hidden rounded-2xl bg-white shadow-sm">
+            <div className="relative border border-gray-100 w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 overflow-hidden rounded-2xl bg-white shadow-sm transition-transform hover:scale-105 duration-300">
               <Image
                 src={logoUrl}
                 alt={storeName}
@@ -311,22 +311,22 @@ export default function MiniCatalogue({
           logoUrl ? "pt-16 sm:pt-20 md:pt-24" : "pt-8"
         }`}
       >
-        {/* Store Header: Removed massive Y-padding to bring title closer */}
+        {/* Store Header */}
         <div
           dir={isRtl ? "rtl" : "ltr"}
           className="w-full flex flex-col items-center gap-2 mb-8 md:mb-12"
         >
-          <h1 className="text-xl sm:text-2xl md:text-4xl font-extrabold text-center text-gray-900 tracking-tight">
+          <h1 className="text-2xl md:text-4xl font-extrabold text-center text-gray-900 tracking-tight">
             {storeName}
           </h1>
           {storeDescription && (
-            <p className="max-w-5xl text-xs sm:text-sm md:text-base text-gray-500 text-center leading-relaxed px-2">
+            <p className="max-w-2xl text-sm md:text-base text-gray-500 text-center leading-relaxed px-2">
               {storeDescription}
             </p>
           )}
 
           {/* Social Icons BELOW the text for a cleaner top-down hierarchy */}
-          <div className="mt-3">
+          <div className="mt-4">
             <SocialMediaIcons
               {...({
                 instagram,
@@ -362,7 +362,7 @@ export default function MiniCatalogue({
           <h2 className="text-lg font-semibold text-gray-900 capitalize">
             {selectedCategoryTitle}
           </h2>
-          <span className="text-xs font-medium text-gray-500">
+          <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
             {filteredProducts.length} {t.products}
           </span>
         </div>
@@ -370,7 +370,7 @@ export default function MiniCatalogue({
         {/* Products Grid */}
         <div className="mb-12 min-h-[400px]">
           {paginatedProducts.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
               {mappedProducts.map((product) => (
                 <div
                   key={product.id}
@@ -385,7 +385,7 @@ export default function MiniCatalogue({
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-24 text-center border-dashed mt-8 mx-2 sm:mx-0">
+            <div className="flex flex-col items-center justify-center py-24 text-center mt-8 mx-2 sm:mx-0 bg-gray-50 rounded-2xl border border-gray-100/50">
               <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-100">
                 <Search className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
               </div>
@@ -424,13 +424,16 @@ export default function MiniCatalogue({
         isRtl={isRtl}
       />
 
-      {/* Floating Scroll to Top */}
       <div
-        className={`fixed bottom-6 ${isRtl ? "left-6" : "right-6"} z-40 transition-all duration-300 ${showScrollTop ? "translate-y-0 opacity-100 visible" : "translate-y-10 opacity-0 invisible"}`}
+        className={`fixed bottom-6 ${isRtl ? "left-6" : "right-6"} z-40 transition-all duration-300 ${
+          showScrollTop
+            ? "translate-y-0 opacity-100 visible"
+            : "translate-y-10 opacity-0 invisible"
+        }`}
       >
         <button
           onClick={scrollToTop}
-          className="w-12 h-12 rounded-full bg-[rgb(var(--color-brand-primary))] text-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center border-2 border-white/20"
+          className="w-12 h-12 rounded-full bg-gray-900 text-white shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
           aria-label="Scroll to top"
         >
           <ArrowUp size={24} strokeWidth={2.5} />

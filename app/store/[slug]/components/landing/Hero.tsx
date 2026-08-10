@@ -75,7 +75,7 @@ export default function HeroSection({
 
   if (loading) {
     return (
-      <div className="w-full aspect-[3/1] bg-brand-grey animate-pulse rounded-xs" />
+      <div className="w-full aspect-[3/1] bg-gray-100 animate-pulse rounded-none md:rounded-xs" />
     );
   }
 
@@ -88,13 +88,13 @@ export default function HeroSection({
       return (
         <section
           dir={dir}
-          className="relative w-full aspect-[3/1] rounded-xs overflow-hidden bg-[rgb(244_242_245)]"
+          className="relative w-full aspect-[3/1] rounded-none md:rounded-xs overflow-hidden bg-gray-50"
         >
           <Image
             src={currentBanner.image}
             alt="Hero Banner"
             fill
-            className="object-cover"
+            className="object-cover object-center"
             priority
           />
         </section>
@@ -105,7 +105,7 @@ export default function HeroSection({
     return (
       <section
         dir={dir}
-        className="relative w-full aspect-[3/1] rounded-xs overflow-hidden group bg-[rgb(244_242_245)]"
+        className="relative w-full aspect-[3/1] rounded-none md:rounded-xs overflow-hidden group bg-gray-50"
       >
         {/* Slides */}
         <div className="relative w-full h-full">
@@ -115,7 +115,7 @@ export default function HeroSection({
             return (
               <div
                 key={banner.id}
-                className={`absolute inset-0 transition-all duration-700 ${
+                className={`absolute inset-0 transition-all duration-700 ease-in-out ${
                   isActive
                     ? "opacity-100 translate-x-0 z-10"
                     : "opacity-0 translate-x-full z-0"
@@ -125,7 +125,7 @@ export default function HeroSection({
                   src={banner.image}
                   alt={`Hero Banner ${index + 1}`}
                   fill
-                  className="object-cover"
+                  className="object-cover object-center"
                   priority={index === 0}
                 />
               </div>
@@ -133,55 +133,58 @@ export default function HeroSection({
           })}
         </div>
 
-        {/* Prev */}
+        {/* Prev Button - Always visible on mobile, hover on desktop */}
         <button
           onClick={goToPrev}
-          className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-20"
+          className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/90 md:bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-white hover:scale-105 active:scale-95 z-20 shadow-sm"
           aria-label="Previous slide"
         >
-          <ChevronLeft className="w-6 h-6 text-brand-dark" />
+          <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-800" />
         </button>
 
-        {/* Next */}
+        {/* Next Button - Always visible on mobile, hover on desktop */}
         <button
           onClick={goToNext}
-          className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-20"
+          className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/90 md:bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-white hover:scale-105 active:scale-95 z-20 shadow-sm"
           aria-label="Next slide"
         >
-          <ChevronRight className="w-6 h-6 text-brand-dark" />
+          <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-gray-800" />
         </button>
 
-        {/* Dots */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+        {/* Dots - Enhanced touch targets for mobile */}
+        <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1 z-20">
           {banners.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`h-2 rounded-full transition-all ${
-                index === currentIndex
-                  ? "w-8 bg-white"
-                  : "w-2 bg-white/50 hover:bg-white/70"
-              }`}
+              className="p-2 cursor-pointer group/dot"
               aria-label={`Go to slide ${index + 1}`}
-            />
+            >
+              <div
+                className={`h-1.5 md:h-2 rounded-full transition-all duration-300 ${
+                  index === currentIndex
+                    ? "w-6 md:w-8 bg-white shadow-sm"
+                    : "w-1.5 md:w-2 bg-white/50 group-hover/dot:bg-white/80"
+                }`}
+              />
+            </button>
           ))}
         </div>
       </section>
     );
   }
 
-  // No banners from API - Use coverImage as fallback if provided
   if (coverImage) {
     return (
       <section
         dir={dir}
-        className="relative w-full aspect-[3/1] rounded-xs overflow-hidden bg-[rgb(244_242_245)]"
+        className="relative w-full aspect-[3/1] rounded-none md:rounded-xs overflow-hidden bg-gray-50"
       >
         <Image
           src={coverImage}
           alt="Store Cover Image"
           fill
-          className="object-cover"
+          className="object-cover object-center"
           priority
         />
       </section>
