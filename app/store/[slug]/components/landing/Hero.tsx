@@ -14,11 +14,13 @@ interface HeroBanner {
 interface HeroSectionProps {
   storeId: string;
   lang?: "en" | "ar";
+  coverImage?: string;
 }
 
 export default function HeroSection({
   storeId,
   lang = "en",
+  coverImage,
 }: HeroSectionProps) {
   const [banners, setBanners] = useState<HeroBanner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -77,20 +79,107 @@ export default function HeroSection({
     );
   }
 
-  if (banners.length === 0) return null;
+  // If API returned banners, use carousel (multi-banner mode)
+  if (banners.length > 0) {
+    const currentBanner = banners[currentIndex];
 
-  const currentBanner = banners[currentIndex];
+    // Single banner from API
+    if (banners.length === 1) {
+      return (
+        <section
+          dir={dir}
+          className="relative w-full aspect-[3/1] rounded-xs overflow-hidden bg-[rgb(244_242_245)]"
+        >
+          <Image
+            src={currentBanner.image}
+            alt="Hero Banner"
+            fill
+            className="object-cover"
+            priority
+          />
+        </section>
+      );
+    }
 
-  // Single banner
-  if (banners.length === 1) {
+    // Multiple banners - Slider
+    return (
+      <section
+        dir={dir}
+        className="relative w-full aspect-[3/1] rounded-xs overflow-hidden group bg-[rgb(244_242_245)]"
+      >
+        {/* Slides */}
+        <div className="relative w-full h-full">
+          {banners.map((banner, index) => {
+            const isActive = index === currentIndex;
+
+            return (
+              <div
+                key={banner.id}
+                className={`absolute inset-0 transition-all duration-700 ${
+                  isActive
+                    ? "opacity-100 translate-x-0 z-10"
+                    : "opacity-0 translate-x-full z-0"
+                }`}
+              >
+                <Image
+                  src={banner.image}
+                  alt={`Hero Banner ${index + 1}`}
+                  fill
+                  className="object-cover"
+                  priority={index === 0}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Prev */}
+        <button
+          onClick={goToPrev}
+          className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-20"
+          aria-label="Previous slide"
+        >
+          <ChevronLeft className="w-6 h-6 text-brand-dark" />
+        </button>
+
+        {/* Next */}
+        <button
+          onClick={goToNext}
+          className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-20"
+          aria-label="Next slide"
+        >
+          <ChevronRight className="w-6 h-6 text-brand-dark" />
+        </button>
+
+        {/* Dots */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+          {banners.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`h-2 rounded-full transition-all ${
+                index === currentIndex
+                  ? "w-8 bg-white"
+                  : "w-2 bg-white/50 hover:bg-white/70"
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  // No banners from API - Use coverImage as fallback if provided
+  if (coverImage) {
     return (
       <section
         dir={dir}
         className="relative w-full aspect-[3/1] rounded-xs overflow-hidden bg-[rgb(244_242_245)]"
       >
         <Image
-          src={currentBanner.image}
-          alt="Hero Banner"
+          src={coverImage}
+          alt="Store Cover Image"
           fill
           className="object-cover"
           priority
@@ -99,71 +188,5 @@ export default function HeroSection({
     );
   }
 
-  // Slider
-  return (
-    <section
-      dir={dir}
-      className="relative w-full aspect-[3/1] rounded-xs overflow-hidden group bg-[rgb(244_242_245)]"
-    >
-      {/* Slides */}
-      <div className="relative w-full h-full">
-        {banners.map((banner, index) => {
-          const isActive = index === currentIndex;
-
-          return (
-            <div
-              key={banner.id}
-              className={`absolute inset-0 transition-all duration-700 ${
-                isActive
-                  ? "opacity-100 translate-x-0 z-10"
-                  : "opacity-0 translate-x-full z-0"
-              }`}
-            >
-              <Image
-                src={banner.image}
-                alt={`Hero Banner ${index + 1}`}
-                fill
-                className="object-cover"
-                priority={index === 0}
-              />
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Prev */}
-      <button
-        onClick={goToPrev}
-        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-20"
-        aria-label="Previous slide"
-      >
-        <ChevronLeft className="w-6 h-6 text-brand-dark" />
-      </button>
-
-      {/* Next */}
-      <button
-        onClick={goToNext}
-        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-20"
-        aria-label="Next slide"
-      >
-        <ChevronRight className="w-6 h-6 text-brand-dark" />
-      </button>
-
-      {/* Dots */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
-        {banners.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => goToSlide(index)}
-            className={`h-2 rounded-full transition-all ${
-              index === currentIndex
-                ? "w-8 bg-white"
-                : "w-2 bg-white/50 hover:bg-white/70"
-            }`}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
-      </div>
-    </section>
-  );
+  return null;
 }

@@ -41,7 +41,7 @@ export default function CatalogueFilters({
   };
 
   return (
-    <div className="mb-8 flex flex-col gap-5" dir={isRtl ? "rtl" : "ltr"}>
+    <div className="mb-8 flex flex-col gap-3" dir={isRtl ? "rtl" : "ltr"}>
       {/* Premium Search Bar */}
       <div className="relative w-full group z-10">
         <Search
@@ -54,7 +54,7 @@ export default function CatalogueFilters({
           placeholder={t.searchPlaceholder}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className={`w-full min-h-[48px] py-2 px-12 rounded border border-gray-200 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))] focus:border-transparent transition-all text-sm md:text-base shadow-sm hover:border-gray-300 ${
+          className={`w-full h-11 sm:h-12 py-2.5 px-12 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))]/20 focus:border-[rgb(var(--color-brand-primary))] transition-all text-sm md:text-base shadow-sm hover:border-gray-300 placeholder:text-gray-400 font-medium ${
             isRtl ? "text-right" : "text-left"
           }`}
         />
@@ -66,11 +66,13 @@ export default function CatalogueFilters({
           <div className="md:hidden relative w-full">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full min-h-[48px] flex items-center justify-between px-5 py-3 bg-white border border-gray-200 rounded-xl shadow-sm text-sm font-medium text-gray-800 hover:border-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))] focus:border-transparent"
+              className="w-full h-11 sm:h-12 flex items-center justify-between px-4 sm:px-5 py-2.5 bg-white border border-gray-200 rounded-lg shadow-sm text-sm font-medium text-gray-800 hover:border-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))]/20 focus:border-[rgb(var(--color-brand-primary))]"
             >
-              <span className="truncate pr-4">{currentCategoryTitle}</span>
+              <span className="truncate pr-3 text-gray-700 font-semibold">
+                {currentCategoryTitle}
+              </span>
               <ChevronDown
-                className={`w-5 h-5 text-gray-400 shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.87,_0,_0.13,_1)] ${
+                className={`w-5 h-5 text-gray-500 shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.87,_0,_0.13,_1)] ${
                   isDropdownOpen
                     ? "rotate-180 text-[rgb(var(--color-brand-primary))]"
                     : ""
@@ -94,9 +96,9 @@ export default function CatalogueFilters({
                 <div className="bg-white border border-gray-100 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex flex-col p-1.5 gap-0.5">
                   <button
                     onClick={() => handleMobileSelect(null)}
-                    className={`w-full text-sm font-medium px-4 py-3 rounded-lg transition-colors ${
+                    className={`w-full text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 ${
                       selectedCategory === null
-                        ? "bg-[rgb(var(--color-brand-primary))] text-white"
+                        ? "bg-[rgb(var(--color-brand-primary))] text-white shadow-md shadow-brand/20"
                         : "text-gray-700 hover:bg-gray-50 active:bg-gray-100 bg-transparent"
                     } ${isRtl ? "text-right" : "text-left"}`}
                   >
@@ -107,7 +109,7 @@ export default function CatalogueFilters({
                     <button
                       key={category.id}
                       onClick={() => handleMobileSelect(category.id)}
-                      className={`w-full text-sm font-medium px-4 py-3 rounded-lg transition-colors ${
+                      className={`w-full text-sm font-medium  px-4 py-3 rounded-lg transition-all duration-200 ${
                         selectedCategory === category.id
                           ? "bg-[rgb(var(--color-brand-primary))] text-white"
                           : "text-gray-700 hover:bg-gray-50 active:bg-gray-100 bg-transparent"
@@ -123,13 +125,13 @@ export default function CatalogueFilters({
 
           {/* DESKTOP VIEW: Native Horizontal Scroll/Pills (>= 768px) */}
           <div className="hidden md:flex relative w-full">
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 -mb-2 hide-scrollbar snap-x scroll-smooth">
+            <div className="flex items-center gap-2.5 overflow-x-auto pb-2 -mb-2 hide-scrollbar snap-x scroll-smooth">
               <button
                 onClick={() => onCategoryChange(null)}
-                className={`snap-start whitespace-nowrap min-h-[40px] px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
+                className={`snap-start whitespace-nowrap min-h-[40px] px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 border ${
                   selectedCategory === null
                     ? "bg-[rgb(var(--color-brand-primary))] border-[rgb(var(--color-brand-primary))] text-white shadow-md shadow-brand/20"
-                    : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
+                    : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm"
                 }`}
               >
                 {t.allCategories}
@@ -139,10 +141,10 @@ export default function CatalogueFilters({
                 <button
                   key={category.id}
                   onClick={() => onCategoryChange(category.id)}
-                  className={`snap-start whitespace-nowrap min-h-[40px] px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
+                  className={`snap-start whitespace-nowrap min-h-[40px] px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 border ${
                     selectedCategory === category.id
                       ? "bg-[rgb(var(--color-brand-primary))] border-[rgb(var(--color-brand-primary))] text-white shadow-md shadow-brand/20"
-                      : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
+                      : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm"
                   }`}
                 >
                   {category.title}

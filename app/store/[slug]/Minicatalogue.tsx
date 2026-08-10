@@ -2,9 +2,10 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, ArrowUp, ShoppingBag, Heart, Globe } from "lucide-react";
+import { Search, ArrowUp } from "lucide-react";
 import ProductCard from "./components/landing/ProductCard";
 import HeroSection from "./components/landing/Hero";
+import Navbar from "./components/landing/Navbar";
 import SocialMediaIcons from "./Socialmediaicons";
 
 // Refactored Components
@@ -12,7 +13,6 @@ import CatalogueFilters from "./components/catalogue/CatalogueFilters";
 import CataloguePagination from "./components/catalogue/CataloguePagination";
 import CatalogueFooter from "./components/catalogue/CatalogueFooter";
 
-// Store Context for Cart Badge
 import { useShop } from "@/app/store/context";
 
 export interface Product {
@@ -60,6 +60,7 @@ export interface MiniCatalogueProps {
   storePhone?: string;
   storeLocation?: string;
   storeHours?: string;
+  primaryColor?: string;
 }
 
 const ITEMS_PER_PAGE = 12;
@@ -108,6 +109,7 @@ export default function MiniCatalogue({
   storeSlug,
   storeDescription,
   logoUrl,
+  coverImage,
   products,
   categories = [],
   lang,
@@ -121,6 +123,7 @@ export default function MiniCatalogue({
   storePhone,
   storeLocation,
   storeHours,
+  primaryColor,
 }: MiniCatalogueProps) {
   const isRtl = lang === "ar";
   const t = CONTENT_DICTIONARY[lang] || CONTENT_DICTIONARY.en;
@@ -236,7 +239,9 @@ export default function MiniCatalogue({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   // Data Mapping for Cards
   const mappedProducts = paginatedProducts.map((product) => ({
@@ -265,62 +270,22 @@ export default function MiniCatalogue({
 
   return (
     <div className="min-h-screen bg-white flex flex-col selection:bg-[rgb(var(--color-brand-primary))] selection:text-white">
-      {/* PREMIUM STICKY NAVBAR */}
-      <nav className="sticky top-0 z-50 w-full bg-white/85 backdrop-blur-lg border-b border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all">
-        <div
-          className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 h-14 md:h-16 flex items-center justify-between"
-          dir={isRtl ? "rtl" : "ltr"}
-        >
-          {/* Left: Brand Identity */}
-          <div className="flex items-center gap-2.5">
-            {logoUrl && (
-              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded overflow-hidden border border-gray-100 shadow-sm bg-white flex-shrink-0">
-                <Image
-                  src={logoUrl}
-                  alt={storeName}
-                  fill
-                  className="object-contain p-0.5"
-                />
-              </div>
-            )}
-            <span className="font-medium text-gray-900 text-sm md:text-base">
-              {storeName}
-            </span>
-          </div>
+      {/* NAVBAR - Using Full Ecommerce Component */}
+      <Navbar
+        storeId={storeId}
+        storeName={storeName}
+        storeSlug={storeSlug}
+        logoUrl={logoUrl}
+        primaryColor={primaryColor}
+        lang={lang}
+        recommendedProducts={[]}
+      />
 
-          {/* Right: Actions */}
-          <div className="flex items-center gap-1">
-            {/* Language Switcher */}
-
-            {/* Favorites */}
-            <Link
-              href={`/favorites?lang=${lang}`}
-              className="relative text-gray-600 hover:text-[rgb(var(--color-brand-primary))] transition-colors rounded-full hover:bg-gray-50"
-            >
-              <Heart size={24} strokeWidth={1.5} />
-            </Link>
-
-            {/* Cart with Dynamic Badge */}
-            <Link
-              href={`/cart?lang=${lang}`}
-              className="relative p-2 text-gray-600 hover:text-[rgb(var(--color-brand-primary))] transition-colors rounded-full hover:bg-gray-50"
-            >
-              <ShoppingBag size={24} strokeWidth={1.5} />
-              {cartCount > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
-                  {cartCount > 99 ? "99+" : cartCount}
-                </span>
-              )}
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* 1. HERO & LOGO SECTION */}
+      {/* HERO & LOGO SECTION */}
       <div className="relative w-full bg-gray-50 border-b border-gray-100">
-        {/* Render HeroSection without bottom padding in the wrapper */}
+        {/* Render HeroSection with coverImage fallback */}
         <div className="w-full">
-          <HeroSection storeId={storeId} lang={lang} />
+          <HeroSection storeId={storeId} lang={lang} coverImage={coverImage} />
         </div>
 
         {/* Overlapping Logo: translate-y-1/2 centers it exactly on the bottom edge */}
@@ -342,7 +307,7 @@ export default function MiniCatalogue({
       {/* MAIN CONTENT BODY */}
       <main
         className={`flex-grow px-4 sm:px-6 md:px-10 pb-8 md:pb-12 max-w-7xl mx-auto w-full ${
-          // 2. Adjust top padding based on the overflowing logo height
+          // Adjust top padding based on the overflowing logo height
           logoUrl ? "pt-16 sm:pt-20 md:pt-24" : "pt-8"
         }`}
       >
@@ -360,7 +325,7 @@ export default function MiniCatalogue({
             </p>
           )}
 
-          {/* 3. Moved Social Icons BELOW the text for a cleaner top-down hierarchy */}
+          {/* Social Icons BELOW the text for a cleaner top-down hierarchy */}
           <div className="mt-3">
             <SocialMediaIcons
               {...({
@@ -376,6 +341,7 @@ export default function MiniCatalogue({
           </div>
         </div>
 
+        {/* Search + Filters Section */}
         <div id="catalogue-filters" className="scroll-mt-24">
           <CatalogueFilters
             searchQuery={searchQuery}
@@ -419,7 +385,7 @@ export default function MiniCatalogue({
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-24 text-center bg-gray-50 rounded-2xl border border-gray-100 border-dashed mt-8 mx-2 sm:mx-0">
+            <div className="flex flex-col items-center justify-center py-24 text-center border-dashed mt-8 mx-2 sm:mx-0">
               <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-100">
                 <Search className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
               </div>
