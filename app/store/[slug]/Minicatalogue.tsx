@@ -435,7 +435,7 @@ export default function MiniCatalogue({
       >
         <button
           onClick={scrollToTop}
-          className="w-10 h-10 rounded-full bg-main text-white shadow-sm hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
+          className="w-10 h-10 rounded-full bg-brand-primary text-white shadow-sm hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
           aria-label="Scroll to top"
         >
           <ArrowUp size={20} strokeWidth={2} />
