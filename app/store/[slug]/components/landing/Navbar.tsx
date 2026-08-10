@@ -274,7 +274,7 @@ export default function Navbar({
                 className="relative transition-colors text-gray-700 hover:text-brand-primary"
                 aria-label={t.cart}
               >
-                <ShoppingBag className="w-[25px] h-[25px] stroke-[1.5]" />
+                <ShoppingBag className="w-[21px] h-[21px] md:w-[25px] md:h-[25px] stroke-[1.5]" />
                 {cartCount > 0 && (
                   <span
                     className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center text-[9px] font-bold text-white rounded-full ring-2 ring-white"

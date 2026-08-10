@@ -314,18 +314,17 @@ export default function MiniCatalogue({
         {/* Store Header */}
         <div
           dir={isRtl ? "rtl" : "ltr"}
-          className="w-full flex flex-col items-center gap-2 mb-8 md:mb-12"
+          className="w-full flex flex-col items-center gap-2 mb-4 md:mb-6"
         >
           <h1 className="text-2xl md:text-4xl font-extrabold text-center text-gray-900 tracking-tight">
             {storeName}
           </h1>
           {storeDescription && (
-            <p className="max-w-2xl text-sm md:text-base text-gray-500 text-center leading-relaxed px-2">
+            <p className="max-w-4xl text-xs md:text-base text-gray-500 text-center px-2">
               {storeDescription}
             </p>
           )}
 
-          {/* Social Icons BELOW the text for a cleaner top-down hierarchy */}
           <div className="mt-4">
             <SocialMediaIcons
               {...({
