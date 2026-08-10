@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, Filter } from "lucide-react";
 
 interface Category {
   id: string;
@@ -28,11 +28,13 @@ export default function CatalogueFilters({
 }: CatalogueFiltersProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  // Fallback to "All Products" instead of "All Categories"
+  const defaultTitle = isRtl ? "جميع المنتجات" : "All Products";
+
   // Helper to find the title of the currently selected category
   const currentCategoryTitle = selectedCategory
-    ? categories.find((c) => c.id === selectedCategory)?.title ||
-      t.allCategories
-    : t.allCategories;
+    ? categories.find((c) => c.id === selectedCategory)?.title || defaultTitle
+    : defaultTitle;
 
   // Handle selection on mobile and auto-close the dropdown
   const handleMobileSelect = (id: string | null) => {
@@ -41,8 +43,11 @@ export default function CatalogueFilters({
   };
 
   return (
-    <div className="mb-8 flex flex-col gap-3" dir={isRtl ? "rtl" : "ltr"}>
-      {/* Premium Search Bar */}
+    <div
+      className="mb-4 md:mb-8 flex flex-col gap-3 md:gap-4"
+      dir={isRtl ? "rtl" : "ltr"}
+    >
+      {/* Premium Search Bar - Full Width */}
       <div className="relative w-full group z-10">
         <Search
           className={`absolute top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 transition-colors group-focus-within:text-[rgb(var(--color-brand-primary))] pointer-events-none ${
@@ -60,26 +65,31 @@ export default function CatalogueFilters({
         />
       </div>
 
+      {/* MOBILE VIEW: Title & Filter Button Row (< 768px) */}
+      <div className="md:hidden flex items-center justify-between w-full pt-2 pb-1">
+        <h2 className="text-lg font-bold text-main tracking-tight capitalize truncate pr-4">
+          {currentCategoryTitle}
+        </h2>
+        <button
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-full shadow-sm text-sm font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))]/20 shrink-0"
+        >
+          <Filter className="w-4 h-4 text-gray-600" />
+          <span>{t.filters || (isRtl ? "تصفية" : "Filters")}</span>
+          <ChevronDown
+            className={`w-4 h-4 text-gray-500 transition-transform duration-300 ease-[cubic-bezier(0.87,_0,_0.13,_1)] ${
+              isDropdownOpen
+                ? "rotate-180 text-[rgb(var(--color-brand-primary))]"
+                : ""
+            }`}
+          />
+        </button>
+      </div>
+
       {categories.length > 0 && (
         <div className="relative w-full z-20">
-          {/* MOBILE VIEW: Animated Dropdown (< 768px) */}
+          {/* MOBILE VIEW: Animated Dropdown Menu (< 768px) */}
           <div className="md:hidden relative w-full">
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full h-11 sm:h-12 flex items-center justify-between px-4 sm:px-5 py-2.5 bg-white border border-gray-200 rounded-lg shadow-sm text-sm font-medium text-gray-800 hover:border-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))]/20 focus:border-[rgb(var(--color-brand-primary))]"
-            >
-              <span className="truncate pr-3 text-gray-700 font-semibold">
-                {currentCategoryTitle}
-              </span>
-              <ChevronDown
-                className={`w-5 h-5 text-gray-500 shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.87,_0,_0.13,_1)] ${
-                  isDropdownOpen
-                    ? "rotate-180 text-[rgb(var(--color-brand-primary))]"
-                    : ""
-                }`}
-              />
-            </button>
-
             {/* 
               Smooth Animation Wrapper using CSS Grid
               This transitions height from 0 to auto flawlessly 
@@ -87,13 +97,13 @@ export default function CatalogueFilters({
             <div
               className={`grid transition-[grid-template-rows,opacity,margin] duration-300 ease-[cubic-bezier(0.87,_0,_0.13,_1)] ${
                 isDropdownOpen
-                  ? "grid-rows-[1fr] opacity-100 mt-2"
-                  : "grid-rows-[0fr] opacity-0 mt-0"
+                  ? "grid-rows-[1fr] opacity-100 mb-4"
+                  : "grid-rows-[0fr] opacity-0 mb-0"
               }`}
             >
               <div className="overflow-hidden">
                 {/* Dropdown Menu Box */}
-                <div className="bg-white border border-gray-100 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex flex-col p-1.5 gap-0.5">
+                <div className="bg-white border border-gray-100 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex flex-col p-1.5 gap-0.5 mt-1">
                   <button
                     onClick={() => handleMobileSelect(null)}
                     className={`w-full text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 ${
@@ -102,14 +112,14 @@ export default function CatalogueFilters({
                         : "text-gray-700 hover:bg-gray-50 active:bg-gray-100 bg-transparent"
                     } ${isRtl ? "text-right" : "text-left"}`}
                   >
-                    {t.allCategories}
+                    {defaultTitle}
                   </button>
 
                   {categories.map((category) => (
                     <button
                       key={category.id}
                       onClick={() => handleMobileSelect(category.id)}
-                      className={`w-full text-sm font-medium  px-4 py-3 rounded-lg transition-all duration-200 ${
+                      className={`w-full text-sm font-medium px-4 py-3 rounded-lg transition-all duration-200 ${
                         selectedCategory === category.id
                           ? "bg-[rgb(var(--color-brand-primary))] text-white"
                           : "text-gray-700 hover:bg-gray-50 active:bg-gray-100 bg-transparent"

@@ -244,6 +244,7 @@ export default function MiniCatalogue({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Data Mapping for Cards
   const mappedProducts = paginatedProducts.map((product) => ({
     id: String(product.id),
     title: product.title || "Untitled Product",
@@ -314,17 +315,18 @@ export default function MiniCatalogue({
         {/* Store Header */}
         <div
           dir={isRtl ? "rtl" : "ltr"}
-          className="w-full flex flex-col items-center gap-2 mb-4 md:mb-6"
+          className="w-full flex flex-col items-center gap-2 mb-8 md:mb-12"
         >
           <h1 className="text-2xl md:text-4xl font-extrabold text-center text-gray-900 tracking-tight">
             {storeName}
           </h1>
           {storeDescription && (
-            <p className="max-w-4xl text-xs md:text-base text-gray-500 text-center px-2">
+            <p className="max-w-2xl text-sm md:text-base text-gray-500 text-center leading-relaxed px-2">
               {storeDescription}
             </p>
           )}
 
+          {/* Social Icons BELOW the text for a cleaner top-down hierarchy */}
           <div className="mt-4">
             <SocialMediaIcons
               {...({
@@ -353,9 +355,9 @@ export default function MiniCatalogue({
           />
         </div>
 
-        {/* Product Count indicator */}
+        {/* Product Count indicator - Hidden on mobile, visible on desktop */}
         <div
-          className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4 mt-8"
+          className="hidden md:flex items-center justify-between mb-6 border-b border-gray-100 pb-4 mt-8"
           dir={isRtl ? "rtl" : "ltr"}
         >
           <h2 className="text-lg font-semibold text-gray-900 capitalize">
@@ -423,6 +425,7 @@ export default function MiniCatalogue({
         isRtl={isRtl}
       />
 
+      {/* Floating Scroll to Top */}
       <div
         className={`fixed bottom-6 ${isRtl ? "left-6" : "right-6"} z-40 transition-all duration-300 ${
           showScrollTop
@@ -432,10 +435,10 @@ export default function MiniCatalogue({
       >
         <button
           onClick={scrollToTop}
-          className="w-12 h-12 rounded-full bg-gray-900 text-white shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
+          className="w-10 h-10 rounded-full bg-main text-white shadow-sm hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
           aria-label="Scroll to top"
         >
-          <ArrowUp size={24} strokeWidth={2.5} />
+          <ArrowUp size={20} strokeWidth={2} />
         </button>
       </div>
     </div>
