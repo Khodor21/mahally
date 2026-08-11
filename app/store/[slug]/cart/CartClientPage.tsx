@@ -371,7 +371,7 @@ export default function CartClientPage({ store }: Props) {
 
   return (
     <div
-      className={`w-full bg-white py-8 px-4 sm:px-6 md:px-8 ${isArabic ? "rtl" : "ltr"}`}
+      className={`w-full bg-white py-8 px-4 sm:px-6 md:px-8 pb-40 ${isArabic ? "rtl" : "ltr"}`}
     >
       {/* ── CUSTOM TOAST INJECTION ── */}
       {toastState.show && (
@@ -554,31 +554,33 @@ export default function CartClientPage({ store }: Props) {
               onRemoveCoupon={handleRemoveCoupon}
             />
 
-            {/* Navigation - Enhanced UI & Mobile First */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4 mt-6 border-t border-gray-100">
-              <button
-                onClick={() => setStep("shipping")}
-                className="flex-[2] h-14 sm:h-12 rounded-xl bg-brand-primary text-white font-semibold text-base sm:text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
-              >
-                {isArabic ? "المتابعة للتوصيل" : "Proceed to Delivery"}
-                <ProceedIcon className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => {
-                  clearBuyNowSession();
-                  router.back();
-                }}
-                className="flex-1 h-14 sm:h-12 rounded-xl border border-gray-200 text-gray-700 bg-white font-semibold text-base sm:text-sm hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center gap-2 shadow-sm order-2 sm:order-1"
-              >
-                <BackIcon className="w-4 h-4" />
-                {isBuyNow
-                  ? isArabic
-                    ? "العودة للمتجر"
-                    : "Back to Store"
-                  : isArabic
-                    ? "متابعة التسوق"
-                    : "Continue Shopping"}
-              </button>
+            {/* Navigation - Fixed Bottom Action Bar */}
+            <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-200 p-4 z-[100] pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+              <div className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setStep("shipping")}
+                  className="w-full sm:flex-[2] py-3 px-4 rounded-lg bg-brand-primary text-white font-medium text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
+                >
+                  {isArabic ? "المتابعة للتوصيل" : "Proceed to Delivery"}
+                  <ProceedIcon className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    clearBuyNowSession();
+                    router.back();
+                  }}
+                  className="w-full sm:flex-1 py-3 px-4 rounded-lg border border-gray-200 text-gray-700 bg-white font-medium text-sm hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm order-2 sm:order-1"
+                >
+                  <BackIcon className="w-4 h-4" />
+                  {isBuyNow
+                    ? isArabic
+                      ? "العودة للمتجر"
+                      : "Back to Store"
+                    : isArabic
+                      ? "متابعة التسوق"
+                      : "Continue Shopping"}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -619,37 +621,38 @@ export default function CartClientPage({ store }: Props) {
               </div>
             )}
 
-            {/* Navigation - Enhanced UI & Mobile First */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4 mt-6 border-t border-gray-100">
-              <button
-                onClick={handleCheckout}
-                disabled={!canCheckout || loading}
-                className="flex-[2] h-14 sm:h-12 rounded-xl bg-brand-primary text-white font-bold text-base sm:text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 sm:w-4 sm:h-4 animate-spin" />
-                    {t.processing}
-                  </>
-                ) : (
-                  <>
-                    <ShoppingBag className="w-5 h-5 sm:w-4 sm:h-4" />
-                    {isArabic ? "تأكيد وإتمام الطلب" : "Complete Order"}
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => setStep("cart")}
-                className="flex-1 h-14 sm:h-12 rounded-xl border-2 border-brand-primary text-brand-primary bg-transparent font-bold text-base sm:text-sm hover:bg-brand-primary/5 transition-all flex items-center justify-center gap-2 order-2 sm:order-1"
-              >
-                <BackIcon className="w-4 h-4" />
-                {isArabic ? "تعديل السلة" : "Back to Cart"}
-              </button>
-            </div>
-
-            <div className="text-center text-xs font-semibold text-gray-400 flex items-center justify-center gap-2 pt-2">
-              <StickyNote className="w-3.5 h-3.5" />
-              {t.secureCheckout}
+            {/* Navigation - Fixed Bottom Action Bar */}
+            <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-200 p-4 z-[100] pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+              <div className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={handleCheckout}
+                  disabled={!canCheckout || loading}
+                  className="w-full sm:flex-[2] py-3 px-4 rounded-lg bg-brand-primary text-white font-medium text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {t.processing}
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBag className="w-4 h-4" />
+                      {isArabic ? "تأكيد وإتمام الطلب" : "Complete Order"}
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setStep("cart")}
+                  className="w-full sm:flex-1 py-3 px-4 rounded-lg border border-brand-primary/20 text-brand-primary bg-brand-primary/5 font-medium text-sm hover:bg-brand-primary/10 transition-all flex items-center justify-center gap-2 order-2 sm:order-1"
+                >
+                  <BackIcon className="w-4 h-4" />
+                  {isArabic ? "تعديل السلة" : "Back to Cart"}
+                </button>
+              </div>
+              <div className="text-center text-xs font-medium text-gray-400 flex items-center justify-center gap-1.5 pt-3">
+                <StickyNote className="w-3 h-3" />
+                {t.secureCheckout}
+              </div>
             </div>
           </div>
         )}

@@ -6,13 +6,11 @@ import Link from "next/link";
 import { Search, ArrowUp } from "lucide-react";
 import ProductCard from "./components/landing/ProductCard";
 import HeroSection from "./components/landing/Hero";
-import Navbar from "./components/landing/Navbar";
 import SocialMediaIcons from "./Socialmediaicons";
 
 // Refactored Components
 import CatalogueFilters from "./components/catalogue/CatalogueFilters";
 import CataloguePagination from "./components/catalogue/CataloguePagination";
-import CatalogueFooter from "./components/catalogue/CatalogueFooter";
 
 import { useShop } from "@/app/store/context";
 
@@ -160,7 +158,7 @@ export default function MiniCatalogue({
         } catch (error) {
           console.error("Failed to fetch categories:", error);
         }
-      }
+      };
       fetchCategories();
     } else {
       setFetchedCategories(categories);
@@ -271,18 +269,6 @@ export default function MiniCatalogue({
 
   return (
     <div className="min-h-screen bg-white flex flex-col selection:bg-[rgb(var(--color-brand-primary))] selection:text-white">
-      {/* NAVBAR - Using Full Ecommerce Component With Mini Flag */}
-      <Navbar
-        storeId={storeId}
-        storeName={storeName}
-        storeSlug={storeSlug}
-        logoUrl={logoUrl}
-        primaryColor={primaryColor}
-        lang={lang}
-        recommendedProducts={[]}
-        isMini={true} // Passed flag to hide categories and profile
-      />
-
       {/* HERO & LOGO SECTION */}
       <div className="relative w-full border-b border-gray-100">
         {/* Render HeroSection with coverImage fallback */}
@@ -293,7 +279,7 @@ export default function MiniCatalogue({
         {/* Overlapping Logo: translate-y-1/2 centers it exactly on the bottom edge */}
         {logoUrl && (
           <div className="absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-1/2 z-20">
-            <div className="relative border border-gray-100 w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 overflow-hidden rounded-2xl bg-white shadow-sm transition-transform hover:scale-105 duration-300">
+            <div className="relative border border-gray-100 w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 overflow-hidden rounded-lg bg-white shadow-sm transition-transform hover:scale-105 duration-300">
               <Image
                 src={logoUrl}
                 alt={storeName}
@@ -387,8 +373,8 @@ export default function MiniCatalogue({
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-24 text-center mt-8 mx-2 sm:mx-0  rounded-2xl border border-gray-100/50">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-100">
+            <div className="flex flex-col items-center justify-center py-24 text-center mt-8 mx-2 sm:mx-0 ">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-6 ">
                 <Search className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
@@ -409,22 +395,6 @@ export default function MiniCatalogue({
           isRtl={isRtl}
         />
       </main>
-
-      <CatalogueFooter
-        storeName={storeName}
-        storeDescription={storeDescription}
-        storeHours={storeHours}
-        storeLocation={storeLocation}
-        storeEmail={storeEmail}
-        storePhone={storePhone}
-        instagram={instagram}
-        facebook={facebook}
-        tiktok={tiktok}
-        twitter={twitter}
-        lang={lang}
-        t={t}
-        isRtl={isRtl}
-      />
 
       {/* Floating Scroll to Top */}
       <div

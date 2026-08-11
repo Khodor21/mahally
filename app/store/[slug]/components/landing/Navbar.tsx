@@ -266,23 +266,23 @@ export default function Navbar({
                 className="relative transition-colors text-gray-700 hover:text-brand-primary flex items-center justify-center"
                 aria-label={t.favorites}
               >
-                <Heart className="w-[22px] h-[22px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
+                <Heart className="w-[21px] h-[21px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
                 {favCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2 min-w-[20px] h-[20px] flex items-center justify-center px-1 text-[11px] font-bold bg-[#F45151] text-white rounded-full ring-2 ring-white shadow-sm">
+                  <span className="absolute -top-1.5 -right-2 min-w-[19px] h-[19px] flex items-center justify-center px-1 text-[10px] font-bold bg-[#F45151] text-white rounded-full ring-2 ring-white shadow-sm">
                     {favCount > 99 ? "99+" : favCount}
                   </span>
                 )}
               </Link>
 
-              {/* Cart (Desktop Only) */}
+              {/* Cart (Mobile And Desktop) */}
               <Link
                 href={"/cart"}
                 className="relative transition-colors text-gray-700 hover:text-brand-primary flex items-center justify-center"
                 aria-label={t.cart}
               >
-                <ShoppingBag className="w-[21px] h-[21px] md:w-[25px] md:h-[25px] stroke-[1.5]" />
+                <ShoppingBag className="w-[20px] h-[20px] md:w-[25px] md:h-[25px] stroke-[1.5]" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2 min-w-[20px] h-[20px] flex items-center justify-center px-1 text-[11px] font-bold bg-[#F45151] text-white rounded-full ring-2 ring-white shadow-sm">
+                  <span className="absolute -top-1.5 -right-2 min-w-[19px] h-[19px] flex items-center justify-center px-1 text-[10px] font-bold bg-[#F45151] text-white rounded-full ring-2 ring-white shadow-sm">
                     {cartCount > 99 ? "99+" : cartCount}
                   </span>
                 )}

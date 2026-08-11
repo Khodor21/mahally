@@ -8,6 +8,7 @@ import { ShopProvider } from "@/app/store/context";
 import Navbar from "./components/landing/Navbar";
 import BottomNavbar from "./components/landing/BottomNavbar";
 import Footer from "./components/landing/Footer";
+import CatalogueFooter from "./components/catalogue/CatalogueFooter"; // Added Mini Footer
 import LangDomSetter from "./LangSetter";
 import ThemeClient from "./components/ThemeClient";
 import VisitorTracker from "./components/VisitorTracker";
@@ -18,6 +19,44 @@ import {
 } from "./components/RecommendationsProducts";
 import NotificationInitializer from "./components/NotificationInitializer";
 import { getCachedStoreData } from "@/lib/store-queries";
+
+// Shared Dictionary for the Mini Footer Translations
+const CONTENT_DICTIONARY = {
+  en: {
+    searchPlaceholder: "Search products...",
+    noResults: "No products found",
+    tryDifferentSearch: "Try a different search term",
+    pagination: "Page",
+    of: "of",
+    products: "Products",
+    allCategories: "All Categories",
+    filters: "Filters",
+    storeHours: "Store Hours",
+    location: "Location",
+    contact: "Contact",
+    email: "Email",
+    phone: "Phone",
+    followUs: "Follow Us",
+    switchLang: "العربية",
+  },
+  ar: {
+    searchPlaceholder: "ابحث عن المنتجات...",
+    noResults: "لا توجد منتجات",
+    tryDifferentSearch: "جرب كلمة بحث مختلفة",
+    pagination: "صفحة",
+    of: "من",
+    products: "منتجات",
+    allCategories: "جميع الفئات",
+    filters: "المرشحات",
+    storeHours: "ساعات العمل",
+    location: "الموقع",
+    contact: "الاتصال",
+    email: "البريد الإلكتروني",
+    phone: "الهاتف",
+    followUs: "تابعنا",
+    switchLang: "English",
+  },
+};
 
 export async function generateMetadata({
   params,
@@ -115,6 +154,9 @@ export default async function StoreLayout({
     })
     .filter((item): item is { id: string; title: string } => item !== null);
 
+  const t = CONTENT_DICTIONARY[lang] || CONTENT_DICTIONARY.en;
+  const isRtl = lang === "ar";
+
   return (
     <ShopProvider>
       <VisitorTracker storeId={store.id} />
@@ -123,8 +165,19 @@ export default async function StoreLayout({
       <LangDomSetter lang={lang} />
       <NotificationInitializer />
 
-      {/* Conditionally hide Starter Plan components if plan is Mini */}
-      {!isMini && (
+      {/* DYNAMIC NAVBAR RENDERING */}
+      {isMini ? (
+        <Navbar
+          storeId={store.id}
+          storeName={store.store_name}
+          storeSlug={store.slug}
+          logoUrl={settings?.logo_url}
+          primaryColor={primaryColor}
+          lang={lang}
+          recommendedProducts={[]}
+          isMini={true}
+        />
+      ) : (
         <Navbar
           storeId={store.id}
           storeName={store.store_name}
@@ -137,12 +190,30 @@ export default async function StoreLayout({
         />
       )}
 
+      {/* BOTTOM NAVBAR - Only for Starter Plan */}
       {!isMini && <BottomNavbar lang={lang} storeSlug={store.slug} />}
 
       <div className="flex flex-col min-h-screen">
         <main className="flex-grow">{children}</main>
 
-        {!isMini && (
+        {/* DYNAMIC FOOTER RENDERING */}
+        {isMini ? (
+          <CatalogueFooter
+            storeName={store.store_name}
+            storeDescription={settings?.description}
+            storeHours={settings?.store_hours}
+            storeLocation={settings?.store_location}
+            storeEmail={store.admin_email}
+            storePhone={settings?.whatsapp_number || store.phone}
+            instagram={settings?.instagram_url}
+            facebook={settings?.facebook_url}
+            tiktok={settings?.tiktok_url}
+            twitter={settings?.twitter_url}
+            lang={lang}
+            t={t}
+            isRtl={isRtl}
+          />
+        ) : (
           <Footer
             storeName={store.store_name}
             storeSlug={store.slug}

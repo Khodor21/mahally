@@ -75,7 +75,7 @@ export default function HeroSection({
 
   if (loading) {
     return (
-      <div className="w-full aspect-[3/1] bg-gray-100 animate-pulse rounded-none md:rounded-xs" />
+      <div className="w-full aspect-[2.2/1] md:aspect-[3/1] bg-gray-100 animate-pulse rounded-none md:rounded-xs" />
     );
   }
 
@@ -88,7 +88,7 @@ export default function HeroSection({
       return (
         <section
           dir={dir}
-          className="relative w-full aspect-[3/1] rounded-none md:rounded-xs overflow-hidden bg-gray-50"
+          className="relative w-full aspect-[2.2/1] md:aspect-[3/1] rounded-none md:rounded-xs overflow-hidden bg-gray-50"
         >
           <Image
             src={currentBanner.image}
@@ -105,7 +105,7 @@ export default function HeroSection({
     return (
       <section
         dir={dir}
-        className="relative w-full aspect-[3/1] rounded-none md:rounded-xs overflow-hidden group bg-gray-50"
+        className="relative w-full aspect-[2.2/1] md:aspect-[3/1] rounded-none md:rounded-xs overflow-hidden group bg-gray-50"
       >
         {/* Slides */}
         <div className="relative w-full h-full">
@@ -178,7 +178,7 @@ export default function HeroSection({
     return (
       <section
         dir={dir}
-        className="relative w-full aspect-[3/1] rounded-none md:rounded-xs overflow-hidden bg-gray-50"
+        className="relative w-full aspect-[2.2/1] md:aspect-[3/1] rounded-none md:rounded-xs overflow-hidden bg-gray-50"
       >
         <Image
           src={coverImage}

@@ -91,7 +91,7 @@ export default function CartItemsList({
               <div className="flex justify-between items-start gap-3">
                 <div className="min-w-0 flex-1">
                   {/* Product Title */}
-                  <p className="font-bold text-gray-900 text-sm sm:text-base leading-snug line-clamp-2">
+                  <p className="font-medium text-gray-900 text-sm sm:text-base leading-snug line-clamp-2">
                     {item.product.title}
                   </p>
 
@@ -105,7 +105,7 @@ export default function CartItemsList({
                   )}
 
                   {/* Price */}
-                  <p className="text-sm sm:text-base font-extrabold text-brand-primary mt-1.5">
+                  <p className="text-base sm:text-base font-extrabold text-brand-primary mt-1.5">
                     {currencySymbol}
                     {item.product.price !== undefined
                       ? item.product.price.toLocaleString()

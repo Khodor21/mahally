@@ -95,9 +95,9 @@ export default function OrderSummary({
         {!appliedCoupon ? (
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              {/* <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                 <Tag className="w-4 h-4 text-gray-400" />
-              </div>
+              </div> */}
               <input
                 value={couponInput}
                 onChange={(e) =>
@@ -105,14 +105,14 @@ export default function OrderSummary({
                 }
                 placeholder={t.discountCode}
                 // Reduced input height from h-11 to h-10 on mobile
-                className="w-full h-10 sm:h-11 rounded-xl border border-gray-200 pl-11 pr-4 text-sm font-medium outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all bg-white uppercase"
+                className="w-full h-10 sm:h-11 rounded placeholder:text-xs placeholder:normal-case border border-gray-200 pl-2 pr-1 text-sm font-medium outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all bg-white uppercase"
               />
             </div>
             <button
               onClick={onApplyCoupon}
               disabled={!couponInput.trim() || couponLoading}
               // Reduced button height from h-11 to h-10 on mobile
-              className="h-10 sm:h-11 px-4 sm:px-5 bg-brand-primary text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[80px] sm:min-w-[90px]"
+              className="h-9 sm:h-10 px-4 sm:px-5 bg-brand-primary text-white rounded font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[80px] sm:min-w-[90px]"
             >
               {couponLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -128,7 +128,7 @@ export default function OrderSummary({
                 <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
               <div>
-                <p className="text-sm font-bold text-brand-primary">
+                <p className="text-sm font-medium text-brand-primary">
                   {appliedCoupon.code}
                 </p>
                 <p className="text-[11px] sm:text-xs font-medium text-brand-primary/70">

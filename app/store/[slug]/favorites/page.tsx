@@ -1,14 +1,18 @@
 import FavoritesClient from "./FavoritesClient";
-import { Store } from "@/lib/store-types";
+import { getStoreBySlug } from "@/lib/store";
 
 type Props = {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 };
 
-export default async function FavoritesPage({ params }: Props) {
-  const store: Store | null = null;
+export default async function FavoritesPage(props: Props) {
+  // Await params for Next.js 15+ compatibility
+  const params = await props.params;
+
+  // 🚨 THE FIX: Actually fetch the store data instead of hardcoding to null!
+  const store = await getStoreBySlug(params.slug);
 
   return <FavoritesClient store={store} slug={params.slug} />;
 }
