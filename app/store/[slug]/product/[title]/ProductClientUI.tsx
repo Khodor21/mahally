@@ -727,10 +727,10 @@ export default function ProductClientUI({
         {/* BOTTOM SECTION: TABS */}
         <div className="mt-20 border-t-2 border-gray-100 pt-10">
           <div className="flex flex-col md:flex-row gap-10 lg:gap-20">
-            <div className="w-full md:w-64 flex flex-row md:flex-col gap-2 shrink-0">
+            <div className="w-full md:w-64 flex flex-row justify-between md:justify-normal md:flex-col gap-2 shrink-0">
               <button
                 onClick={() => setActiveTab("details")}
-                className={`text-center md:text-start py-3 px-4 rounded-lg font-regular transition-colors ${
+                className={`text-center md:text-start text-sm py-2 px-4 rounded-lg font-regular transition-colors ${
                   activeTab === "details"
                     ? "text-brand-primary bg-[rgb(244_242_245)]"
                     : "text-gray-500"
@@ -740,7 +740,7 @@ export default function ProductClientUI({
               </button>
               <button
                 onClick={() => setActiveTab("reviews")}
-                className={`text-center md:text-start py-3 px-4 rounded-lg font-regular transition-colors ${
+                className={`text-center md:text-start text-sm py-2 px-4 rounded-lg font-regular transition-colors ${
                   activeTab === "reviews"
                     ? "text-brand-primary bg-[rgb(244_242_245)]"
                     : "text-gray-500"
@@ -751,7 +751,7 @@ export default function ProductClientUI({
             </div>
             <div className="flex-1">
               {activeTab === "details" ? (
-                <div className="prose prose-lg max-w-none text-black/90 font-regular">
+                <div className="prose prose-lg max-w-none text-black/90 font-medium">
                   <p className="whitespace-pre-wrap leading-relaxed">
                     {product.description || t.noDescription}
                   </p>
@@ -771,11 +771,11 @@ export default function ProductClientUI({
       {/* --- MOBILE FIXED BOTTOM BAR (matches image_e7ad89.png) --- */}
       <div
         dir={dir}
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 px-4 py-4 pb-6 shadow-[0_-4px_15px_rgba(0,0,0,0.04)]"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 px-4 py-4 shadow-[0_-4px_15px_rgba(0,0,0,0.04)]"
       >
         <div className="flex flex-col gap-3">
           {/* Mobile Quantity Selector (Full Width) */}
-          <div className="flex items-center w-full border border-gray-200 rounded-sm overflow-hidden h-12 bg-white">
+          <div className="flex items-center w-full border border-gray-200 rounded-sm overflow-hidden h-10 bg-white">
             <button
               onClick={increment}
               disabled={quantity >= activeStock}
@@ -799,7 +799,7 @@ export default function ProductClientUI({
           <button
             onClick={handleAddToCart}
             disabled={isActionDisabled}
-            className="w-full h-12 flex items-center justify-center gap-2 bg-brand-primary text-white rounded-sm font-medium hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-10 flex items-center justify-center gap-2 bg-brand-primary text-white rounded-sm font-medium hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t.addToCart}
             <ShoppingBag className="w-4 h-4" />

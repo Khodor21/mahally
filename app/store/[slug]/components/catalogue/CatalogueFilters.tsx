@@ -53,7 +53,6 @@ export default function CatalogueFilters({
           className={`absolute top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 transition-colors group-focus-within:text-[rgb(var(--color-brand-primary))] pointer-events-none ${
             isRtl ? "right-4" : "left-4"
           }`}
-          
         />
         <input
           type="text"
@@ -92,7 +91,6 @@ export default function CatalogueFilters({
       {categories.length > 0 && (
         <div className="relative w-full z-20">
           <div className="md:hidden relative w-full">
-          
             <div
               className={`grid transition-[grid-template-rows,opacity,margin] duration-300 ease-[cubic-bezier(0.87,_0,_0.13,_1)] ${
                 isDropdownOpen
