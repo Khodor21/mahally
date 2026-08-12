@@ -1,13 +1,7 @@
 "use client";
 
 import React from "react";
-import {
-  Instagram,
-  Facebook,
-  Twitter,
-  Music2,
-  Ghost,
-} from "lucide-react";
+import { Instagram, Facebook, Twitter, Music2, Ghost } from "lucide-react";
 
 // Custom WhatsApp Icon to perfectly match the brand logo
 const WhatsAppIcon = ({ className = "" }: { className?: string }) => (
@@ -109,7 +103,7 @@ export default function SocialMediaIcons({
   ].filter((link) => link.url && link.url.trim() !== "");
 
   if (socialLinks.length === 0) {
-    return null; 
+    return null;
   }
 
   return (
@@ -121,7 +115,7 @@ export default function SocialMediaIcons({
       <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-[0.15em] text-gray-400">
         {titleText}
       </h3>
-      
+
       {/* Icons Grid */}
       <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
         {socialLinks.map((social) => {
@@ -133,21 +127,21 @@ export default function SocialMediaIcons({
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`Visit us on ${social.name}`}
-              className="group relative flex w-10 h-10 sm:w-11 sm:h-11 items-center justify-center rounded-xl bg-gray-50 border border-gray-100 text-gray-500 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:translate-y-0 active:shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+              className="group relative flex w-8 h-8 sm:w-9 sm:h-9 items-center justify-center roundeي bg-gray-50 border border-gray-100 text-gray-500 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:translate-y-0 active:shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
             >
               {/* Background Hover Layer */}
-              <div 
-                className={`absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 ${
-                  social.hoverClass.split(' ')[1].replace('group-hover:', '')
-                } group-hover:opacity-100`} 
+              <div
+                className={`absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 ${social.hoverClass
+                  .split(" ")[1]
+                  .replace("group-hover:", "")} group-hover:opacity-100`}
               />
-              
+
               {/* Icon */}
-              <IconComponent 
-                className={`w-4 h-4 sm:w-5 sm:h-5 relative z-10 transition-colors duration-300 ${
-                  social.hoverClass.split(' ')[0]
-                }`} 
-                {...(social.name !== 'WhatsApp' ? { strokeWidth: 2.2 } : {})}
+              <IconComponent
+                className={`w-3 h-3 sm:w-4 sm:h-4 relative z-10 transition-colors duration-300 ${
+                  social.hoverClass.split(" ")[0]
+                }`}
+                {...(social.name !== "WhatsApp" ? { strokeWidth: 2 } : {})}
               />
             </a>
           );

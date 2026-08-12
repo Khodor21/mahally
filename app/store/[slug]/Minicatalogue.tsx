@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { Search, ArrowUp } from "lucide-react";
 import ProductCard from "./components/landing/ProductCard";
 import HeroSection from "./components/landing/Hero";
@@ -147,13 +146,11 @@ export default function MiniCatalogue({
 
   // Business Logic: Fetch categories from API if not provided via props
   useEffect(() => {
-    // If categories are already provided via props, just use them
     if (categories && categories.length > 0) {
       setFetchedCategories(categories);
-      return; // Exit early so we don't fetch
+      return;
     }
 
-    // Otherwise, fetch them
     const fetchCategories = async () => {
       try {
         const response = await fetch(`/api/categories?store_id=${storeId}`);
@@ -162,14 +159,13 @@ export default function MiniCatalogue({
           setFetchedCategories(data);
         }
       } catch (error) {
-        console.error("Failed to fetch categories:", error);
+        console.error("Failed to fetch categories", error);
       }
     };
 
     fetchCategories();
-
-    // Notice we track categories?.length, NOT the categories array itself
   }, [categories?.length, storeId]);
+
   // Business Logic: Process and sort categories
   const displayCategories = useMemo(() => {
     if (fetchedCategories && fetchedCategories.length > 0) {
@@ -180,11 +176,21 @@ export default function MiniCatalogue({
     const uniqueIds = Array.from(
       new Set(products.map((p) => p.category_id).filter(Boolean)),
     );
-    return uniqueIds.map((id) => ({
-      id: id as string,
-      title: id as string,
-      store_id: storeId,
-    }));
+
+    // Safely format fallback IDs so massive UUIDs don't break the UI
+    return uniqueIds.map((id) => {
+      const stringId = id as string;
+      const displayTitle =
+        stringId.length > 15
+          ? `Category ${stringId.substring(0, 4).toUpperCase()}`
+          : stringId;
+
+      return {
+        id: stringId,
+        title: displayTitle,
+        store_id: storeId,
+      };
+    });
   }, [fetchedCategories, products, storeId]);
 
   // Business Logic: Filter products
@@ -273,15 +279,17 @@ export default function MiniCatalogue({
   }, [selectedCategory, displayCategories, t]);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col selection:bg-[rgb(var(--color-brand-primary))] selection:text-white">
+    <div
+      className="min-h-screen bg-white flex flex-col selection:bg-[rgb(var(--color-brand-primary))] selection:text-white"
+      dir={isRtl ? "rtl" : "ltr"}
+    >
       {/* HERO & LOGO SECTION */}
       <div className="relative w-full border-b border-gray-100">
-        {/* Render HeroSection with coverImage fallback */}
         <div className="w-full">
           <HeroSection storeId={storeId} lang={lang} coverImage={coverImage} />
         </div>
 
-        {/* Overlapping Logo: translate-y-1/2 centers it exactly on the bottom edge */}
+        {/* Overlapping Logo */}
         {logoUrl && (
           <div className="absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-1/2 z-20">
             <div className="relative border border-gray-100 w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 overflow-hidden rounded-lg bg-white shadow-sm transition-transform hover:scale-105 duration-300">
@@ -300,25 +308,20 @@ export default function MiniCatalogue({
       {/* MAIN CONTENT BODY */}
       <main
         className={`flex-grow px-4 sm:px-6 md:px-10 pb-8 md:pb-12 max-w-7xl mx-auto w-full ${
-          // Adjust top padding based on the overflowing logo height
           logoUrl ? "pt-16 sm:pt-20 md:pt-24" : "pt-8"
         }`}
       >
         {/* Store Header */}
-        <div
-          dir={isRtl ? "rtl" : "ltr"}
-          className="w-full flex flex-col items-center gap-2 mb-8 md:mb-12"
-        >
-          <h1 className="text-2xl md:text-4xl font-extrabold text-center text-gray-900 tracking-tight">
+        <div className="w-full flex flex-col items-center gap-3 mb-8 md:mb-12">
+          <h3 className="text-2xl md:text-4xl font-extrabold text-center text-gray-900 tracking-tight">
             {storeName}
-          </h1>
+          </h3>
           {storeDescription && (
-            <p className="max-w-4xl text-sm md:text-base text-gray-500 text-center leading-relaxed px-2">
+            <p className="max-w-3xl md:w-full text-sm md:text-base text-gray-500 text-center leading-relaxed px-2">
               {storeDescription}
             </p>
           )}
 
-          {/* Social Icons BELOW the text for a cleaner top-down hierarchy */}
           <div className="mt-4">
             <SocialMediaIcons
               {...({
@@ -347,15 +350,12 @@ export default function MiniCatalogue({
           />
         </div>
 
-        {/* Product Count indicator - Hidden on mobile, visible on desktop */}
-        <div
-          className="hidden md:flex items-center justify-between mb-6 border-b border-gray-100 pb-4 mt-8"
-          dir={isRtl ? "rtl" : "ltr"}
-        >
+        {/* Product Count indicator */}
+        <div className="hidden md:flex items-center justify-between mb-6 border-b border-gray-100 pb-4 mt-8">
           <h2 className="text-lg font-semibold text-gray-900 capitalize">
-            {selectedCategoryTitle}
+            <bdi>{selectedCategoryTitle}</bdi>
           </h2>
-          <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
+          <span className="text-xs font-medium text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100 shadow-sm">
             {filteredProducts.length} {t.products}
           </span>
         </div>
@@ -363,7 +363,7 @@ export default function MiniCatalogue({
         {/* Products Grid */}
         <div className="mb-12">
           {paginatedProducts.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-1 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
               {mappedProducts.map((product) => (
                 <div
                   key={product.id}
@@ -378,8 +378,8 @@ export default function MiniCatalogue({
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-24 text-center mt-8 mx-2 sm:mx-0 ">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-6 ">
+            <div className="flex flex-col items-center justify-center py-20 md:py-32 text-center mt-8 mx-2 sm:mx-0 bg-gray-50/50 rounded-2xl border border-gray-100 border-dashed">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-5 bg-white rounded-full shadow-sm border border-gray-100">
                 <Search className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
@@ -403,7 +403,9 @@ export default function MiniCatalogue({
 
       {/* Floating Scroll to Top */}
       <div
-        className={`fixed bottom-6 ${isRtl ? "left-6" : "right-6"} z-40 transition-all duration-300 ${
+        className={`fixed bottom-6 ${
+          isRtl ? "left-6" : "right-6"
+        } z-40 transition-all duration-300 ${
           showScrollTop
             ? "translate-y-0 opacity-100 visible"
             : "translate-y-10 opacity-0 invisible"
@@ -411,10 +413,10 @@ export default function MiniCatalogue({
       >
         <button
           onClick={scrollToTop}
-          className="w-10 h-10 rounded-full bg-brand-primary text-white shadow-sm hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
+          className="w-11 h-11 rounded-full bg-gray-900 text-white shadow-lg hover:bg-gray-800 hover:scale-105 active:scale-95 transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
           aria-label="Scroll to top"
         >
-          <ArrowUp size={20} strokeWidth={2} />
+          <ArrowUp size={22} strokeWidth={2.5} />
         </button>
       </div>
     </div>

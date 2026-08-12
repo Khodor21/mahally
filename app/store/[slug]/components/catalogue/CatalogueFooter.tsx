@@ -74,7 +74,7 @@ export default function CatalogueFooter({
               {storeName}
             </h3>
             {storeDescription && (
-              <p className="text-sm text-gray-400 leading-relaxed max-w-sm">
+              <p className="text-sm text-white/90 leading-relaxed max-w-sm">
                 {storeDescription}
               </p>
             )}
@@ -83,10 +83,10 @@ export default function CatalogueFooter({
           {/* Store Hours */}
           {storeHours && (
             <div className="flex flex-col gap-3">
-              <h4 className="font-semibold text-gray-200 tracking-wide uppercase text-sm">
+              <h3 className="font-semibold text-white/80 tracking-wide uppercase text-sm">
                 {t.storeHours}
-              </h4>
-              <p className="text-sm text-gray-400 whitespace-pre-wrap leading-relaxed">
+              </h3>
+              <p className="text-sm text-white/90 whitespace-pre-wrap leading-relaxed">
                 {storeHours}
               </p>
             </div>
@@ -95,10 +95,10 @@ export default function CatalogueFooter({
           {/* Location */}
           {storeLocation && (
             <div className="flex flex-col gap-3">
-              <h4 className="font-semibold text-gray-200 tracking-wide uppercase text-sm">
+              <h3 className="font-semibold text-white/80 tracking-wide uppercase text-sm">
                 {t.location}
-              </h4>
-              <p className="text-sm text-gray-400 leading-relaxed">
+              </h3>
+              <p className="text-sm text-white/90 leading-relaxed">
                 {storeLocation}
               </p>
             </div>
@@ -107,13 +107,13 @@ export default function CatalogueFooter({
           {/* Contact */}
           {(storeEmail || storePhone) && (
             <div className="flex flex-col gap-3">
-              <h4 className="font-semibold text-gray-200 tracking-wide uppercase text-sm">
+              <h3 className="font-semibold text-white/80 tracking-wide uppercase text-sm">
                 {t.contact}
-              </h4>
-              <div className="space-y-3 text-sm text-gray-400">
+              </h3>
+              <div className="space-y-3 text-sm text-white/90">
                 {storeEmail && (
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs text-gray-500 uppercase font-medium">
+                    <span className="text-xs text-white/90 uppercase font-medium">
                       {t.email}
                     </span>
                     <a
@@ -126,7 +126,7 @@ export default function CatalogueFooter({
                 )}
                 {storePhone && (
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs text-gray-500 uppercase font-medium">
+                    <span className="text-xs text-white/90 uppercase font-medium">
                       {t.phone}
                     </span>
                     <a
@@ -145,14 +145,14 @@ export default function CatalogueFooter({
 
         {/* Social Media Links & Copyright */}
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <p className="text-sm text-gray-500 order-2 md:order-1">
+          <p className="text-sm text-white/90 order-2 md:order-1">
             &copy; {new Date().getFullYear()} {storeName}.{" "}
             {lang === "ar" ? "جميع الحقوق محفوظة" : "All rights reserved"}.
           </p>
 
           {hasSocials && (
             <div className="flex items-center gap-5 order-1 md:order-2">
-              <span className="text-sm font-medium text-gray-400 mr-2 hidden md:block">
+              <span className="text-sm font-medium text-white/90 mr-2 hidden md:block">
                 {t.followUs}
               </span>
               {socialLinks.map((social) => {
@@ -163,7 +163,7 @@ export default function CatalogueFooter({
                     href={social.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`text-gray-400 ${social.colorClass} transition-colors transform hover:scale-110`}
+                    className={`text-white/90 ${social.colorClass} transition-colors transform hover:scale-110`}
                     aria-label={social.name}
                   >
                     <svg

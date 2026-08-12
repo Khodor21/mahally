@@ -28,13 +28,13 @@ export default function CataloguePagination({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="flex items-center justify-center w-11 h-11 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+          className="flex items-center justify-center w-8 h-8 rounded border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all "
           aria-label="Previous page"
         >
           {isRtl ? (
-            <ChevronRight size={20} className="text-gray-600" />
+            <ChevronRight size={18} className="text-gray-600" />
           ) : (
-            <ChevronLeft size={20} className="text-gray-600" />
+            <ChevronLeft size={18} className="text-gray-600" />
           )}
         </button>
 
@@ -65,10 +65,10 @@ export default function CataloguePagination({
               <button
                 key={page}
                 onClick={() => onPageChange(page)}
-                className={`w-11 h-11 rounded-xl font-medium transition-all duration-200 text-sm ${
+                className={`w-8 h-8 rounded font-medium transition-all duration-200 text-xs ${
                   isActive
-                    ? "bg-[rgb(var(--color-brand-primary))] text-white shadow-md"
-                    : "bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 hover:border-gray-300 shadow-sm"
+                    ? "bg-[rgb(var(--color-brand-primary))] text-white"
+                    : "bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 hover:border-gray-300 "
                 }`}
               >
                 {page}
@@ -81,20 +81,15 @@ export default function CataloguePagination({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="flex items-center justify-center w-11 h-11 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+          className="flex items-center justify-center w-8 h-8 rounded border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all "
           aria-label="Next page"
         >
           {isRtl ? (
-            <ChevronLeft size={20} className="text-gray-600" />
+            <ChevronLeft size={18} className="text-gray-600" />
           ) : (
-            <ChevronRight size={20} className="text-gray-600" />
+            <ChevronRight size={18} className="text-gray-600" />
           )}
         </button>
-      </div>
-
-      {/* Page Info */}
-      <div className="text-center text-xs sm:text-sm text-gray-500 font-medium tracking-wide bg-gray-50 px-4 py-1.5 rounded-full">
-        {t.pagination} {currentPage} {t.of} {totalPages}
       </div>
     </div>
   );

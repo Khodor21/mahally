@@ -86,7 +86,7 @@ function FilterPanel({
   return (
     <div className="w-full flex flex-row items-center justify-between gap-3 md:gap-4 md:items-start md:items-center">
       {/* Sort Dropdown */}
-      <div className="w-[50%] md:w-w[75%] relative">
+      <div className="w-[50%] md:w-auto relative">
         <select
           value={sortOption}
           onChange={(e) => setSortOption(e.target.value as SortOption)}

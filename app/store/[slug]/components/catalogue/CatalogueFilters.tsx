@@ -67,9 +67,9 @@ export default function CatalogueFilters({
 
       {/* MOBILE VIEW: Title & Filter Button Row (< 768px) */}
       <div className="md:hidden flex items-center justify-between w-full pt-2 pb-1">
-        <h2 className="text-base md:text-lg font-medium text-main tracking-tight capitalize truncate pr-4">
+        <h3 className="text-base md:text-lg font-medium text-main tracking-tight capitalize truncate pr-4">
           {currentCategoryTitle}
-        </h2>
+        </h3>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           className="flex items-center gap-1 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-300 transition-all focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-brand-primary))]/20 shrink-0"
