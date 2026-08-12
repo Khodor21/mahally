@@ -84,14 +84,14 @@ function FilterPanel({
   dir: "rtl" | "ltr";
 }) {
   return (
-    <div className="w-full flex flex-col md:flex-row justify-between gap-3 md:gap-4 items-start md:items-center">
+    <div className="w-full flex flex-row items-center justify-between gap-3 md:gap-4 md:items-start md:items-center">
       {/* Sort Dropdown */}
-      <div className="w-full md:w-auto relative">
+      <div className="w-[50%] md:w-w[75%] relative">
         <select
           value={sortOption}
           onChange={(e) => setSortOption(e.target.value as SortOption)}
-          className={`w-full md:w-48 text-sm border border-gray-200 rounded-lg py-2.5 px-3 bg-white outline-none focus:border-brand-black focus:ring-2 focus:ring-brand-black/10 cursor-pointer appearance-none transition-all ${
-            dir === "rtl" ? "pr-10" : "pl-10"
+          className={`w-full md:w-48 text-sm border border-gray-200 rounded-sm py-1.5 px-1 bg-white outline-none focus:border-brand-black focus:ring-2 focus:ring-brand-black/10 cursor-pointer appearance-none transition-all ${
+            dir === "rtl" ? "pr-3" : "pl-3"
           }`}
         >
           <option value="default">{t.sortDefault}</option>
@@ -106,12 +106,12 @@ function FilterPanel({
       </div>
 
       {/* In Stock Toggle */}
-      <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+      <label className="flex items-center gap-2 cursor-pointer text-xs md:text-sm text-gray-700">
         <input
           type="checkbox"
           checked={inStockOnly}
           onChange={(e) => setInStockOnly(e.target.checked)}
-          className="rounded border-gray-300 text-brand-black focus:ring-brand-black w-4 h-4 cursor-pointer accent-brand-black"
+          className="rounded border-gray-300 text-brand-black focus:ring-brand-black w-3 h-3 md:w-4 md:h-4 cursor-pointer accent-brand-black"
         />
         {t.inStockOnly}
       </label>

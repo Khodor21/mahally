@@ -62,13 +62,21 @@ export default function CategoriesSection({
 
   if (loading) {
     return (
-      <section className="w-full py-8 px-2">
+      <section className="w-full py-8 md:py-12 px-4 md:px-10 mx-auto bg-white">
         <div className="max-w-7xl mx-auto">
+          {/* Skeleton Header */}
+          <div className="flex flex-col items-center justify-center mb-8 md:mb-12">
+            <div className="h-8 md:h-10 w-48 bg-gray-200 animate-pulse rounded-md mb-3" />
+            <div className="h-4 md:h-5 w-64 bg-gray-200 animate-pulse rounded-md" />
+            <div className="w-12 h-[3px] bg-gray-300 mx-auto rounded-full mt-4" />
+          </div>
+
+          {/* Skeleton Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {Array.from({ length: 5 }).map((_, i) => (
+            {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="w-full aspect-[3/4] rounded-2xl bg-gray-200 animate-pulse"
+                className="w-full aspect-[1/1.3] rounded-xl bg-gray-200 animate-pulse"
               />
             ))}
           </div>
@@ -82,7 +90,8 @@ export default function CategoriesSection({
   return (
     <section
       id="categories"
-      className="w-full px-2 md:px-10 mx-auto bg-white py-8 md:py-12"
+      className="w-full px-4 md:px-10 mx-auto bg-white py-8 md:py-12"
+      dir={lang === "ar" ? "rtl" : "ltr"}
     >
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
@@ -96,8 +105,8 @@ export default function CategoriesSection({
           <div className="w-12 h-[3px] bg-[rgb(var(--color-brand-primary))] mx-auto rounded-full mt-4" />
         </div>
 
-        {/* DESKTOP GRID - 4 columns */}
-        <div className="hidden md:grid grid-cols-4 gap-6">
+        {/* UNIFIED GRID - 2 columns on mobile, 4 on desktop */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {categories.map((cat) => (
             <Link
               key={cat.id}
@@ -110,115 +119,39 @@ export default function CategoriesSection({
                   src={cat.logo_url}
                   alt={cat.title}
                   fill
-                  sizes="25vw"
-                  className="object-cover group-hover:scale-110 transition-transform duration-500"
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
                 />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                  <span className="text-brand-black/30">No Image</span>
+                  <span className="text-brand-black/30 text-xs md:text-sm font-medium">
+                    No Image
+                  </span>
                 </div>
               )}
 
               {/* OVERLAY */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent group-hover:from-black/75 transition-colors duration-300" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent group-hover:from-black/80 transition-colors duration-300" />
 
               {/* CONTENT WRAPPER */}
-              <div className="absolute bottom-4 left-0 right-0 text-center px-3">
+              <div className="absolute bottom-3 md:bottom-5 left-0 right-0 text-center px-2 md:px-4">
                 {/* TITLE */}
-                <p className="text-white text-base md:text-lg font-semibold transition-colors">
+                <p className="text-white text-sm md:text-lg font-semibold transition-colors line-clamp-2 leading-tight">
                   {cat.title}
                 </p>
 
-                {/* SHOP NOW - appears on hover */}
+                {/* SHOP NOW - appears on hover/tap */}
                 <div className="overflow-hidden h-0 group-hover:h-auto transition-all duration-300">
-                  <p className="text-white text-sm font-medium mt-2 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <p className="text-white/90 text-xs md:text-sm font-medium mt-1.5 md:mt-2 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     {t.shopNow}
-                    <span>{lang === "ar" ? "←" : "→"}</span>
+                    <span className="inline-block transform group-hover:translate-x-1 transition-transform duration-300">
+                      {lang === "ar" ? "←" : "→"}
+                    </span>
                   </p>
                 </div>
               </div>
             </Link>
           ))}
-        </div>
-
-        {/* MOBILE VIEW - Featured + sidebar */}
-        <div className="md:hidden">
-          {categories.length > 0 && (
-            <div className="grid grid-cols-1 gap-4">
-              {/* First item - featured (large) */}
-              <Link
-                href={`/category/${encodeURIComponent(categories[0].title)}?lang=${lang}`}
-                className="group relative w-full aspect-[3/2] md:aspect-auto rounded-xl overflow-hidden cursor-pointer"
-              >
-                {categories[0].logo_url ? (
-                  <Image
-                    src={categories[0].logo_url}
-                    alt={categories[0].title}
-                    fill
-                    sizes="100vw"
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                    <span className="text-brand-black/30">No Image</span>
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent group-hover:from-black/80 transition-colors duration-300" />
-                <div className="absolute bottom-4 left-0 right-0 text-center px-3">
-                  <p className="text-white text-lg md:text-xl font-semibold transition-colors">
-                    {categories[0].title}
-                  </p>
-                  <div className="overflow-hidden h-0 group-hover:h-auto transition-all duration-300">
-                    <p className="text-white text-sm font-medium mt-2 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      {t.shopNow}
-                      <span>{lang === "ar" ? "←" : "→"}</span>
-                    </p>
-                  </div>
-                </div>
-              </Link>
-
-              {/* Remaining items - grid below */}
-              {categories.length > 1 && (
-                <div className="grid grid-cols-2 gap-4">
-                  {categories.slice(1).map((cat) => (
-                    <Link
-                      key={cat.id}
-                      href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
-                      className="group relative w-full aspect-[1/1.3] rounded-lg overflow-hidden cursor-pointer"
-                    >
-                      {cat.logo_url ? (
-                        <Image
-                          src={cat.logo_url}
-                          alt={cat.title}
-                          fill
-                          sizes="50vw"
-                          className="object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                          <span className="text-brand-black/30 text-xs">
-                            No Image
-                          </span>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent group-hover:from-black/80 transition-colors duration-300" />
-                      <div className="absolute bottom-3 left-0 right-0 text-center px-2">
-                        <p className="text-white text-sm font-semibold transition-colors">
-                          {cat.title}
-                        </p>
-                        <div className="overflow-hidden h-0 group-hover:h-auto transition-all duration-300">
-                          <p className="text-white text-xs font-medium mt-1 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            {t.shopNow}
-                            <span>{lang === "ar" ? "←" : "→"}</span>
-                          </p>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </section>

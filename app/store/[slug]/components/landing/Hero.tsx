@@ -133,22 +133,22 @@ export default function HeroSection({
           })}
         </div>
 
-        {/* Prev Button - Always visible on mobile, hover on desktop */}
+        {/* Prev Button - Hidden on mobile, hover on desktop */}
         <button
           onClick={goToPrev}
-          className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/90 md:bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-white hover:scale-105 active:scale-95 z-20 shadow-sm"
+          className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white hover:scale-105 active:scale-95 z-20 shadow-sm"
           aria-label="Previous slide"
         >
-          <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-800" />
+          <ChevronLeft className="w-6 h-6 text-gray-800" />
         </button>
 
-        {/* Next Button - Always visible on mobile, hover on desktop */}
+        {/* Next Button - Hidden on mobile, hover on desktop */}
         <button
           onClick={goToNext}
-          className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/90 md:bg-white/80 backdrop-blur-sm flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-white hover:scale-105 active:scale-95 z-20 shadow-sm"
+          className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white hover:scale-105 active:scale-95 z-20 shadow-sm"
           aria-label="Next slide"
         >
-          <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-gray-800" />
+          <ChevronRight className="w-6 h-6 text-gray-800" />
         </button>
 
         {/* Dots - Enhanced touch targets for mobile */}

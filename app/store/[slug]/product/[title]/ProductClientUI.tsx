@@ -700,8 +700,8 @@ export default function ProductClientUI({
               />
             </div>
 
-            {/* Action Buttons (DESKTOP ONLY) */}
-            <div className="mt-auto hidden md:block">
+            {/* Action Buttons (DESKTOP ONLY) - Removed mt-auto to fix spacing issue */}
+            <div className="hidden md:block">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
                   onClick={handleAddToCart}
@@ -769,9 +769,10 @@ export default function ProductClientUI({
       </div>
 
       {/* --- MOBILE FIXED BOTTOM BAR (matches image_e7ad89.png) --- */}
+      {/* Changed z-50 to z-[999] to ensure it sits over global navigation */}
       <div
         dir={dir}
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 px-4 py-4 shadow-[0_-4px_15px_rgba(0,0,0,0.04)]"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-[999] bg-white border-t border-gray-200 px-4 py-4 shadow-[0_-4px_15px_rgba(0,0,0,0.04)]"
       >
         <div className="flex flex-col gap-3">
           {/* Mobile Quantity Selector (Full Width) */}
@@ -821,7 +822,7 @@ export default function ProductClientUI({
       {added && (
         <div
           dir={dir}
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100vw-2rem)] md:w-[400px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100vw-2rem)] md:w-[400px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
         >
           {/* PROGRESS BAR */}
           <div
@@ -984,7 +985,7 @@ export default function ProductClientUI({
       {stockWarning && (
         <div
           dir={dir}
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-lg shadow-2xl overflow-hidden border border-red-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-lg shadow-2xl overflow-hidden border border-red-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
         >
           {/* PROGRESS BAR */}
           <div

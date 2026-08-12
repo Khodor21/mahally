@@ -147,24 +147,29 @@ export default function MiniCatalogue({
 
   // Business Logic: Fetch categories from API if not provided via props
   useEffect(() => {
-    if (!categories || categories.length === 0) {
-      const fetchCategories = async () => {
-        try {
-          const response = await fetch(`/api/categories?store_id=${storeId}`);
-          if (response.ok) {
-            const data = await response.json();
-            setFetchedCategories(data);
-          }
-        } catch (error) {
-          console.error("Failed to fetch categories:", error);
-        }
-      };
-      fetchCategories();
-    } else {
+    // If categories are already provided via props, just use them
+    if (categories && categories.length > 0) {
       setFetchedCategories(categories);
+      return; // Exit early so we don't fetch
     }
-  }, [categories, storeId]);
 
+    // Otherwise, fetch them
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch(`/api/categories?store_id=${storeId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setFetchedCategories(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+    };
+
+    fetchCategories();
+
+    // Notice we track categories?.length, NOT the categories array itself
+  }, [categories?.length, storeId]);
   // Business Logic: Process and sort categories
   const displayCategories = useMemo(() => {
     if (fetchedCategories && fetchedCategories.length > 0) {

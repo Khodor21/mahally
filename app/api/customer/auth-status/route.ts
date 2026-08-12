@@ -1,4 +1,3 @@
-// app/api/customer/auth-status/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireCustomerSession } from "@/lib/customer-auth";

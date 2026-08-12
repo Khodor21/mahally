@@ -14,9 +14,8 @@ export default function NotificationInitializer() {
     let pollInterval: NodeJS.Timeout;
     let timeoutId: NodeJS.Timeout;
     let attempts = 0;
-    const maxAttempts = 10; // Poll up to 10 times (5 seconds)
+    const maxAttempts = 10;
 
-    // Check if user just signed up
     const justSignedUp =
       localStorage.getItem("_mahally_just_signed_up") === "true";
 
@@ -24,6 +23,15 @@ export default function NotificationInitializer() {
       attempts++;
       try {
         const res = await fetch("/api/customer/auth-status");
+
+        // Bail out early if the user is 401 Unauthorized so we don't crash on res.json()
+        if (!res.ok) {
+          if (attempts >= maxAttempts && pollInterval) {
+            clearInterval(pollInterval);
+          }
+          return;
+        }
+
         const data = await res.json();
 
         if (data.authenticated && data.customerId) {
@@ -35,7 +43,6 @@ export default function NotificationInitializer() {
           );
 
           if (!isRegistered) {
-            // Show prompt immediately (no delay if just signed up)
             if (justSignedUp) {
               setShowPrompt(true);
               localStorage.removeItem("_mahally_just_signed_up");
@@ -46,10 +53,8 @@ export default function NotificationInitializer() {
             }
           }
 
-          // Clear polling once authenticated
           if (pollInterval) clearInterval(pollInterval);
         } else if (attempts >= maxAttempts) {
-          // Stop polling after max attempts
           if (pollInterval) clearInterval(pollInterval);
         }
       } catch (error) {
@@ -60,21 +65,16 @@ export default function NotificationInitializer() {
       }
     };
 
-    // Detect language from document
     const docLang = document.documentElement.lang as "en" | "ar";
     if (docLang) setLang(docLang);
 
-    // If just signed up, do immediate check without polling delay
     if (justSignedUp) {
+      // 1. If they just signed up, check immediately, then poll to wait for the cookie
       checkAuth();
+      pollInterval = setInterval(checkAuth, 500);
     } else {
-      // Initial immediate check for existing users
+      // 2. Normal visitor: just check ONCE. No polling.
       checkAuth();
-
-      // Poll every 500ms for up to 5 seconds
-      if (attempts < maxAttempts) {
-        pollInterval = setInterval(checkAuth, 500);
-      }
     }
 
     return () => {
