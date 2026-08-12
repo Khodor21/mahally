@@ -439,12 +439,14 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                       <button
                         key={item.id}
                         onClick={() => setActiveSection(item.section)}
-                        className={`w-full h-10 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                        className={`flex gap-1 items-center justify-center w-full h-10 px-4 rounded text-sm font-medium transition-all whitespace-nowrap ${
                           activeSection === item.section
                             ? "bg-brand-primary text-white"
                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         }`}
                       >
+                        {item.icon}
+
                         {isArabic ? item.labelAr : item.label}
                       </button>
                     ))}
@@ -457,7 +459,7 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                     <button
                       key={item.id}
                       onClick={() => setActiveSection(item.section)}
-                      className={`h-11 px-4 rounded-xl flex items-center gap-3 text-sm font-medium transition-all ${
+                      className={`h-11 px-4 rounded flex items-center gap-3 text-sm font-medium transition-all ${
                         activeSection === item.section
                           ? "bg-brand-primary text-white"
                           : "text-gray-700 hover:bg-gray-100"
@@ -643,7 +645,7 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                   </section>
 
                   {/* Addresses Section (Merged into Account) */}
-                  <section className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200 p-4 sm:p-6 md:p-7">
+                  {/* <section className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200 p-4 sm:p-6 md:p-7">
                     <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-6">
                       {tr.addresses}
                     </h3>
@@ -659,7 +661,7 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                         {tr.noAddressesDesc}
                       </p>
                     </div>
-                  </section>
+                  </section> */}
                 </>
               )}
 

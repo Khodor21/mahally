@@ -93,7 +93,7 @@ export default function BottomNavbar({
         <span className="relative flex items-center justify-center leading-none">
           <ShoppingBag size={18} className="stroke-[1.5]" />
           {cartCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-brand-primary text-white text-[8px] font-bold px-0.5 leading-none ring-1 ring-white">
+            <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-[#F45151] text-white text-[8px] font-bold px-0.5 leading-none ring-1 ring-white">
               {cartCount > 9 ? "9+" : cartCount}
             </span>
           )}
@@ -103,7 +103,7 @@ export default function BottomNavbar({
         <span className="relative flex items-center justify-center leading-none">
           <ShoppingBag size={18} fill="currentColor" className="stroke-[1.5]" />
           {cartCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-brand-primary text-white text-[8px] font-bold px-0.5 leading-none ring-1 ring-white">
+            <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 flex items-center justify-center rounded-full bg-[#F45151] text-white text-[8px] font-bold px-0.5 leading-none ring-1 ring-white">
               {cartCount > 9 ? "9+" : cartCount}
             </span>
           )}
