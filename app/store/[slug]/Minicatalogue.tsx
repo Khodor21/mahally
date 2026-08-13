@@ -134,12 +134,6 @@ export default function MiniCatalogue({
   twitter_url,
   snapchat,
   snapchat_url,
-
-  storeEmail,
-  storePhone,
-  storeLocation,
-  storeHours,
-  primaryColor,
 }: MiniCatalogueProps) {
   const isRtl = lang === "ar";
   const t = CONTENT_DICTIONARY[lang] || CONTENT_DICTIONARY.en;
@@ -361,7 +355,7 @@ export default function MiniCatalogue({
         </div>
 
         {/* Search + Filters Section */}
-        <div id="catalogue-filters" className="scroll-mt-24">
+        <div id="catalogue-filters" className="scroll-mt-24 px-2">
           <CatalogueFilters
             searchQuery={searchQuery}
             setSearchQuery={handleSearch}
@@ -384,9 +378,9 @@ export default function MiniCatalogue({
         </div>
 
         {/* Products Grid */}
-        <div className="mb-14">
+        <div className="mb-8 md:mb-14">
           {paginatedProducts.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-6">
               {mappedProducts.map((product) => (
                 <div
                   key={product.id}
@@ -434,7 +428,7 @@ export default function MiniCatalogue({
       >
         <button
           onClick={scrollToTop}
-          className="w-12 h-12 rounded-full bg-brand-primary text-white shadow-xl hover:bg-gray-800 hover:scale-105 active:scale-95 transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
+          className="w-12 h-12 rounded-full bg-brand-primary text-white shadow-xl hover:bg-white hover:text-brand-primary hover:scale-105 active:scale-95 transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
           aria-label="Scroll to top"
         >
           <ArrowUp size={22} strokeWidth={2.5} />

@@ -19,7 +19,7 @@ export default function CataloguePagination({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex flex-col items-center gap-6 mt-4 mb-8 w-full">
+    <div className="flex flex-col items-center gap-6 mt-4 w-full">
       <div
         className="flex items-center justify-center gap-2 flex-wrap"
         dir={isRtl ? "rtl" : "ltr"}

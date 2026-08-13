@@ -137,12 +137,20 @@ export default function ShippingForm({
     address: false,
   });
 
-  // Lebanese phone validation (starts with +961 or 0, followed by valid number)
+  // Set default phone prefix on mount if empty
+  useEffect(() => {
+    if (!customerPhone) {
+      setCustomerPhone("+961 ");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Validation allowing Lebanese OR generic international numbers (e.g., +966)
   const validatePhoneNumber = (phone: string): boolean => {
     // Remove spaces and dashes
     const cleaned = phone.replace(/[\s\-]/g, "");
-    // Lebanese numbers: +961XXXXXXXXX or 0LXXXXXXXXX (8 digits after prefix)
-    const phoneRegex = /^(\+961|0)[1-9]\d{7}$/;
+    // Allows + followed by 8-15 digits OR 0 followed by 8 digits (local Lebanese)
+    const phoneRegex = /^(\+[1-9]\d{7,14}|0[1-9]\d{7})$/;
     return phoneRegex.test(cleaned);
   };
 
@@ -164,18 +172,19 @@ export default function ShippingForm({
         return "";
 
       case "customerPhone":
-        if (!value?.trim()) {
+        if (!value?.trim() || value.trim() === "+961") {
           return isArabic ? "رقم الهاتف مطلوب" : "Phone number is required";
         }
         if (!validatePhoneNumber(value)) {
           return isArabic
-            ? "رقم هاتف لبناني صحيح (مثال: +961 3 123 456)"
-            : "Valid Lebanese phone required (e.g., +961 3 123 456)";
+            ? "رقم هاتف صحيح مطلوب (مثال: +961 3 123 456)"
+            : "Valid phone required (e.g., +961 3 123 456)";
         }
         return "";
 
       case "city":
-        if (!city) {
+        // Fixed: Use 'value' parameter instead of 'city' state variable
+        if (!value) {
           return isArabic ? "يجب اختيار محافظة" : "City selection required";
         }
         return "";
@@ -215,6 +224,7 @@ export default function ShippingForm({
     !errors.address &&
     customerName.trim() &&
     customerPhone.trim() &&
+    customerPhone.trim() !== "+961" && // Ensure they actually typed a number
     city &&
     address.trim() &&
     selectedPaymentMethod,
@@ -317,11 +327,11 @@ export default function ShippingForm({
               onBlur={() => handleFieldBlur("customerPhone")}
               className={getInputClasses("customerPhone")}
               placeholder={isArabic ? "+961 3 123 456" : "+961 3 123 456"}
-              dir={isArabic ? "rtl" : "ltr"}
+              dir="ltr" // Kept LTR strictly for phone inputs so the '+' stays on the left
               autoComplete="tel"
             />
             {renderError("customerPhone")}
-            <p className="text-gray-400 text-xs mt-1">
+            <p className="text-gray-400 text-xs mt-1 text-start">
               {isArabic
                 ? "مثال: +961 3 123 456 أو 03 123 456"
                 : "Example: +961 3 123 456 or 03 123 456"}

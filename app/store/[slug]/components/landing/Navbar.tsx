@@ -60,11 +60,28 @@ export default function Navbar({
   const [searchLoading, setSearchLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+
+  // New state to track scroll position for premium sticky effect
+  const [isScrolled, setIsScrolled] = useState(false);
+
   const { cartCount, favCount } = useShop();
   const router = useRouter();
 
   const dir = lang === "ar" ? "rtl" : "ltr";
   const isRTL = lang === "ar";
+
+  // Track scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    // Check initial position on mount
+    handleScroll();
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Listen for the custom event emitted by BottomNavbar to open the search modal
   useEffect(() => {
@@ -169,18 +186,24 @@ export default function Navbar({
       {promoText && promoText.trim() !== "" && (
         <div
           dir={dir}
-          className="w-full bg-brand-primary text-white text-center py-2.5 px-4 text-[13px] sm:text-sm tracking-wide font-medium"
+          className="w-full bg-brand-primary text-white text-center py-2.5 px-4 text-[13px] sm:text-sm tracking-wide font-medium relative z-[51]"
         >
           {promoText}
         </div>
       )}
 
-      {/* HEADER - Relative on Mobile (scrolls away), Sticky on Desktop */}
+      {/* HEADER - Dynamically styled for premium smooth scrolling */}
       <header
         dir={dir}
-        className="relative md:sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 transition-all duration-200"
+        className={`z-50 w-full transition-all duration-300 ease-in-out ${
+          isMini ? "sticky top-0" : "relative md:sticky md:top-0"
+        } ${
+          isScrolled
+            ? "bg-white/85 backdrop-blur-lg shadow-sm border-b border-gray-200/50"
+            : "bg-white/95 backdrop-blur-sm border-b border-gray-100"
+        }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-auto py-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-auto">
           <div className="flex items-center justify-between h-14 md:h-14 my-auto gap-3 md:gap-8">
             {/* 1. START (Logo) */}
             <Link
@@ -191,11 +214,11 @@ export default function Navbar({
                 <img
                   src={logoUrl}
                   alt={storeName}
-                  className="h-7 md:h-10 w-auto max-w-[80px] md:max-w-[160px] object-contain"
+                  className="h-7 md:h-10 w-auto max-w-[80px] md:max-w-[160px] object-contain transition-transform duration-300 group-hover:scale-105"
                 />
               ) : (
                 <div
-                  className="flex-shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm"
+                  className="flex-shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm transition-transform duration-300 group-hover:scale-105"
                   style={{ backgroundColor: primaryColor || "#111827" }}
                 >
                   {storeName.charAt(0).toUpperCase()}
@@ -243,7 +266,7 @@ export default function Navbar({
               {/* Search Icon (Mobile & Desktop) */}
               <button
                 onClick={() => setSearchOpen(true)}
-                className="hidden md:flex transition-colors text-gray-700 hover:text-brand-primary"
+                className={`hidden md:flex transition-all duration-200 text-gray-700 hover:text-brand-primary hover:scale-110 active:scale-95`}
                 aria-label={t.search}
               >
                 <Search className="w-[22px] h-[22px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
@@ -253,7 +276,7 @@ export default function Navbar({
               {!isMini && (
                 <Link
                   href={"/profile"}
-                  className="hidden md:flex transition-colors text-gray-700 hover:text-brand-primary"
+                  className="hidden md:flex transition-all duration-200 text-gray-700 hover:text-brand-primary hover:scale-110 active:scale-95"
                   aria-label={t.profile}
                 >
                   <User className="w-[24px] h-[24px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
@@ -263,12 +286,12 @@ export default function Navbar({
               {/* Favorites (Mobile & Desktop) */}
               <Link
                 href={"/favorites"}
-                className="relative transition-colors text-gray-700 hover:text-brand-primary flex items-center justify-center"
+                className="relative flex items-center justify-center transition-all duration-200 text-gray-700 hover:text-brand-primary hover:scale-110 active:scale-95"
                 aria-label={t.favorites}
               >
                 <Heart className="w-[21px] h-[21px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
                 {favCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2 min-w-[19px] h-[19px] flex items-center justify-center px-1 text-[10px] font-bold bg-[#F45151] text-white rounded-full ring-2 ring-white shadow-sm">
+                  <span className="absolute -top-1.5 -right-2 min-w-[19px] h-[19px] flex items-center justify-center px-1 text-[10px] font-bold bg-[#F45151] text-white rounded-full ring-2 ring-white shadow-sm animate-in zoom-in duration-200">
                     {favCount > 99 ? "99+" : favCount}
                   </span>
                 )}
@@ -277,12 +300,12 @@ export default function Navbar({
               {/* Cart (Mobile And Desktop) */}
               <Link
                 href={"/cart"}
-                className="relative transition-colors text-gray-700 hover:text-brand-primary flex items-center justify-center"
+                className="relative flex items-center justify-center transition-all duration-200 text-gray-700 hover:text-brand-primary hover:scale-110 active:scale-95"
                 aria-label={t.cart}
               >
                 <ShoppingBag className="w-[20px] h-[20px] md:w-[25px] md:h-[25px] stroke-[1.5]" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2 min-w-[19px] h-[19px] flex items-center justify-center px-1 text-[10px] font-bold bg-[#F45151] text-white rounded-full ring-2 ring-white shadow-sm">
+                  <span className="absolute -top-1.5 -right-2 min-w-[19px] h-[19px] flex items-center justify-center px-1 text-[10px] font-bold bg-[#F45151] text-white rounded-full ring-2 ring-white shadow-sm animate-in zoom-in duration-200">
                     {cartCount > 99 ? "99+" : cartCount}
                   </span>
                 )}

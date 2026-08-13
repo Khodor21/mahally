@@ -66,8 +66,8 @@ export default function CatalogueFilters({
       </div>
 
       {/* MOBILE VIEW: Title & Filter Button Row (< 768px) */}
-      <div className="md:hidden flex items-center justify-between w-full pt-2 pb-1">
-        <h3 className="text-base md:text-lg font-medium text-main tracking-tight capitalize truncate pr-4">
+      <div className="md:hidden flex items-center justify-between w-full pt-2">
+        <h3 className="text-base md:text-lg font-medium text-main tracking-tight capitalize truncate">
           {currentCategoryTitle}
         </h3>
         <button

@@ -3,7 +3,6 @@
 import React from "react";
 import { Instagram, Facebook, Twitter, Music2, Ghost } from "lucide-react";
 
-// Custom WhatsApp Icon to perfectly match the brand logo
 const WhatsAppIcon = ({ className = "" }: { className?: string }) => (
   <svg
     viewBox="0 0 24 24"
@@ -15,7 +14,6 @@ const WhatsAppIcon = ({ className = "" }: { className?: string }) => (
   </svg>
 );
 
-// ✅ Accept BOTH naming conventions to prevent future mismatches
 type SocialMediaIconsProps = {
   instagram?: string;
   instagram_url?: string;
@@ -37,17 +35,14 @@ type SocialMediaIconsProps = {
   snapchatUrl?: string;
 };
 
-// 🔧 HELPER: Formats handles into proper URLs to prevent broken 404 links
 const formatSocialUrl = (platform: string, input?: string) => {
   if (!input) return undefined;
   const trimmed = input.trim();
 
-  // If it already looks like a valid link, return it
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
     return trimmed;
   }
 
-  // Otherwise, construct the URL based on the platform
   const handle = trimmed.replace(/^@/, ""); // Remove @ if they typed it
   switch (platform) {
     case "instagram":
@@ -164,15 +159,15 @@ export default function SocialMediaIcons({
   return (
     <div
       dir={isRtl ? "rtl" : "ltr"}
-      className="flex flex-col items-center justify-center gap-5 py-6"
+      className="flex flex-col items-center justify-center gap-2"
     >
       {/* Refined Section Title */}
-      <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400/80">
+      <h3 className="text-sm font-medium uppercase tracking-[0.2em] text-black/80">
         {titleText}
       </h3>
 
       {/* Icons Grid */}
-      <div className="flex flex-wrap items-center justify-center gap-4">
+      <div className="flex flex-wrap items-center justify-center gap-3">
         {socialLinks.map((social) => {
           const IconComponent = social.icon;
           return (
@@ -182,10 +177,10 @@ export default function SocialMediaIcons({
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`Visit us on ${social.name}`}
-              className={`group flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full border border-gray-100 bg-white text-gray-400 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-gray-200 ${social.activeBg} ${social.activeBorder}`}
+              className={`group flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-gray-100 bg-white text-gray-400 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-gray-200 ${social.activeBg} ${social.activeBorder}`}
             >
               <IconComponent
-                className={`h-4 w-4 sm:h-4 sm:w-4 transition-colors duration-300 ${social.activeText}`}
+                className={`h-3 w-3 sm:h-4 sm:w-4 transition-colors duration-300 ${social.activeText}`}
                 {...(social.name !== "WhatsApp" ? { strokeWidth: 2 } : {})}
               />
             </a>

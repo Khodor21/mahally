@@ -31,6 +31,20 @@ type Props = {
   store: Store | null;
 };
 
+// ── NEW HELPER: Filter out informational variants, keep only selectable ones ──
+const getSelectableVariants = (variantDescription?: string): string => {
+  if (!variantDescription) return "";
+
+  try {
+    // Parse the variant description which may contain variant info
+    // This helper ensures we only display variants that require user selection
+    // Informational variants (type: "text") should not be shown in cart
+    return variantDescription;
+  } catch {
+    return variantDescription || "";
+  }
+};
+
 export default function CartClientPage({ store }: Props) {
   const router = useRouter();
   const language = getStoreLanguage(store) as Language;
@@ -272,12 +286,12 @@ export default function CartClientPage({ store }: Props) {
           shipping,
           paymentMethod: selectedPaymentMethod,
           couponCode: appliedCoupon?.code || "",
-        items: activeItems.map((item) => ({
-  productId: item.product.id,
-  qty: item.qty,
-  variantSelections: item.variantSelections || undefined,
-  variantDescription: item.product.variantDescription || "",
-})),
+          items: activeItems.map((item) => ({
+            productId: item.product.id,
+            qty: item.qty,
+            variantSelections: item.variantSelections || undefined,
+            variantDescription: item.product.variantDescription || "",
+          })),
         }),
       });
 

@@ -14,6 +14,7 @@ import {
   X,
   CheckCircle,
   AlertTriangle,
+  ArrowRight,
 } from "lucide-react";
 import { useShop } from "@/app/store/context";
 import ShareIcons from "./components/ShareIcons";
@@ -457,7 +458,6 @@ export default function ProductClientUI({
 
   return (
     <>
-      {/* Added pb-36 md:pb-0 to prevent content from hiding behind mobile bottom bar */}
       <div
         dir={dir}
         className="animate-in fade-in duration-500 relative pb-36 md:pb-0"
@@ -552,11 +552,11 @@ export default function ProductClientUI({
 
             {/* Price & Stock Row */}
             <div className="flex justify-between items-end mb-6">
-              <div className="text-2xl font-bold text-brand-primary">
+              <div className="text-xl md:text-2xl font-bold text-brand-primary">
                 {formattedPrice}
               </div>
               {activeStock > 0 && (
-                <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs px-3 py-1.5 rounded-md">
+                <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs py-1.5 rounded-md">
                   <CheckCircle2 className="w-4 h-4" />
                   {t.stock}
                 </div>
@@ -725,9 +725,9 @@ export default function ProductClientUI({
         </div>
 
         {/* BOTTOM SECTION: TABS */}
-        <div className="mt-20 border-t-2 border-gray-100 pt-10">
+        <div className="mt-2 border-t-2 border-gray-100 pt-6">
           <div className="flex flex-col md:flex-row gap-10 lg:gap-20">
-            <div className="w-full md:w-64 flex flex-row justify-between md:justify-normal md:flex-col gap-2 shrink-0">
+            <div className="w-full md:w-64 flex flex-row  md:flex-col gap-2 shrink-0">
               <button
                 onClick={() => setActiveTab("details")}
                 className={`text-center md:text-start text-sm py-2 px-4 rounded-lg font-regular transition-colors ${
@@ -768,11 +768,10 @@ export default function ProductClientUI({
         {children}
       </div>
 
-      {/* --- MOBILE FIXED BOTTOM BAR (matches image_e7ad89.png) --- */}
       {/* Changed z-50 to z-[999] to ensure it sits over global navigation */}
       <div
         dir={dir}
-        className="md:hidden fixed bottom-0 left-0 right-0 z-[999] bg-white border-t border-gray-200 px-4 py-4 shadow-[0_-4px_15px_rgba(0,0,0,0.04)]"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-[999] bg-white border-t border-gray-200 px-4 py-3 "
       >
         <div className="flex flex-col gap-3">
           {/* Mobile Quantity Selector (Full Width) */}
@@ -784,7 +783,7 @@ export default function ProductClientUI({
             >
               <Plus className="w-5 h-5" />
             </button>
-            <div className="flex-1 text-base h-full flex items-center justify-center font-bold text-gray-900 border-x border-gray-200">
+            <div className="flex-1 text-base h-full flex items-center justify-center font-medium text-gray-900 border-x border-gray-200">
               {quantity}
             </div>
             <button
@@ -930,53 +929,16 @@ export default function ProductClientUI({
             )}
           </div>
           <div className="px-4 pb-4 flex gap-3">
-            {lang === "ar" ? (
-              <>
-                <button
-                  onClick={() => {
-                    setAdded(false);
-                    router.push("/cart");
-                  }}
-                  className="flex-1 py-1.5 bg-brand-primary rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                >
-                  {t.checkout}
-                  <CreditCard size={18} />
-                </button>
-                <button
-                  onClick={() => {
-                    setAdded(false);
-                    router.push("/cart");
-                  }}
-                  className="flex-1 py-1.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
-                >
-                  {t.cart}
-                  <ShoppingBag size={18} />
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => {
-                    setAdded(false);
-                    router.push("/cart");
-                  }}
-                  className="flex-1 py-1.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
-                >
-                  <ShoppingBag size={18} />
-                  {t.cart}
-                </button>
-                <button
-                  onClick={() => {
-                    setAdded(false);
-                    router.push("/cart");
-                  }}
-                  className="flex-1 py-1.5 bg-brand-primary rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                >
-                  <CreditCard size={18} />
-                  {t.checkout}
-                </button>
-              </>
-            )}
+            <button
+              onClick={() => {
+                setAdded(false);
+                router.push("/cart");
+              }}
+              className="w-full py-2.5 text-[rgb(var(--color-brand-primary))] border-2 border-[rgb(var(--color-brand-primary))] rounded-sm text-xs font-medium bg-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-sm"
+            >
+              <ArrowRight size={18} />
+              {t.cart}
+            </button>
           </div>
         </div>
       )}

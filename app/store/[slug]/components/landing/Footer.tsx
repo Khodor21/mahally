@@ -121,7 +121,7 @@ export default function Footer({
   return (
     <footer
       dir={dir}
-      className="bg-brand-primary text-white mt-auto border-t border-white/10"
+      className="bg-brand-primary pb-32 text-white mt-auto border-t border-white/10"
     >
       <div className="mx-auto max-w-7xl px-6 py-16 sm:px-8 lg:px-12">
         {/* MAIN GRID */}

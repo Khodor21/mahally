@@ -33,23 +33,26 @@ type ProductCardProps = {
   lang: "en" | "ar";
 };
 
-const hasVariants = (variantGroups?: string | any[]): boolean => {
+const hasSelectableVariants = (variantGroups?: string | any[]): boolean => {
   if (!variantGroups) return false;
 
-  if (Array.isArray(variantGroups)) {
-    return variantGroups.length > 0;
-  }
+  let parsed: any[] = [];
 
-  if (typeof variantGroups === "string") {
+  if (Array.isArray(variantGroups)) {
+    parsed = variantGroups;
+  } else if (typeof variantGroups === "string") {
     try {
-      const parsed = JSON.parse(variantGroups);
-      return Array.isArray(parsed) && parsed.length > 0;
+      parsed = JSON.parse(variantGroups);
+      if (!Array.isArray(parsed)) return false;
     } catch {
       return false;
     }
+  } else {
+    return false;
   }
 
-  return false;
+  // Check if at least one variant group requires customer selection
+  return parsed.some((group) => group.type === "select");
 };
 
 const BADGE_STYLES = {
@@ -210,7 +213,9 @@ export default function ProductCard({
     ? calculateDiscount(product.price ?? 0, product.discount_price!)
     : 0;
 
-  const productHasVariants = hasVariants(product.variantGroups);
+  const productHasSelectableVariants = hasSelectableVariants(
+    product.variantGroups,
+  );
 
   if (!product) return null;
 
@@ -304,7 +309,7 @@ export default function ProductCard({
             </div>
 
             {/* ADD TO CART / CHOOSE OPTIONS BUTTON */}
-            {productHasVariants && !isOutOfStock ? (
+            {productHasSelectableVariants && !isOutOfStock ? (
               <a
                 href={productUrl}
                 className="relative z-20 w-full mt-4 flex items-center justify-center gap-1 py-2 rounded-sm text-xs md:text-sm font-medium border transition-all duration-300 border-[rgb(var(--color-brand-primary))] text-[rgb(var(--color-brand-primary))] bg-white hover:bg-[rgb(var(--color-brand-primary))] hover:text-white"
@@ -354,40 +359,25 @@ export default function ProductCard({
                 />
 
                 {/* HEADER */}
+                {/* 
+        Native Flexbox handles the mirroring based on the 'dir' attribute on the parent. 
+        In AR (RTL): Title is Right, X is Left.
+        In EN (LTR): Title is Left, X is Right.
+      */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
-                  {lang === "ar" ? (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="text-emerald-500" size={18} />
-                        <span className="text-sm font-bold text-gray-900">
-                          {t.toastTitle}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => setAdded(false)}
-                        className="text-gray-500 hover:text-gray-800 transition-colors"
-                        aria-label="Close"
-                      >
-                        <X size={20} />
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => setAdded(false)}
-                        className="text-gray-500 hover:text-gray-800 transition-colors"
-                        aria-label="Close"
-                      >
-                        <X size={20} />
-                      </button>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-gray-900">
-                          {t.toastTitle}
-                        </span>
-                        <CheckCircle className="text-emerald-500" size={18} />
-                      </div>
-                    </>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="text-emerald-500" size={18} />
+                    <span className="text-sm font-bold text-gray-900">
+                      {t.toastTitle}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setAdded(false)}
+                    className="text-gray-500 hover:text-gray-800 transition-colors"
+                    aria-label="Close"
+                  >
+                    <X size={20} />
+                  </button>
                 </div>
 
                 {/* BODY - PRODUCT INFO + IMAGE */}
@@ -451,67 +441,16 @@ export default function ProductCard({
 
                 {/* ACTION BUTTONS */}
                 <div className="px-4 pb-4 flex gap-3">
-                  {lang === "ar" ? (
-                    <>
-                      <button
-                        onClick={() => {
-                          setAdded(false);
-                          sessionStorage.setItem(
-                            "TEMP_BUY_NOW_ITEM",
-                            JSON.stringify({
-                              product: product,
-                              qty: 1,
-                            }),
-                          );
-                          router.push(`/cart?lang=${lang}`);
-                        }}
-                        className="flex-1 py-2.5 bg-[rgb(var(--color-brand-primary))] rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                      >
-                        {t.buyNow}
-                        <ArrowRight size={18} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setAdded(false);
-                          router.push(`/cart?lang=${lang}`);
-                        }}
-                        className="flex-1 py-2.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
-                      >
-                        {t.viewCart}
-                        <ShoppingBag size={18} />
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => {
-                          setAdded(false);
-                          router.push(`/cart?lang=${lang}`);
-                        }}
-                        className="flex-1 py-2.5 border border-gray-300 rounded-sm text-xs font-medium text-gray-800 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
-                      >
-                        <ShoppingBag size={18} />
-                        {t.viewCart}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setAdded(false);
-                          sessionStorage.setItem(
-                            "TEMP_BUY_NOW_ITEM",
-                            JSON.stringify({
-                              product: product,
-                              qty: 1,
-                            }),
-                          );
-                          router.push(`/cart?lang=${lang}`);
-                        }}
-                        className="flex-1 py-2.5 bg-[rgb(var(--color-brand-primary))] rounded-sm text-xs font-medium text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                      >
-                        {t.buyNow}
-                        <ArrowRight size={18} />
-                      </button>
-                    </>
-                  )}
+                  <button
+                    onClick={() => {
+                      setAdded(false);
+                      router.push(`/cart?lang=${lang}`);
+                    }}
+                    className="w-full py-2.5 text-[rgb(var(--color-brand-primary))] border-2 border-[rgb(var(--color-brand-primary))] rounded-sm text-xs font-medium bg-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-sm"
+                  >
+                    <ArrowRight size={18} />
+                    {t.viewCart}
+                  </button>
                 </div>
               </div>
             )}
