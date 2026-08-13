@@ -30,75 +30,130 @@ type SocialMediaIconsProps = {
   snapchat?: string;
   snapchat_url?: string;
   lang?: "ar" | "en";
+  instagramUrl?: string;
+  facebookUrl?: string;
+  tiktokUrl?: string;
+  twitterUrl?: string;
+  snapchatUrl?: string;
+};
+
+// 🔧 HELPER: Formats handles into proper URLs to prevent broken 404 links
+const formatSocialUrl = (platform: string, input?: string) => {
+  if (!input) return undefined;
+  const trimmed = input.trim();
+
+  // If it already looks like a valid link, return it
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+
+  // Otherwise, construct the URL based on the platform
+  const handle = trimmed.replace(/^@/, ""); // Remove @ if they typed it
+  switch (platform) {
+    case "instagram":
+      return `https://instagram.com/${handle}`;
+    case "facebook":
+      return `https://facebook.com/${handle}`;
+    case "tiktok":
+      return `https://tiktok.com/@${handle}`;
+    case "twitter":
+      return `https://twitter.com/${handle}`;
+    case "snapchat":
+      return `https://snapchat.com/add/${handle}`;
+    default:
+      return trimmed;
+  }
 };
 
 export default function SocialMediaIcons({
   instagram,
   instagram_url,
+  instagramUrl,
   facebook,
   facebook_url,
+  facebookUrl,
   tiktok,
   tiktok_url,
+  tiktokUrl,
   whatsapp,
   whatsapp_number,
   twitter,
   twitter_url,
+  twitterUrl,
   snapchat,
   snapchat_url,
+  snapchatUrl,
   lang = "en",
 }: SocialMediaIconsProps) {
   const isRtl = lang === "ar";
-
-  // Premium UX Copy for the title
   const titleText = isRtl ? "تواصل معنا" : "Connect with us";
 
-  // Safely fallback to whichever prop name was provided
-  const activeInstagram = instagram || instagram_url;
-  const activeFacebook = facebook || facebook_url;
-  const activeTiktok = tiktok || tiktok_url;
-  const activeWhatsapp = whatsapp || whatsapp_number;
-  const activeTwitter = twitter || twitter_url;
-  const activeSnapchat = snapchat || snapchat_url;
+  // Safely fallback to whichever prop name was provided (checking all 3 common patterns)
+  const rawInstagram = instagram || instagram_url || instagramUrl;
+  const rawFacebook = facebook || facebook_url || facebookUrl;
+  const rawTiktok = tiktok || tiktok_url || tiktokUrl;
+  const rawWhatsapp = whatsapp || whatsapp_number;
+  const rawTwitter = twitter || twitter_url || twitterUrl;
+  const rawSnapchat = snapchat || snapchat_url || snapchatUrl;
 
-  // Filter configured social media links
+  // 🔍 DEBUG: Log the props to verify the parent is successfully passing data
+  console.log("🔍 [SocialMediaIcons] Debugging Props:", {
+    rawTwitterReceived: { twitter, twitter_url, twitterUrl },
+    finalRawTwitter: rawTwitter,
+  });
+
+  // Filter configured social media links with clean tailwind classes
   const socialLinks = [
     {
       name: "Instagram",
-      url: activeInstagram,
+      url: formatSocialUrl("instagram", rawInstagram),
       icon: Instagram,
-      hoverClass: "group-hover:text-pink-600 group-hover:bg-pink-50",
+      activeBg: "group-hover:bg-pink-50",
+      activeText: "group-hover:text-pink-600",
+      activeBorder: "group-hover:border-pink-200",
     },
     {
       name: "Facebook",
-      url: activeFacebook,
+      url: formatSocialUrl("facebook", rawFacebook),
       icon: Facebook,
-      hoverClass: "group-hover:text-blue-600 group-hover:bg-blue-50",
+      activeBg: "group-hover:bg-blue-50",
+      activeText: "group-hover:text-blue-600",
+      activeBorder: "group-hover:border-blue-200",
     },
     {
       name: "TikTok",
-      url: activeTiktok,
+      url: formatSocialUrl("tiktok", rawTiktok),
       icon: Music2,
-      hoverClass: "group-hover:text-black group-hover:bg-gray-200",
+      activeBg: "group-hover:bg-gray-100",
+      activeText: "group-hover:text-black",
+      activeBorder: "group-hover:border-gray-300",
     },
     {
       name: "WhatsApp",
-      url: activeWhatsapp
-        ? `https://wa.me/${activeWhatsapp.replace(/[^\d+]/g, "")}`
+      // WhatsApp needs special regex to strip non-numeric characters (e.g. +, spaces, dashes)
+      url: rawWhatsapp
+        ? `https://wa.me/${rawWhatsapp.replace(/[^\d+]/g, "")}`
         : undefined,
       icon: WhatsAppIcon,
-      hoverClass: "group-hover:text-emerald-500 group-hover:bg-emerald-50",
+      activeBg: "group-hover:bg-emerald-50",
+      activeText: "group-hover:text-emerald-600",
+      activeBorder: "group-hover:border-emerald-200",
     },
     {
       name: "Twitter",
-      url: activeTwitter,
+      url: formatSocialUrl("twitter", rawTwitter),
       icon: Twitter,
-      hoverClass: "group-hover:text-sky-500 group-hover:bg-sky-50",
+      activeBg: "group-hover:bg-sky-50",
+      activeText: "group-hover:text-sky-500",
+      activeBorder: "group-hover:border-sky-200",
     },
     {
       name: "Snapchat",
-      url: activeSnapchat,
+      url: formatSocialUrl("snapchat", rawSnapchat),
       icon: Ghost,
-      hoverClass: "group-hover:text-yellow-500 group-hover:bg-yellow-50",
+      activeBg: "group-hover:bg-yellow-50",
+      activeText: "group-hover:text-yellow-500",
+      activeBorder: "group-hover:border-yellow-200",
     },
   ].filter((link) => link.url && link.url.trim() !== "");
 
@@ -109,15 +164,15 @@ export default function SocialMediaIcons({
   return (
     <div
       dir={isRtl ? "rtl" : "ltr"}
-      className="flex flex-col items-center justify-center gap-3 py-4"
+      className="flex flex-col items-center justify-center gap-5 py-6"
     >
       {/* Refined Section Title */}
-      <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-[0.15em] text-gray-400">
+      <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400/80">
         {titleText}
       </h3>
 
       {/* Icons Grid */}
-      <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+      <div className="flex flex-wrap items-center justify-center gap-4">
         {socialLinks.map((social) => {
           const IconComponent = social.icon;
           return (
@@ -127,20 +182,10 @@ export default function SocialMediaIcons({
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`Visit us on ${social.name}`}
-              className="group relative flex w-8 h-8 sm:w-9 sm:h-9 items-center justify-center roundeي bg-gray-50 border border-gray-100 text-gray-500 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:translate-y-0 active:shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+              className={`group flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full border border-gray-100 bg-white text-gray-400 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-gray-200 ${social.activeBg} ${social.activeBorder}`}
             >
-              {/* Background Hover Layer */}
-              <div
-                className={`absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 ${social.hoverClass
-                  .split(" ")[1]
-                  .replace("group-hover:", "")} group-hover:opacity-100`}
-              />
-
-              {/* Icon */}
               <IconComponent
-                className={`w-3 h-3 sm:w-4 sm:h-4 relative z-10 transition-colors duration-300 ${
-                  social.hoverClass.split(" ")[0]
-                }`}
+                className={`h-4 w-4 sm:h-4 sm:w-4 transition-colors duration-300 ${social.activeText}`}
                 {...(social.name !== "WhatsApp" ? { strokeWidth: 2 } : {})}
               />
             </a>

@@ -48,12 +48,21 @@ export interface MiniCatalogueProps {
   products: Product[];
   categories?: Category[];
   lang: "en" | "ar";
+
+  // ✅ Explicitly accepting all variations to prevent prop-dropping
   instagram?: string;
+  instagram_url?: string;
   facebook?: string;
+  facebook_url?: string;
   tiktok?: string;
+  tiktok_url?: string;
   whatsapp?: string;
+  whatsapp_number?: string;
   twitter?: string;
+  twitter_url?: string;
   snapchat?: string;
+  snapchat_url?: string;
+
   storeEmail?: string;
   storePhone?: string;
   storeLocation?: string;
@@ -111,12 +120,21 @@ export default function MiniCatalogue({
   products,
   categories = [],
   lang,
+
+  // Destructure all social props
   instagram,
+  instagram_url,
   facebook,
+  facebook_url,
   tiktok,
+  tiktok_url,
   whatsapp,
+  whatsapp_number,
   twitter,
+  twitter_url,
   snapchat,
+  snapchat_url,
+
   storeEmail,
   storePhone,
   storeLocation,
@@ -292,12 +310,12 @@ export default function MiniCatalogue({
         {/* Overlapping Logo */}
         {logoUrl && (
           <div className="absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-1/2 z-20">
-            <div className="relative border border-gray-100 w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 overflow-hidden rounded-lg bg-white shadow-sm transition-transform hover:scale-105 duration-300">
+            <div className="relative border border-gray-100 w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 overflow-hidden rounded-2xl bg-white shadow-sm transition-transform duration-500 hover:scale-105 hover:shadow-md">
               <Image
                 src={logoUrl}
                 alt={storeName}
                 fill
-                className="object-contain p-2"
+                className="object-contain p-2 sm:p-3"
                 priority
               />
             </div>
@@ -308,31 +326,36 @@ export default function MiniCatalogue({
       {/* MAIN CONTENT BODY */}
       <main
         className={`flex-grow px-4 sm:px-6 md:px-10 pb-8 md:pb-12 max-w-7xl mx-auto w-full ${
-          logoUrl ? "pt-16 sm:pt-20 md:pt-24" : "pt-8"
+          logoUrl ? "pt-16 sm:pt-20 md:pt-24" : "pt-10"
         }`}
       >
         {/* Store Header */}
-        <div className="w-full flex flex-col items-center gap-3 mb-8 md:mb-12">
+        <div className="w-full flex flex-col items-center gap-3 mb-10 md:mb-14">
           <h3 className="text-2xl md:text-4xl font-extrabold text-center text-gray-900 tracking-tight">
             {storeName}
           </h3>
           {storeDescription && (
-            <p className="max-w-3xl md:w-full text-sm md:text-base text-gray-500 text-center leading-relaxed px-2">
+            <p className="max-w-2xl w-full text-[13px] leading-[1.45] sm:text-sm md:text-base text-gray-500 text-center px-4">
               {storeDescription}
             </p>
           )}
 
-          <div className="mt-4">
+          <div className="mt-2">
+            {/* ✅ Passing down ALL variations to guarantee the child receives the data */}
             <SocialMediaIcons
-              {...({
-                instagram,
-                facebook,
-                tiktok,
-                whatsapp,
-                twitter,
-                snapchat,
-                lang,
-              } as any)}
+              instagram={instagram}
+              instagram_url={instagram_url}
+              facebook={facebook}
+              facebook_url={facebook_url}
+              tiktok={tiktok}
+              tiktok_url={tiktok_url}
+              whatsapp={whatsapp}
+              whatsapp_number={whatsapp_number}
+              twitter={twitter}
+              twitter_url={twitter_url}
+              snapchat={snapchat}
+              snapchat_url={snapchat_url}
+              lang={lang}
             />
           </div>
         </div>
@@ -351,23 +374,23 @@ export default function MiniCatalogue({
         </div>
 
         {/* Product Count indicator */}
-        <div className="hidden md:flex items-center justify-between mb-6 border-b border-gray-100 pb-4 mt-8">
-          <h2 className="text-lg font-semibold text-gray-900 capitalize">
+        <div className="hidden md:flex items-center justify-between mb-8 border-b border-gray-100 pb-5 mt-10">
+          <h3 className="text-lg font-bold text-gray-900 capitalize tracking-tight">
             <bdi>{selectedCategoryTitle}</bdi>
-          </h2>
-          <span className="text-xs font-medium text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100 shadow-sm">
+          </h3>
+          <span className="text-xs font-semibold text-gray-500 bg-gray-50 px-3.5 py-1.5 rounded-full border border-gray-100 shadow-sm">
             {filteredProducts.length} {t.products}
           </span>
         </div>
 
         {/* Products Grid */}
-        <div className="mb-12">
+        <div className="mb-14">
           {paginatedProducts.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-8">
               {mappedProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="flex flex-col h-full transform transition duration-300 hover:-translate-y-1"
+                  className="flex flex-col h-full transform transition-all duration-300 hover:-translate-y-1.5"
                 >
                   <ProductCard
                     product={product}
@@ -378,14 +401,14 @@ export default function MiniCatalogue({
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-20 md:py-32 text-center mt-8 mx-2 sm:mx-0 bg-gray-50/50 rounded-2xl border border-gray-100 border-dashed">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-5 bg-white rounded-full shadow-sm border border-gray-100">
-                <Search className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
+            <div className="flex flex-col items-center justify-center py-24 md:py-32 text-center mt-8 mx-2 sm:mx-0 bg-gray-50/30 rounded-3xl border border-gray-200/60 border-dashed shadow-sm">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-6 bg-white rounded-2xl shadow-sm border border-gray-100">
+                <Search className="w-7 h-7 sm:w-8 sm:h-8 text-gray-400" />
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2.5 tracking-tight">
                 {t.noResults}
               </h3>
-              <p className="text-sm sm:text-base text-gray-500 max-w-sm px-4">
+              <p className="text-sm sm:text-base text-gray-500 max-w-sm px-6 leading-relaxed">
                 {t.tryDifferentSearch}
               </p>
             </div>
@@ -401,11 +424,9 @@ export default function MiniCatalogue({
         />
       </main>
 
-      {/* Floating Scroll to Top */}
+      {/* Floating Scroll to Top (Uses logical 'end-6' for LTR/RTL support) */}
       <div
-        className={`fixed bottom-6 ${
-          isRtl ? "left-6" : "right-6"
-        } z-40 transition-all duration-300 ${
+        className={`fixed bottom-6 end-6 z-40 transition-all duration-300 ${
           showScrollTop
             ? "translate-y-0 opacity-100 visible"
             : "translate-y-10 opacity-0 invisible"
@@ -413,7 +434,7 @@ export default function MiniCatalogue({
       >
         <button
           onClick={scrollToTop}
-          className="w-11 h-11 rounded-full bg-gray-900 text-white shadow-lg hover:bg-gray-800 hover:scale-105 active:scale-95 transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
+          className="w-12 h-12 rounded-full bg-brand-primary text-white shadow-xl hover:bg-gray-800 hover:scale-105 active:scale-95 transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
           aria-label="Scroll to top"
         >
           <ArrowUp size={22} strokeWidth={2.5} />

@@ -37,7 +37,7 @@ export const getCachedStoreData = unstable_cache(
     const { data: settings } = await supabaseAdmin
       .from("store_settings")
       .select(
-        "logo_url, primary_color, promo_text, description, whatsapp_number, instagram_url",
+        "logo_url, primary_color, promo_text, description, whatsapp_number, instagram_url, twitter_url",
       )
       .eq("store_id", store.id)
       .maybeSingle();

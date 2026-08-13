@@ -59,7 +59,7 @@ export default function Footer({
   storeSlug = "",
   storeId = "",
   logoUrl,
-  primaryColor,
+  primaryColor, // Intentionally left to preserve prop signature, even if unused directly here
   phone,
   email,
   description,
@@ -73,11 +73,6 @@ export default function Footer({
 }: FooterProps) {
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  const buildUrl = (path: string) => {
-    if (!storeSlug) return `${path}?lang=${lang}`;
-    return `/${storeSlug}${path}?lang=${lang}`;
-  };
-
   // Fallbacks for contact info
   const displayEmail = email || `info@${storeSlug || "store"}.com`;
   const displayPhone = phone || "";
@@ -89,7 +84,7 @@ export default function Footer({
         "وجهتك الأولى للمنتجات عالية الجودة والقيمة الاستثنائية. نحن ملتزمون بتقديم تجربة تسوق سلسة مع اختيارات منتقاة بعناية، مما يضمن رضا العملاء والتميز في كل طلب.",
       importantLinks: "روابط مهمة",
       contactUs: "تواصل معنا",
-      commercialId: "الرقم التجاري:",
+      commercialId: "الرقم التجاري",
       rights: "جميع الحقوق محفوظة",
       cashOnDelivery: "الدفع عند الاستلام",
       whishMoney: "Whish Money",
@@ -107,7 +102,7 @@ export default function Footer({
         "Your premier destination for high-quality products and exceptional value. We are dedicated to providing a seamless shopping experience with carefully curated selections, ensuring customer satisfaction and excellence in every order.",
       importantLinks: "Important Links",
       contactUs: "Contact Us",
-      commercialId: "Commercial ID:",
+      commercialId: "Commercial ID",
       rights: "All rights reserved",
       cashOnDelivery: "Cash on Delivery",
       whishMoney: "Whish Money",
@@ -126,173 +121,171 @@ export default function Footer({
   return (
     <footer
       dir={dir}
-      className="bg-brand-primary text-white mt-auto border-t border-white/5"
+      className="bg-brand-primary text-white mt-auto border-t border-white/10"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-        {/* MAIN COLUMNS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 md:gap-12 mb-14">
-          {/* BRAND SECTION */}
-          <div className="flex flex-col gap-6">
-            <Link href={""} className="flex items-center gap-3 w-fit group">
+      <div className="mx-auto max-w-7xl px-6 py-16 sm:px-8 lg:px-12">
+        {/* MAIN GRID */}
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 xl:gap-16">
+          {/* BRAND & SOCIAL SECTION (Spans 5 cols on Desktop) */}
+          <div className="flex flex-col gap-6 lg:col-span-5 text-start">
+            <Link href="/" className="inline-block w-fit group">
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt={storeName}
-                  className="h-10 sm:h-12 w-auto max-w-[140px] md:max-w-[180px] object-contain transition-opacity group-hover:opacity-80 drop-shadow-sm bg-white px-2 py-1 rounded-sm"
+                  className="h-12 w-auto max-w-[180px] object-contain transition-opacity duration-300 group-hover:opacity-80 drop-shadow-sm bg-white px-3 py-1.5 rounded-md"
                 />
               ) : (
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-sm bg-white/10 border border-white/20 text-white transition-colors group-hover:bg-white/20">
+                <div className="flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center font-black text-2xl shadow-sm bg-white/10 border border-white/20 text-white transition-colors duration-300 group-hover:bg-white/20">
                   {storeName?.[0]?.toUpperCase() || "S"}
                 </div>
               )}
             </Link>
-            <p className="text-sm text-white/90 leading-relaxed font-medium max-w-sm">
+
+            <p className="text-sm text-white/80 leading-relaxed font-medium max-w-md">
               {t.description}
             </p>
+
+            {/* Social Media Icons (Moved under brand for premium SaaS feel) */}
+            <div className="flex items-center gap-3 pt-2 flex-wrap">
+              {whatsappNumber && (
+                <a
+                  href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="WhatsApp"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 border border-white/10 text-white/70 transition-all duration-200 hover:bg-white/15 hover:text-white hover:-translate-y-0.5"
+                >
+                  <WhatsAppIcon size={18} />
+                </a>
+              )}
+              {instagramUrl && (
+                <a
+                  href={instagramUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Instagram"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 border border-white/10 text-white/70 transition-all duration-200 hover:bg-white/15 hover:text-white hover:-translate-y-0.5"
+                >
+                  <Instagram size={18} />
+                </a>
+              )}
+              {facebookUrl && (
+                <a
+                  href={facebookUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Facebook"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 border border-white/10 text-white/70 transition-all duration-200 hover:bg-white/15 hover:text-white hover:-translate-y-0.5"
+                >
+                  <Facebook size={18} />
+                </a>
+              )}
+              {tiktokUrl && (
+                <a
+                  href={tiktokUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="TikTok"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 border border-white/10 text-white/70 transition-all duration-200 hover:bg-white/15 hover:text-white hover:-translate-y-0.5"
+                >
+                  <Music size={18} />
+                </a>
+              )}
+              {twitterUrl && (
+                <a
+                  href={twitterUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Twitter/X"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 border border-white/10 text-white/70 transition-all duration-200 hover:bg-white/15 hover:text-white hover:-translate-y-0.5"
+                >
+                  <Twitter size={18} />
+                </a>
+              )}
+              {snapchatUrl && (
+                <a
+                  href={snapchatUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Snapchat"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 border border-white/10 text-white/70 transition-all duration-200 hover:bg-white/15 hover:text-white hover:-translate-y-0.5"
+                >
+                  <Ghost size={18} />
+                </a>
+              )}
+            </div>
           </div>
 
-          {/* IMPORTANT LINKS */}
-          <div className="flex flex-col gap-5 md:items-center">
-            <div className="flex flex-col gap-5 w-full md:w-auto">
-              <p className="font-bold text-white text-lg tracking-tight">
-                {t.importantLinks}
-              </p>
-              <div className="flex flex-col gap-3.5">
-                {t.links.map(({ label, href }) => (
+          {/* IMPORTANT LINKS SECTION (Spans 3 cols on Desktop) */}
+          <div className="flex flex-col gap-6 lg:col-span-3 text-start">
+            <h3 className="text-xs font-bold tracking-wider uppercase text-white/50">
+              {t.importantLinks}
+            </h3>
+            <ul className="flex flex-col gap-4">
+              {t.links.map(({ label, href }) => (
+                <li key={label}>
                   <Link
-                    key={label}
                     href={href}
-                    className="text-sm text-white/90 hover:text-white transition-colors font-medium w-fit"
+                    className="text-sm font-medium text-white/80 transition-colors duration-200 hover:text-white inline-block"
                   >
                     {label}
                   </Link>
-                ))}
-              </div>
-            </div>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          {/* CONTACT SECTION */}
-          <div className="flex flex-col gap-5 md:items-end">
-            <div className="flex flex-col gap-5 w-full md:w-auto">
-              <p className="font-bold text-white text-lg tracking-tight">
-                {t.contactUs}
-              </p>
-
-              <div className="flex flex-col gap-3.5">
-                {displayPhone && (
+          {/* CONTACT SECTION (Spans 4 cols on Desktop) */}
+          <div className="flex flex-col gap-6 lg:col-span-4 text-start">
+            <h3 className="text-xs font-bold tracking-wider uppercase text-white/50">
+              {t.contactUs}
+            </h3>
+            <ul className="flex flex-col gap-5">
+              {displayPhone && (
+                <li>
                   <a
                     href={`tel:${displayPhone.replace(/\s+/g, "")}`}
-                    className="flex items-center gap-3 text-sm text-white/90 hover:text-white font-medium transition-colors w-fit"
+                    className="group flex items-start gap-4 text-sm font-medium text-white/80 transition-colors duration-200 hover:text-white w-fit"
                   >
-                    <Phone size={16} className="opacity-80" />
-                    <span dir="ltr">{displayPhone}</span>
+                    <div className="mt-0.5 flex-shrink-0 text-white/50 transition-colors group-hover:text-white">
+                      <Phone size={18} />
+                    </div>
+                    <span dir="ltr" className="leading-relaxed">
+                      {displayPhone}
+                    </span>
                   </a>
-                )}
-                <a
-                  href={`mailto:${displayEmail}`}
-                  className="flex items-center gap-3 text-sm text-white/90 hover:text-white font-medium transition-colors w-fit"
-                >
-                  <Mail size={16} className="opacity-80" />
-                  <span>{displayEmail}</span>
-                </a>
-              </div>
-
-              {/* Social Media Icons */}
-              <div className="flex items-center gap-2.5 pt-3 flex-wrap">
-                {whatsappNumber && (
+                </li>
+              )}
+              {displayEmail && (
+                <li>
                   <a
-                    href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="WhatsApp"
-                    title="WhatsApp"
-                    className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-all duration-200"
+                    href={`mailto:${displayEmail}`}
+                    className="group flex items-start gap-4 text-sm font-medium text-white/80 transition-colors duration-200 hover:text-white w-fit"
                   >
-                    <WhatsAppIcon size={18} />
+                    <div className="mt-0.5 flex-shrink-0 text-white/50 transition-colors group-hover:text-white">
+                      <Mail size={18} />
+                    </div>
+                    <span className="leading-relaxed break-all">
+                      {displayEmail}
+                    </span>
                   </a>
-                )}
-                {instagramUrl && (
-                  <a
-                    href={instagramUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="Instagram"
-                    title="Instagram"
-                    className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-all duration-200"
-                  >
-                    <Instagram size={17} />
-                  </a>
-                )}
-                {facebookUrl && (
-                  <a
-                    href={facebookUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="Facebook"
-                    title="Facebook"
-                    className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-all duration-200"
-                  >
-                    <Facebook size={17} />
-                  </a>
-                )}
-                {tiktokUrl && (
-                  <a
-                    href={tiktokUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="TikTok"
-                    title="TikTok"
-                    className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-all duration-200"
-                  >
-                    <Music size={17} />
-                  </a>
-                )}
-                {twitterUrl && (
-                  <a
-                    href={twitterUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="Twitter/X"
-                    title="Twitter/X"
-                    className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-all duration-200"
-                  >
-                    <Twitter size={17} />
-                  </a>
-                )}
-                {snapchatUrl && (
-                  <a
-                    href={snapchatUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="Snapchat"
-                    title="Snapchat"
-                    className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-all duration-200"
-                  >
-                    <Ghost size={17} />
-                  </a>
-                )}
-              </div>
-            </div>
+                </li>
+              )}
+            </ul>
           </div>
         </div>
 
-        {/* PAYMENT & COMMERCIAL ID ROW */}
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-6 py-6 border-t border-white/10">
-          {storeId ? (
-            <div className="flex items-center gap-2.5 text-sm font-semibold text-white/90">
-              <span>{t.commercialId}</span>
-              <span className="text-white/80 bg-white/10 px-2.5 py-1 rounded-md text-xs tracking-wide">
-                {storeId}
-              </span>
-            </div>
-          ) : (
-            <div className="hidden lg:block"></div>
-          )}
+        {/* DIVIDER */}
+        <hr className="my-10 w-full border-white/10 lg:my-12" />
 
-          <div className="flex flex-wrap items-center justify-center lg:justify-end gap-3">
+        {/* BOTTOM AREA: PAYMENT, COMMERCIAL ID & COPYRIGHT */}
+        <div className="flex flex-col items-center justify-between gap-8 md:flex-row text-center md:text-start">
+          {/* Payment Methods */}
+          <div className="flex flex-wrap items-center justify-center gap-3 md:justify-start order-2 md:order-1">
             {payment_methods.includes("cash_on_delivery") && (
-              <div className="flex items-center gap-2 bg-white/5 px-3.5 py-2 rounded-lg border border-white/10 backdrop-blur-sm">
-                <Banknote className="text-emerald-400" size={18} />
+              <div className="flex items-center gap-2 rounded-md bg-white/5 border border-white/10 px-3 py-2 backdrop-blur-sm shadow-sm transition-colors hover:bg-white/10">
+                <Banknote className="text-emerald-400" size={16} />
                 <span className="text-xs font-bold text-white/90">
                   {t.cashOnDelivery}
                 </span>
@@ -300,8 +293,8 @@ export default function Footer({
             )}
 
             {payment_methods.includes("whish_money") && (
-              <div className="flex items-center gap-2 bg-white/5 px-3.5 py-2 rounded-lg border border-white/10 backdrop-blur-sm">
-                <Wallet className="text-red-400" size={18} />
+              <div className="flex items-center gap-2 rounded-md bg-white/5 border border-white/10 px-3 py-2 backdrop-blur-sm shadow-sm transition-colors hover:bg-white/10">
+                <Wallet className="text-rose-400" size={16} />
                 <span className="text-xs font-bold text-white/90">
                   {t.whishMoney}
                 </span>
@@ -309,21 +302,31 @@ export default function Footer({
             )}
 
             {payment_methods.includes("bob_finance") && (
-              <div className="flex items-center gap-2 bg-white/5 px-3.5 py-2 rounded-lg border border-white/10 backdrop-blur-sm">
-                <CreditCard className="text-blue-400" size={18} />
+              <div className="flex items-center gap-2 rounded-md bg-white/5 border border-white/10 px-3 py-2 backdrop-blur-sm shadow-sm transition-colors hover:bg-white/10">
+                <CreditCard className="text-sky-400" size={16} />
                 <span className="text-xs font-bold text-white/90">
                   {t.bobFinance}
                 </span>
               </div>
             )}
           </div>
-        </div>
 
-        {/* FOOTER COPYRIGHT */}
-        <div className="flex flex-col-reverse sm:flex-row items-center justify-center sm:justify-between gap-4 pt-6 border-t border-white/10 text-sm font-medium text-white/50 text-center sm:text-left">
-          <p>
-            {storeName} © {new Date().getFullYear()} {t.rights}.
-          </p>
+          {/* Copyright & Commercial ID */}
+          <div className="flex flex-col items-center gap-4 md:items-end order-1 md:order-2">
+            {storeId && (
+              <div className="flex items-center gap-2 rounded-full bg-white/5 px-4 py-1.5 border border-white/10">
+                <span className="text-xs font-medium text-white/60">
+                  {t.commercialId}:
+                </span>
+                <span className="text-xs font-bold tracking-widest text-white/90">
+                  {storeId}
+                </span>
+              </div>
+            )}
+            <p className="text-sm text-white/50 font-medium">
+              © {new Date().getFullYear()} {storeName}. {t.rights}.
+            </p>
+          </div>
         </div>
       </div>
     </footer>
