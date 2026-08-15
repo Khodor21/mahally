@@ -47,6 +47,7 @@ interface AppearanceTabProps {
   SaveButton: any;
   showToast: (message: string, type: "success" | "error") => void;
   setBannerConfirm: (state: any) => void;
+  isMiniPlan?: boolean; // 👉 Added to handle conditional plan rendering
 }
 
 const SECTIONS = [
@@ -204,6 +205,7 @@ export default function AppearanceTab(props: AppearanceTabProps) {
     SaveButton,
     showToast,
     setBannerConfirm,
+    isMiniPlan, // 👉 Extracted new prop
   } = props;
 
   const [expandedSections, setExpandedSections] = useState<string[]>([
@@ -269,7 +271,7 @@ export default function AppearanceTab(props: AppearanceTabProps) {
 
   return (
     <div className="space-y-3 w-full" dir={dir}>
-      {/* Branding Section */}
+      {/* Branding Section (Always visible) */}
       <AccordionSection
         section={SECTIONS[0]}
         isOpen={expandedSections.includes("branding")}
@@ -427,33 +429,35 @@ export default function AppearanceTab(props: AppearanceTabProps) {
         </div>
       </AccordionSection>
 
-      {/* Site Sections Quick Access */}
-      <AccordionSection
-        section={SECTIONS[1]}
-        isOpen={expandedSections.includes("site_sections")}
-        onToggle={() => toggleSection("site_sections")}
-        lang={lang}
-        dir={dir}
-      >
-        <div className="space-y-4">
-          {/* Quick Access Button */}
-          <button
-            onClick={() => setActiveNav("sections")}
-            className="w-full flex items-center justify-center gap-3 px-5 py-3 text-sm font-semibold bg-[rgb(60_28_84)] text-white rounded-sm hover:bg-[rgb(60_28_84)]/90 transition-all shadow-sm"
-          >
-            <Settings className="w-4 h-4" />
-            {lang === "ar" ? "إدارة أقسام الموقع" : "Manage Site Sections"}
-          </button>
+      {/* Site Sections Quick Access (Hidden on Mini Plan) */}
+      {!isMiniPlan && (
+        <AccordionSection
+          section={SECTIONS[1]}
+          isOpen={expandedSections.includes("site_sections")}
+          onToggle={() => toggleSection("site_sections")}
+          lang={lang}
+          dir={dir}
+        >
+          <div className="space-y-4">
+            {/* Quick Access Button */}
+            <button
+              onClick={() => setActiveNav("sections")}
+              className="w-full flex items-center justify-center gap-3 px-5 py-3 text-sm font-semibold bg-[rgb(60_28_84)] text-white rounded-sm hover:bg-[rgb(60_28_84)]/90 transition-all shadow-sm"
+            >
+              <Settings className="w-4 h-4" />
+              {lang === "ar" ? "إدارة أقسام الموقع" : "Manage Site Sections"}
+            </button>
 
-          <p className="text-xs text-[rgb(60_28_84)]/50 text-center mt-3">
-            {lang === "ar"
-              ? "انتقل إلى علامة التبويب أقسام للتحكم في الفئات والمنتجات"
-              : "Go to Sections tab in sidebar to manage categories"}
-          </p>
-        </div>
-      </AccordionSection>
+            <p className="text-xs text-[rgb(60_28_84)]/50 text-center mt-3">
+              {lang === "ar"
+                ? "انتقل إلى علامة التبويب أقسام للتحكم في الفئات والمنتجات"
+                : "Go to Sections tab in sidebar to manage categories"}
+            </p>
+          </div>
+        </AccordionSection>
+      )}
 
-      {/* Banners Section */}
+      {/* Banners Section (Always visible) */}
       <AccordionSection
         section={SECTIONS[2]}
         isOpen={expandedSections.includes("banners")}
@@ -637,166 +641,175 @@ export default function AppearanceTab(props: AppearanceTabProps) {
         </div>
       </AccordionSection>
 
-      {/* Features Section */}
-      <AccordionSection
-        section={SECTIONS[3]}
-        isOpen={expandedSections.includes("features")}
-        onToggle={() => toggleSection("features")}
-        lang={lang}
-        dir={dir}
-      >
-        <div className="space-y-4">
-          {/* Add Feature Button */}
-          <button
-            onClick={() => {
-              setEditingFeature(null);
-              setIsAddingFeature(true);
-            }}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[rgb(207_195_223)] rounded-lg hover:bg-[rgb(244_242_245)] transition-colors group"
-          >
-            <Plus className="w-4 h-4 text-[rgb(60_28_84)] group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-semibold text-[rgb(60_28_84)]">
-              {lang === "ar" ? "إضافة ميزة جديدة" : "Add New Feature"}
-            </span>
-          </button>
-
-          {/* Add/Edit Feature Form */}
-          {(isAddingFeature || editingFeature) && (
-            <FeatureForm
-              lang={lang}
-              dir={dir}
-              storeId={storeId}
-              featureId={editingFeature?.id}
-              initialData={editingFeature}
-              onCancel={() => {
-                setIsAddingFeature(false);
+      {/* Features Section (Hidden on Mini Plan) */}
+      {!isMiniPlan && (
+        <AccordionSection
+          section={SECTIONS[3]}
+          isOpen={expandedSections.includes("features")}
+          onToggle={() => toggleSection("features")}
+          lang={lang}
+          dir={dir}
+        >
+          <div className="space-y-4">
+            {/* Add Feature Button */}
+            <button
+              onClick={() => {
                 setEditingFeature(null);
+                setIsAddingFeature(true);
               }}
-              onSuccess={() => {
-                setIsAddingFeature(false);
-                setEditingFeature(null);
-                refetchFeatures();
-                showToast(
-                  lang === "ar"
-                    ? "تم حفظ الميزة بنجاح!"
-                    : "Feature saved successfully!",
-                  "success",
-                );
-              }}
-            />
-          )}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[rgb(207_195_223)] rounded-lg hover:bg-[rgb(244_242_245)] transition-colors group"
+            >
+              <Plus className="w-4 h-4 text-[rgb(60_28_84)] group-hover:scale-110 transition-transform" />
+              <span className="text-sm font-semibold text-[rgb(60_28_84)]">
+                {lang === "ar" ? "إضافة ميزة جديدة" : "Add New Feature"}
+              </span>
+            </button>
 
-          {/* Features List */}
-          {features.length > 0 ? (
-            <div className="space-y-2">
-              {features.map((feature: any, index: number) => {
-                // Safely extract the component dynamically based on the DB string
-                const DynamicIcon =
-                  feature.icon_name && (LucideIcons as any)[feature.icon_name]
-                    ? (LucideIcons as any)[feature.icon_name]
-                    : null;
+            {/* Add/Edit Feature Form */}
+            {(isAddingFeature || editingFeature) && (
+              <FeatureForm
+                lang={lang}
+                dir={dir}
+                storeId={storeId}
+                featureId={editingFeature?.id}
+                initialData={editingFeature}
+                onCancel={() => {
+                  setIsAddingFeature(false);
+                  setEditingFeature(null);
+                }}
+                onSuccess={() => {
+                  setIsAddingFeature(false);
+                  setEditingFeature(null);
+                  refetchFeatures();
+                  showToast(
+                    lang === "ar"
+                      ? "تم حفظ الميزة بنجاح!"
+                      : "Feature saved successfully!",
+                    "success",
+                  );
+                }}
+              />
+            )}
 
-                return (
-                  <div
-                    key={feature.id}
-                    className="border border-[rgb(207_195_223)] rounded-lg overflow-hidden hover:border-[rgb(207_195_223)]/60 transition-colors"
-                  >
-                    <button
-                      onClick={() =>
-                        setExpandedSection(
-                          expandedSection === index ? null : index,
-                        )
-                      }
-                      className="w-full px-4 py-3 flex items-center justify-between hover:bg-[rgb(244_242_245)] transition-colors"
+            {/* Features List */}
+            {features.length > 0 ? (
+              <div className="space-y-2">
+                {features.map((feature: any, index: number) => {
+                  // Safely extract the component dynamically based on the DB string
+                  const DynamicIcon =
+                    feature.icon_name &&
+                    (LucideIcons as any)[feature.icon_name]
+                      ? (LucideIcons as any)[feature.icon_name]
+                      : null;
+
+                  return (
+                    <div
+                      key={feature.id}
+                      className="border border-[rgb(207_195_223)] rounded-lg overflow-hidden hover:border-[rgb(207_195_223)]/60 transition-colors"
                     >
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="w-9 h-9 rounded-md bg-[rgb(60_28_84)]/5 flex items-center justify-center flex-shrink-0">
-                          {DynamicIcon ? (
-                            <DynamicIcon className="w-5 h-5 text-[rgb(60_28_84)]" />
-                          ) : (
-                            <span className="text-xs font-semibold text-[rgb(60_28_84)]">
-                              {feature.icon_name?.[0] || "✓"}
-                            </span>
-                          )}
-                        </div>
-                        <div
-                          className={dir === "rtl" ? "text-right" : "text-left"}
-                        >
-                          <p className="text-sm font-semibold text-[rgb(60_28_84)]">
-                            {feature.title}
-                          </p>
-                        </div>
-                      </div>
-                      <ChevronDown
-                        className={`w-4 h-4 text-[rgb(60_28_84)]/60 transition-transform flex-shrink-0 ${
-                          expandedSection === index ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-                    {expandedSection === index && (
-                      <div className="border-t border-[rgb(207_195_223)] bg-[rgb(244_242_245)] px-4 py-3 space-y-3">
-                        <div className="bg-white rounded p-3 space-y-3 text-sm">
-                          <div>
-                            <p className="text-xs font-semibold text-[rgb(60_28_84)]/50">
-                              {lang === "ar" ? "الأيقونة" : "Icon"}
+                      <button
+                        onClick={() =>
+                          setExpandedSection(
+                            expandedSection === index ? null : index,
+                          )
+                        }
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-[rgb(244_242_245)] transition-colors"
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="w-9 h-9 rounded-md bg-[rgb(60_28_84)]/5 flex items-center justify-center flex-shrink-0">
+                            {DynamicIcon ? (
+                              <DynamicIcon className="w-5 h-5 text-[rgb(60_28_84)]" />
+                            ) : (
+                              <span className="text-xs font-semibold text-[rgb(60_28_84)]">
+                                {feature.icon_name?.[0] || "✓"}
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            className={
+                              dir === "rtl" ? "text-right" : "text-left"
+                            }
+                          >
+                            <p className="text-sm font-semibold text-[rgb(60_28_84)]">
+                              {feature.title}
                             </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              {DynamicIcon && (
-                                <DynamicIcon className="w-4 h-4 text-[rgb(60_28_84)]/70" />
-                              )}
-                              <p className="text-sm text-[rgb(60_28_84)] font-mono">
-                                {feature.icon_name}
-                              </p>
-                            </div>
                           </div>
                         </div>
-                        {/* Action Buttons */}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingFeature(feature);
-                              setIsAddingFeature(false);
-                              setExpandedSection(null);
-                            }}
-                            className="flex-1 px-3 py-2 text-xs font-semibold text-[rgb(60_28_84)] bg-white rounded hover:opacity-80 transition-opacity flex items-center justify-center gap-1"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                            {lang === "ar" ? "تعديل" : "Edit"}
-                          </button>
-                          <button
-                            onClick={() => setDeletingFeature(feature.id)}
-                            className="flex-1 px-3 py-2 text-xs font-semibold text-white bg-red-500 rounded hover:bg-red-600 transition-colors flex items-center justify-center gap-1"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            {lang === "ar" ? "حذف" : "Delete"}
-                          </button>
+                        <ChevronDown
+                          className={`w-4 h-4 text-[rgb(60_28_84)]/60 transition-transform flex-shrink-0 ${
+                            expandedSection === index ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                      {expandedSection === index && (
+                        <div className="border-t border-[rgb(207_195_223)] bg-[rgb(244_242_245)] px-4 py-3 space-y-3">
+                          <div className="bg-white rounded p-3 space-y-3 text-sm">
+                            <div>
+                              <p className="text-xs font-semibold text-[rgb(60_28_84)]/50">
+                                {lang === "ar" ? "الأيقونة" : "Icon"}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                {DynamicIcon && (
+                                  <DynamicIcon className="w-4 h-4 text-[rgb(60_28_84)]/70" />
+                                )}
+                                <p className="text-sm text-[rgb(60_28_84)] font-mono">
+                                  {feature.icon_name}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          {/* Action Buttons */}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingFeature(feature);
+                                setIsAddingFeature(false);
+                                setExpandedSection(null);
+                              }}
+                              className="flex-1 px-3 py-2 text-xs font-semibold text-[rgb(60_28_84)] bg-white rounded hover:opacity-80 transition-opacity flex items-center justify-center gap-1"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                              {lang === "ar" ? "تعديل" : "Edit"}
+                            </button>
+                            <button
+                              onClick={() => setDeletingFeature(feature.id)}
+                              className="flex-1 px-3 py-2 text-xs font-semibold text-white bg-red-500 rounded hover:bg-red-600 transition-colors flex items-center justify-center gap-1"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              {lang === "ar" ? "حذف" : "Delete"}
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-sm text-[rgb(60_28_84)]/50">
-                {lang === "ar" ? "لا توجد ميزات حتى الآن" : "No features yet"}
-              </p>
-            </div>
-          )}
-        </div>
-      </AccordionSection>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-sm text-[rgb(60_28_84)]/50">
+                  {lang === "ar"
+                    ? "لا توجد ميزات حتى الآن"
+                    : "No features yet"}
+                </p>
+              </div>
+            )}
+          </div>
+        </AccordionSection>
+      )}
 
-      {/* Testimonials Section */}
-      <AccordionSection
-        section={SECTIONS[4]}
-        isOpen={expandedSections.includes("testimonials")}
-        onToggle={() => toggleSection("testimonials")}
-        lang={lang}
-        dir={dir}
-      >
-        <Testimonials dir={dir} />
-      </AccordionSection>
+      {/* Testimonials Section (Hidden on Mini Plan) */}
+      {!isMiniPlan && (
+        <AccordionSection
+          section={SECTIONS[4]}
+          isOpen={expandedSections.includes("testimonials")}
+          onToggle={() => toggleSection("testimonials")}
+          lang={lang}
+          dir={dir}
+        >
+          <Testimonials dir={dir} />
+        </AccordionSection>
+      )}
 
       {/* Delete Feature Confirmation Modal */}
       {deletingFeature && (

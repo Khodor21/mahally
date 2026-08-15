@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Save,
   Store,
@@ -443,7 +443,7 @@ export default function SettingsPanel() {
   };
 
   // ============================================
-  // COMPUTED VALUES
+  // COMPUTED VALUES & TAB LOGIC
   // ============================================
 
   const createdDate = store?.created_at
@@ -461,7 +461,9 @@ export default function SettingsPanel() {
     { key: "snapchat_url", label: "Snapchat", icon: Camera },
   ];
 
-  const tabs = [
+  const isMiniPlan = (store as any)?.plan_type?.toLowerCase() === "mini";
+
+  const allTabs = [
     {
       id: "appearance" as const,
       label: lang === "ar" ? "الظهور" : "Appearance",
@@ -493,6 +495,23 @@ export default function SettingsPanel() {
       icon: HelpCircle,
     },
   ];
+
+  // Filter out restricted tabs if the user is on the Mini plan
+  const tabs = isMiniPlan
+    ? allTabs.filter(
+        (tab) => !["notifications", "policies", "faq"].includes(tab.id),
+      )
+    : allTabs;
+
+  // Guard to ensure activeTab resets if the user somehow lands on a restricted tab
+  useEffect(() => {
+    if (
+      isMiniPlan &&
+      ["notifications", "policies", "faq"].includes(activeTab)
+    ) {
+      setActiveTab("appearance");
+    }
+  }, [isMiniPlan, activeTab]);
 
   // ============================================
   // COMPONENTS
@@ -598,7 +617,7 @@ export default function SettingsPanel() {
             label={tab.label}
             icon={tab.icon}
             isActive={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => setActiveTab(tab.id as any)}
           />
         ))}
       </div>
@@ -633,6 +652,7 @@ export default function SettingsPanel() {
           SaveButton={SaveButton}
           showToast={showToast}
           setBannerConfirm={setBannerConfirm}
+          isMiniPlan={isMiniPlan}
         />
       )}
 
@@ -665,7 +685,7 @@ export default function SettingsPanel() {
       )}
 
       {/* NOTIFICATIONS TAB */}
-      {activeTab === "notifications" && (
+      {activeTab === "notifications" && !isMiniPlan && (
         <NotificationsTab
           lang={lang}
           notificationTitle={notificationTitle}
@@ -678,7 +698,7 @@ export default function SettingsPanel() {
       )}
 
       {/* POLICIES TAB */}
-      {activeTab === "policies" && (
+      {activeTab === "policies" && !isMiniPlan && (
         <PoliciesTab
           lang={lang}
           dir={dir}
@@ -689,7 +709,7 @@ export default function SettingsPanel() {
       )}
 
       {/* FAQ TAB */}
-      {activeTab === "faq" && (
+      {activeTab === "faq" && !isMiniPlan && (
         <div className="bg-white rounded-sm border border-[rgb(244_242_245)] shadow-sm animate-fade-up">
           <div className="px-6 py-5 border-b border-[rgb(244_242_245)]">
             <h3 className="font-bold text-[rgb(60_28_84)] flex items-center gap-2">

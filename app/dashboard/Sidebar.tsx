@@ -19,7 +19,7 @@ import {
   Tags,
   LayoutTemplate,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { signOut } from "next-auth/react";
 
 import { useDashboard } from "./DashboardContext";
@@ -74,7 +74,7 @@ const navGroups: NavGroup[] = [
 ];
 
 interface SidebarProps {
-  store: StoreData;
+  store: StoreData & { plan_type?: string };
 }
 
 export default function Sidebar({ store }: SidebarProps) {
@@ -85,6 +85,30 @@ export default function Sidebar({ store }: SidebarProps) {
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Filter navigation items based on the store plan
+  const filteredNavGroups = useMemo(() => {
+    const isMiniPlan = store.plan_type === "Mini";
+    const allowedMiniItems = [
+      "home",
+      "orders",
+      "categories",
+      "products",
+      "settings",
+      "coupons",
+      "partnerships",
+      "occasions",
+    ];
+
+    if (!isMiniPlan) return navGroups;
+
+    return navGroups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => allowedMiniItems.includes(item.id)),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [store.plan_type]);
 
   const handleLogout = async () => {
     try {
@@ -112,7 +136,7 @@ export default function Sidebar({ store }: SidebarProps) {
     <>
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/30 z-40 md:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-black/30 z-40 md:hidden backdrop-blur-sm transition-opacity"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -154,7 +178,8 @@ export default function Sidebar({ store }: SidebarProps) {
 
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden p-1 rounded-lg hover:bg-[rgb(244_242_245)] text-[rgb(60_28_84)]/60 transition-colors"
+            className="md:hidden p-1 rounded-lg hover:bg-[rgb(244_242_245)] text-[rgb(60_28_84)]/60 transition-colors focus:outline-none focus:ring-2 focus:ring-[rgb(60_28_84)]/20"
+            aria-label="Close Sidebar"
           >
             <X className="w-4 h-4" />
           </button>
@@ -162,7 +187,7 @@ export default function Sidebar({ store }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-          {navGroups.map((group, gi) => (
+          {filteredNavGroups.map((group, gi) => (
             <div key={gi}>
               {group.titleKey && (
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[rgb(60_28_84)]/40 px-3 mb-2">
@@ -178,11 +203,12 @@ export default function Sidebar({ store }: SidebarProps) {
                     <button
                       key={item.id}
                       onClick={() => handleNav(item.id, item.soon)}
+                      disabled={item.soon}
                       className={`
-                        w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm font-medium transition-all duration-200
+                        w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
                         ${
                           isActive
-                            ? "bg-[rgb(60_28_84)] text-white"
+                            ? "bg-[rgb(60_28_84)] text-white shadow-sm"
                             : item.soon
                               ? "text-[rgb(60_28_84)]/30 cursor-not-allowed"
                               : "text-[rgb(60_28_84)]/70 hover:bg-[rgb(244_242_245)] hover:text-[rgb(60_28_84)]"
@@ -215,7 +241,7 @@ export default function Sidebar({ store }: SidebarProps) {
         {/* User */}
         <div className="px-3 pb-4 pt-3 border-t border-[rgb(244_242_245)]">
           <div className="flex items-center gap-3 px-3 py-3 mb-1 rounded-xl hover:bg-[rgb(244_242_245)] transition-colors cursor-pointer">
-            <div className="w-9 h-9 rounded-xl bg-[rgb(60_28_84)] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-[rgb(60_28_84)] flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm">
               {store.admin_name[0]}
             </div>
 
@@ -232,7 +258,7 @@ export default function Sidebar({ store }: SidebarProps) {
 
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-500 hover:bg-red-50 transition-all font-medium mt-1"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-500 hover:bg-red-50 transition-all font-medium mt-1 focus:outline-none focus:ring-2 focus:ring-red-500/20"
           >
             <LogOut className="w-4 h-4" />
             <span>{tr.signOut}</span>

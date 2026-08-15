@@ -20,13 +20,14 @@ import StoreFrontPanel from "./panels/StoreFrontPanel";
 import type { StoreData } from "./types";
 
 interface DashboardProps {
-  store: StoreData;
+  store: StoreData & { plan_type?: string };
 }
 
 export default function Dashboard({ store }: DashboardProps) {
   const { activeNav, setActiveNav, lang } = useDashboard();
 
   const isRTL = lang === "ar";
+  const isMiniPlan = store.plan_type === "Mini";
 
   const renderPanel = () => {
     switch (activeNav) {
@@ -37,17 +38,37 @@ export default function Dashboard({ store }: DashboardProps) {
       case "products":
         return <ProductsPanel storeId={store.id} />;
       case "customers":
-        return <CustomersPanel />;
+        // Guard restricted feature for Mini plan
+        return isMiniPlan ? (
+          <HomePanel setActiveNav={setActiveNav} store={store} />
+        ) : (
+          <CustomersPanel />
+        );
       case "analytics":
-        return <AnalyticsPanel store={store} />;
+        // Guard restricted feature for Mini plan
+        return isMiniPlan ? (
+          <HomePanel setActiveNav={setActiveNav} store={store} />
+        ) : (
+          <AnalyticsPanel store={store} />
+        );
       case "settings":
         return <SettingsPanel />;
       case "categories":
         return <CategoriesPanel storeId={store.id} />;
       case "ai":
-        return <AIChatPanel />;
+        // Guard restricted feature for Mini plan
+        return isMiniPlan ? (
+          <HomePanel setActiveNav={setActiveNav} store={store} />
+        ) : (
+          <AIChatPanel />
+        );
       case "sections":
-        return <StoreFrontPanel />;
+        // Guard restricted feature for Mini plan
+        return isMiniPlan ? (
+          <HomePanel setActiveNav={setActiveNav} store={store} />
+        ) : (
+          <StoreFrontPanel />
+        );
       case "coupons":
         return <CouponsPanel />;
       case "occasions":
@@ -65,19 +86,19 @@ export default function Dashboard({ store }: DashboardProps) {
 
       <div
         className={`
-      min-h-screen
-      transition-all duration-300
-      ${isRTL ? "md:pr-64" : "md:pl-64"}
-    `}
+          min-h-screen
+          transition-all duration-300
+          ${isRTL ? "md:pr-64" : "md:pl-64"}
+        `}
       >
         <Topbar />
 
         <main
           className={`
-    bg-[rgb(244_242_245)]/30
-    min-h-[calc(100vh-64px)]
-    ${activeNav === "ai" ? "p-0" : "p-5 md:p-8"}
-  `}
+            bg-[rgb(244_242_245)]/30
+            min-h-[calc(100vh-64px)]
+            ${activeNav === "ai" ? "p-0" : "p-5 md:p-8"}
+          `}
         >
           <div key={activeNav} className="animate-fade-in">
             {renderPanel()}

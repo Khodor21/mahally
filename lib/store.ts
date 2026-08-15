@@ -35,7 +35,7 @@ export async function getCurrentStore() {
     .select(
       `
       id, admin_name, admin_email, store_name,
-      slug, location, phone, store_type, created_at, is_active, payment_methods
+      slug, location, phone, store_type, created_at, is_active, payment_methods, plan_type
     `,
     )
     .eq("id", storeId)
@@ -58,7 +58,9 @@ export async function getCurrentStoreMeta() {
 
   const { data, error } = await supabaseAdmin
     .from("stores")
-    .select("store_name, store_type, location, language, slug, is_active")
+    .select(
+      "store_name, store_type, location, language, slug, is_active, plan_type",
+    )
     .eq("id", storeId)
     .eq("is_active", true)
     .maybeSingle();
@@ -84,9 +86,10 @@ export async function getStoreBySlug(slug: string) {
       location,
       phone,
       language, currency, currency_symbol,
-delivery_cost,
+      delivery_cost,
       store_type,
       payment_methods,
+      plan_type,
       created_at,
       is_active
     `,
