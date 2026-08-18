@@ -91,6 +91,8 @@ export interface OrderItem {
   qty: number;
   title?: string;
   price?: number;
+  original_price?: number;
+
   image?: string;
   total?: number;
 }

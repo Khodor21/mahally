@@ -46,6 +46,7 @@ export interface Product {
   title: string;
   description?: string;
   price?: number | string;
+  discount_price?: number | string | null;
   stock?: number;
   images?: string[];
   categories?: { title: string };
@@ -67,6 +68,11 @@ function formatPrice(value: number) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+function calculateDiscount(original: number, discounted: number): number {
+  if (original === 0) return 0;
+  return Math.round(((original - discounted) / original) * 100);
 }
 
 function useAddedFlash(duration = 5000): [boolean, (val: boolean) => void] {
@@ -137,6 +143,7 @@ export default function ProductClientUI({
       maxStockReached: "تم الوصول للحد الأقصى للمخزون المتوفر",
       addedToFav: "تمت الإضافة للمفضلة",
       removedFromFav: "تم الإزالة من المفضلة",
+      sale: "خصم",
     },
     en: {
       home: "Home",
@@ -161,6 +168,7 @@ export default function ProductClientUI({
       maxStockReached: "Max available stock reached",
       addedToFav: "Added to favorites",
       removedFromFav: "Removed from favorites",
+      sale: "Sale",
     },
   }[lang];
 
@@ -216,9 +224,19 @@ export default function ProductClientUI({
   const productId = String(product.id);
   const favorited = isFavorite(productId);
 
-  // Calculate active price based on selected variant options
+  // --- SAFE PRICING LOGIC ---
+  const basePriceNum = Number(product.price || 0);
+  const discountPriceNum = Number(product.discount_price || 0);
+
+  // Safely check if there is a valid discount (must be > 0 and less than normal price)
+  const hasBaseDiscount = 
+    discountPriceNum > 0 && 
+    discountPriceNum < basePriceNum;
+
+  // Calculate active price based on selected variant options & discounts
   const calculatePrice = (): number => {
-    let totalPrice = Number(product.price || 0);
+    let totalPrice = hasBaseDiscount ? discountPriceNum : basePriceNum;
+
     variantGroups.forEach((group) => {
       const variantPrice = selectedVariants[group.id]?.price;
       if (group.allowPrice && variantPrice !== undefined) {
@@ -231,18 +249,14 @@ export default function ProductClientUI({
   const calculateStock = (): number => {
     const stockTrackingGroups = variantGroups.filter((g) => g.allowStock);
 
-    // If no variants track stock, use base product stock
     if (stockTrackingGroups.length === 0) {
       return Number(product.stock || 0);
     }
 
-    // Start with base product stock as fallback
     let minStock = Number(product.stock) || 99999;
 
-    // Check each variant group
     stockTrackingGroups.forEach((group) => {
       const selectedOption = selectedVariants[group.id];
-      // If variant has stock defined, use it; otherwise use base stock
       if (selectedOption?.stock !== undefined) {
         minStock = Math.min(minStock, Number(selectedOption.stock));
       }
@@ -253,6 +267,19 @@ export default function ProductClientUI({
 
   const activePrice = calculatePrice();
   const activeStock = calculateStock();
+  
+  // Determine if a variant is actively overriding the price
+  const hasVariantPriceOverride = useMemo(() => {
+    return variantGroups.some(
+      (group) => group.allowPrice && selectedVariants[group.id]?.price !== undefined
+    );
+  }, [variantGroups, selectedVariants]);
+
+  // Show discount UI only if product has discount and no variant overrides it
+  const showDiscountUI = hasBaseDiscount && !hasVariantPriceOverride;
+  const discountPercent = showDiscountUI 
+    ? calculateDiscount(basePriceNum, discountPriceNum)
+    : 0;
 
   // Safely calculate exactly how many of this product are already in the cart
   const existingCartQty = useMemo(() => {
@@ -269,18 +296,14 @@ export default function ProductClientUI({
       );
   }, [cartItems, productId]);
 
-  // 🔑 KEY FIX: Initialize/sync quantity based on whether item is in cart
   useEffect(() => {
     if (existingCartQty > 0) {
-      // Item is in cart: sync to cart quantity
       setQuantity(existingCartQty);
     } else {
-      // Item not in cart: start fresh at 1
       setQuantity(1);
     }
   }, [existingCartQty]);
 
-  // Build variant description for display
   const variantDescription = variantGroups
     .map(
       (group) =>
@@ -288,7 +311,6 @@ export default function ProductClientUI({
     )
     .join(", ");
 
-  // UPDATED: Build variant selections object for cart
   const variantSelectionsForCart = useMemo(() => {
     if (Object.keys(selectedVariants).length === 0) return undefined;
 
@@ -314,11 +336,9 @@ export default function ProductClientUI({
   };
 
   // --- Handlers ---
-  // 🔑 KEY FIX: Different logic for "editing cart item" vs "adding new item"
   const increment = () => {
     setQuantity((prev) => {
       const newQty = Math.min(prev + 1, activeStock);
-      // If item is already in cart, sync immediately
       if (existingCartQty > 0) {
         updateCartQty(productId, newQty);
       }
@@ -329,7 +349,6 @@ export default function ProductClientUI({
   const decrement = () => {
     setQuantity((prev) => {
       const newQty = Math.max(prev - 1, 0);
-      // If item is in cart, sync to cart (or remove if 0)
       if (existingCartQty > 0) {
         if (newQty === 0) {
           removeFromCart(productId);
@@ -341,15 +360,12 @@ export default function ProductClientUI({
     });
   };
 
-  // 🔑 KEY FIX: Only cap quantity if item NOT in cart (adding new)
   useEffect(() => {
     if (existingCartQty === 0 && quantity > activeStock && activeStock > 0) {
-      // Item not in cart: cap at activeStock when adding new
       setQuantity(Math.max(1, activeStock));
     }
   }, [activeStock, existingCartQty, quantity]);
 
-  // 🔑 KEY FIX: Separate logic for button disable state
   const isStockLimitReached = () => {
     if (existingCartQty === 0) {
       return quantity > activeStock;
@@ -359,7 +375,6 @@ export default function ProductClientUI({
 
   const isActionDisabled = activeStock < 1 || isStockLimitReached();
 
-  // UPDATED: Pass variantSelections to cart
   const handleAddToCart = () => {
     if (isActionDisabled) {
       setStockWarning(true);
@@ -374,7 +389,6 @@ export default function ProductClientUI({
     }
   };
 
-  // UPDATED: Pass variantSelections to cart
   const handleBuyNow = () => {
     if (isActionDisabled) {
       setStockWarning(true);
@@ -509,6 +523,11 @@ export default function ProductClientUI({
               </div>
             )}
             <div className="relative flex-1 rounded-2xl overflow-hidden aspect-square md:aspect-auto flex items-center justify-center">
+              {showDiscountUI && (
+                <div className="absolute top-4 left-4 z-20 bg-rose-500 text-white text-sm font-bold px-3 py-1.5 rounded-sm shadow-sm">
+                  -{discountPercent}%
+                </div>
+              )}
               {images.map((img: string, idx: number) => (
                 <div
                   key={idx}
@@ -552,8 +571,22 @@ export default function ProductClientUI({
 
             {/* Price & Stock Row */}
             <div className="flex justify-between items-end mb-6">
-              <div className="text-xl md:text-2xl font-bold text-brand-primary">
-                {formattedPrice}
+              <div className="flex flex-col">
+                {showDiscountUI && (
+                  <span className="text-sm font-medium text-gray-400 line-through mb-1">
+                    {formatPrice(basePriceNum)}
+                  </span>
+                )}
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl md:text-3xl font-bold text-brand-primary">
+                    {formattedPrice}
+                  </span>
+                  {showDiscountUI && (
+                    <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-rose-100 text-rose-700">
+                      {t.sale} -{discountPercent}%
+                    </span>
+                  )}
+                </div>
               </div>
               {activeStock > 0 && (
                 <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs py-1.5 rounded-md">
@@ -700,7 +733,7 @@ export default function ProductClientUI({
               />
             </div>
 
-            {/* Action Buttons (DESKTOP ONLY) - Removed mt-auto to fix spacing issue */}
+            {/* Action Buttons (DESKTOP ONLY) */}
             <div className="hidden md:block">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
@@ -768,7 +801,6 @@ export default function ProductClientUI({
         {children}
       </div>
 
-      {/* Changed z-50 to z-[999] to ensure it sits over global navigation */}
       <div
         dir={dir}
         className="md:hidden fixed bottom-0 left-0 right-0 z-[999] bg-white border-t border-gray-200 px-4 py-3 "
@@ -890,11 +922,6 @@ export default function ProductClientUI({
                     )}
                     {formattedPrice}
                   </p>
-                  {variantDescription && (
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-1 text-right">
-                      {variantDescription}
-                    </p>
-                  )}
                 </div>
               </>
             ) : (
@@ -911,11 +938,6 @@ export default function ProductClientUI({
                       </span>
                     )}
                   </p>
-                  {variantDescription && (
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-1 text-left">
-                      {variantDescription}
-                    </p>
-                  )}
                 </div>
                 <div className="relative w-16 h-16 rounded-md overflow-hidden bg-[rgb(244_242_245)] border border-gray-100 flex-shrink-0">
                   <Image

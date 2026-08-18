@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
 
     const { data: products, error: productsError } = await supabaseAdmin
       .from("products")
-      .select("id, title, price, images, stock, store_id")
+      .select("id, title, price,discount_price, images, stock, store_id")
       .in("id", productIds);
 
     if (productsError || !products || products.length === 0) {
@@ -149,16 +149,21 @@ export async function POST(request: NextRequest) {
     const orderItems = items.map((item) => {
       const product = products.find((p) => p.id === item.productId);
       if (!product) throw new Error("Product not found");
-      const itemTotal = Number(product.price) * item.qty;
+      const effectivePrice = product.discount_price
+        ? Number(product.discount_price)
+        : Number(product.price);
+
+      const itemTotal = effectivePrice * item.qty;
       subtotal += itemTotal;
+
       return {
         product_id: product.id,
         title: product.title,
         image: product.images?.[0] || null,
-        price: product.price,
+        price: effectivePrice, // discounted price
+        original_price: Number(product.price),
         qty: item.qty,
         total: itemTotal,
-        // NEW: Store variant selections as JSON for order history
         variant_json: item.variantSelections
           ? JSON.stringify(item.variantSelections)
           : null,

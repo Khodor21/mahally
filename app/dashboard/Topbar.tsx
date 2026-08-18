@@ -3,13 +3,18 @@
 import { Menu, Bell, Search, Globe } from "lucide-react";
 import { useDashboard } from "./DashboardContext";
 
-export default function Topbar() {
+interface TopbarProps {
+  newOrdersCount?: number;
+  onNotificationClick?: () => void;
+}
+
+export default function Topbar({
+  newOrdersCount = 0,
+  onNotificationClick,
+}: TopbarProps) {
   const { activeNav, lang, setLang, setIsSidebarOpen, tr } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  // FIX: Instead of a hardcoded object, pull the title directly from the translation object.
-  // We use activeNav as the key to look up the translation.
-  // We add a fallback (activeNav) just in case a key is missing.
   const title = tr[activeNav as keyof typeof tr] || activeNav;
 
   return (
@@ -50,10 +55,23 @@ export default function Topbar() {
         <span>{lang === "ar" ? "EN" : "AR"}</span>
       </button>
 
-      {/* Notifications */}
-      <button className="relative p-2 rounded-xl hover:bg-[rgb(244_242_245)] text-[rgb(60_28_84)] transition-colors">
+      {/* Notifications / Live Orders Bell */}
+      <button
+        onClick={onNotificationClick}
+        className="relative p-2 rounded-xl hover:bg-[rgb(244_242_245)] text-[rgb(60_28_84)] transition-colors"
+        title={lang === "ar" ? "الطلبات الجديدة" : "New Orders"}
+      >
         <Bell className="w-5 h-5" />
-        <span className="absolute top-1.5 end-1.5 w-2 h-2 bg-[rgb(60_28_84)] rounded-full border-2 border-white" />
+        {newOrdersCount > 0 ? (
+          <>
+            <span className="absolute -top-1 -end-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white shadow-sm animate-bounce">
+              {newOrdersCount > 99 ? "99+" : newOrdersCount}
+            </span>
+            <span className="absolute top-1.5 end-1.5 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping opacity-75" />
+          </>
+        ) : (
+          <span className="absolute top-1.5 end-1.5 w-2 h-2 bg-[rgb(60_28_84)] rounded-full border-2 border-white" />
+        )}
       </button>
     </header>
   );

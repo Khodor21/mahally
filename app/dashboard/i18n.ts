@@ -7,6 +7,7 @@ export const t = {
     visitors: "الزوار",
 
     customers: "العملاء",
+    customerInfo: "معلومات العميل",
     analytics: "الإحصاءات",
     settings: "الإعدادات",
     ai: "الذكاء الاصطناعي",
@@ -186,7 +187,7 @@ export const t = {
     noData: "لا توجد بيانات",
     piece: "قطعة",
     order: "طلب",
-
+    noOrders: "لا توجد طلبات جديدة",
     // Validation
     titleRequired: "اسم المنتج مطلوب.",
     priceRequired: "يجب أن يكون السعر رقمًا موجبًا.",
@@ -223,6 +224,7 @@ export const t = {
     products: "Products",
     visitors: "Visitors",
     customers: "Customers",
+    customerInfo: "Customer Info",
     analytics: "Analytics",
     settings: "Settings",
     ai: "Ai Assistant",
@@ -402,7 +404,7 @@ export const t = {
     noData: "No data available",
     piece: "pcs",
     order: "order",
-
+    noOrders: "No new orders",
     // Validation
     titleRequired: "Product name is required.",
     priceRequired: "Price must be a positive number.",
@@ -425,7 +427,7 @@ export const t = {
     // Media
     updateStatus: "Update Status",
     orderSummary: "Order Summary",
-    notes : "Client Notes", 
+    notes: "Client Notes",
     paymentMethod: "Payment Method",
     maxImagesError: "Maximum 5 images per upload",
     uploading: "Uploading images...",

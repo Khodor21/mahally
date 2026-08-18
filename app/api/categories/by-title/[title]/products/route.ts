@@ -15,6 +15,7 @@ export async function GET(
       .select("id, title, logo_url")
       // Use ilike for case-insensitive matching if needed, or eq for exact
       .ilike("title", decodedTitle)
+      .limit(1) // Prevent PGRST116 error if multiple categories share the same title
       .maybeSingle();
 
     if (categoryError) throw categoryError;
@@ -27,16 +28,14 @@ export async function GET(
       );
     }
 
-    // 3. Fetch the products that belong to this category's ID
     const { data: products, error: productsError } = await supabaseAdmin
       .from("products")
       .select("*")
       .eq("category_id", category.id)
-      .eq("is_active", true); // Optional: only fetch active products
+      .eq("is_active", true); 
 
     if (productsError) throw productsError;
 
-    // 4. Return the formatted data expected by your frontend
     return NextResponse.json({
       success: true,
       data: {

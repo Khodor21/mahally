@@ -14,15 +14,14 @@ export interface Product {
   price?: number;
   rating?: number;
   badge?: string;
-  variantDescription?: string; // Display string for UI
+  variantDescription?: string;
   [key: string]: any;
 }
 
-// NEW: Track which variant was selected
 export interface VariantSelection {
-  id: string;     // option ID
-  value: string;  // option value (e.g., "Black")
-  stock?: number; // variant-specific stock
+  id: string;
+  value: string;
+  stock?: number;
 }
 
 export interface CartItem {
@@ -36,17 +35,23 @@ interface ShopContextType {
   cartItems: CartItem[];
   cartCount: number;
   cartTotal: number;
-  addToCart: (product: Product, qty?: number, variantSelections?: Record<string, VariantSelection>) => void;
+  addToCart: (
+    product: Product,
+    qty?: number,
+    variantSelections?: Record<string, VariantSelection>,
+  ) => void;
   removeFromCart: (productId: string) => void;
   updateCartQty: (productId: string, qty: number) => void;
   clearCart: () => void;
-  // Buy Now (single-item express checkout, isolated from persistent cart)
   buyNowItem: CartItem | null;
-  setBuyNowItem: (product: Product, qty?: number, variantSelections?: Record<string, VariantSelection>) => void;
+  setBuyNowItem: (
+    product: Product,
+    qty?: number,
+    variantSelections?: Record<string, VariantSelection>,
+  ) => void;
   clearBuyNowItem: () => void;
-  checkoutItems: CartItem[]; // buyNowItem if set, otherwise cartItems
+  checkoutItems: CartItem[];
   isBuyNowMode: boolean;
-  // Favorites
   favorites: Product[];
   favCount: number;
   toggleFavorite: (product: Product) => void;
@@ -156,36 +161,46 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
 
   // ── Cart Actions ──────────────────────────────────────────
   // UPDATED: Accept variantSelections parameter
-  const addToCart = useCallback((
-    product: Product,
-    qty: number = 1,
-    variantSelections?: Record<string, VariantSelection>,
-  ) => {
-    setCartItems((prev) => {
-      // NEW: Match by product ID AND variant selections (if product has variants)
-      const existing = prev.find((i) => {
-        if (i.product.id !== product.id) return false;
-        
-        // If no variants, just match by product ID
-        if (!variantSelections || Object.keys(variantSelections).length === 0) {
-          return !i.variantSelections || Object.keys(i.variantSelections).length === 0;
+  const addToCart = useCallback(
+    (
+      product: Product,
+      qty: number = 1,
+      variantSelections?: Record<string, VariantSelection>,
+    ) => {
+      setCartItems((prev) => {
+        // NEW: Match by product ID AND variant selections (if product has variants)
+        const existing = prev.find((i) => {
+          if (i.product.id !== product.id) return false;
+
+          // If no variants, just match by product ID
+          if (
+            !variantSelections ||
+            Object.keys(variantSelections).length === 0
+          ) {
+            return (
+              !i.variantSelections ||
+              Object.keys(i.variantSelections).length === 0
+            );
+          }
+
+          // If variants, must match exactly
+          return (
+            JSON.stringify(i.variantSelections) ===
+            JSON.stringify(variantSelections)
+          );
+        });
+
+        if (existing) {
+          return prev.map((i) =>
+            i === existing ? { ...i, qty: i.qty + qty } : i,
+          );
         }
-        
-        // If variants, must match exactly
-        return (
-          JSON.stringify(i.variantSelections) === JSON.stringify(variantSelections)
-        );
+
+        return [...prev, { product, qty, variantSelections }];
       });
-
-      if (existing) {
-        return prev.map((i) =>
-          i === existing ? { ...i, qty: i.qty + qty } : i,
-        );
-      }
-
-      return [...prev, { product, qty, variantSelections }];
-    });
-  }, []);
+    },
+    [],
+  );
 
   const removeFromCart = useCallback((productId: string) => {
     setCartItems((prev) => prev.filter((i) => i.product.id !== productId));
@@ -210,13 +225,16 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
 
   // ── Buy Now Actions ────────────────────────────────────────
   // UPDATED: Accept variantSelections parameter
-  const setBuyNowItem = useCallback((
-    product: Product,
-    qty: number = 1,
-    variantSelections?: Record<string, VariantSelection>,
-  ) => {
-    setBuyNowItemState({ product, qty, variantSelections });
-  }, []);
+  const setBuyNowItem = useCallback(
+    (
+      product: Product,
+      qty: number = 1,
+      variantSelections?: Record<string, VariantSelection>,
+    ) => {
+      setBuyNowItemState({ product, qty, variantSelections });
+    },
+    [],
+  );
 
   const clearBuyNowItem = useCallback(() => {
     setBuyNowItemState(null);

@@ -83,18 +83,15 @@ export default function ProductFormModal({
       let parsedVariantGroups: any[] = [];
 
       try {
-        // 1. Support both camelCase and snake_case in case the API serializer alters the key
         let rawGroups =
           (product as any).variantGroups ?? (product as any).variant_groups;
 
-        // 👇 DEBUG LOGS
         console.log("🔍 DEBUG: Edit mode - product object:", product);
         console.log("🔍 DEBUG: rawGroups value:", rawGroups);
         console.log("🔍 DEBUG: rawGroups type:", typeof rawGroups);
         console.log("🔍 DEBUG: Is array?", Array.isArray(rawGroups));
 
         if (rawGroups) {
-          // 2. Handle double or triple stringification natively
           while (typeof rawGroups === "string" && rawGroups.trim() !== "") {
             try {
               console.log(
@@ -109,7 +106,6 @@ export default function ProductFormModal({
             }
           }
 
-          // 3. Ensure it's a valid array and sanitize inner options to prevent UI crashes
           if (Array.isArray(rawGroups)) {
             parsedVariantGroups = rawGroups.map((g: any) => ({
               ...g,
@@ -150,7 +146,6 @@ export default function ProductFormModal({
         pin: Boolean((product as any).pin),
       });
 
-      // 4. Auto-expand the first variant group so it is visually obvious to the user
       if (parsedVariantGroups.length > 0 && parsedVariantGroups[0]?.id) {
         setExpandedVariantGroup(parsedVariantGroups[0].id);
       } else {
@@ -196,10 +191,9 @@ export default function ProductFormModal({
       errs.stock = tr.stockInvalid || "Invalid stock";
     }
 
-    // VARIANT STOCK VALIDATION
     if (form.variantGroups && form.variantGroups.length > 0) {
       for (const group of form.variantGroups) {
-        if (group.allowStock) {
+        if (group.type === "select" && group.allowStock) {
           const groupTotalStock = group.options.reduce(
             (sum: number, opt: any) => {
               const optStock = parseInt(opt.stock);
@@ -582,7 +576,7 @@ export default function ProductFormModal({
             </div>
 
             {/* ============================================ */}
-            {/* ⭐ VARIANT GROUPS SECTION - NOW BEFORE IMAGES ⭐ */}
+            {/* VARIANT GROUPS SECTION                       */}
             {/* ============================================ */}
             <div className="pt-4 border-t border-[rgb(244_242_245)]">
               <div className="flex items-center justify-between mb-4">
@@ -628,7 +622,10 @@ export default function ProductFormModal({
                           />
                           <div className="text-left min-w-0 flex-1">
                             <p className="font-semibold text-[rgb(60_28_84)] truncate">
-                              {group.title || "(untitled group)"}
+                              {group.title ||
+                                (dir === "rtl"
+                                  ? "(بدون اسم)"
+                                  : "(untitled group)")}
                             </p>
                             <p className="text-xs text-[rgb(60_28_84)]/60">
                               {group.options?.length || 0}{" "}
@@ -655,6 +652,7 @@ export default function ProductFormModal({
                         <div className="border-t border-[rgb(207_195_223)]/50 p-4 space-y-4 bg-white">
                           {/* Group Settings */}
                           <div className="space-y-3">
+                            {/* Group Title */}
                             <div>
                               <label className="block text-xs font-bold text-[rgb(60_28_84)] mb-2">
                                 {dir === "rtl" ? "اسم المجموعة" : "Group Title"}
@@ -678,86 +676,91 @@ export default function ProductFormModal({
                               />
                             </div>
 
+                            {/* Option Type — segmented buttons */}
                             <div>
                               <label className="block text-xs font-bold text-[rgb(60_28_84)] mb-2">
                                 {dir === "rtl" ? "نوع الخيار" : "Option Type"}
                               </label>
-                              <select
-                                value={group.type}
-                                onChange={(e) =>
-                                  updateVariantGroup(
-                                    group.id,
-                                    "type",
-                                    e.target.value,
-                                  )
-                                }
-                                className="w-full px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
-                              >
-                                <option value="select">
-                                  {dir === "rtl"
-                                    ? "قائمة منسدلة (خيارات محددة)"
-                                    : "Dropdown (Fixed options)"}
-                                </option>
-                                <option value="text">
-                                  {dir === "rtl"
-                                    ? "نص حر (إدخال مخصص)"
-                                    : "Free Text (Custom input)"}
-                                </option>
-                              </select>
-                            </div>
-
-                            {/* Toggles */}
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <label className="text-xs font-medium text-[rgb(60_28_84)]">
-                                  {dir === "rtl"
-                                    ? "السماح بتجاوز السعر"
-                                    : "Allow price override"}
-                                </label>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    updateVariantGroup(
-                                      group.id,
-                                      "allowPrice",
-                                      !group.allowPrice,
-                                    )
-                                  }
-                                  className="transition-colors"
-                                >
-                                  {group.allowPrice ? (
-                                    <ToggleRight className="w-5 h-5 text-emerald-600" />
-                                  ) : (
-                                    <ToggleLeft className="w-5 h-5 text-gray-300" />
-                                  )}
-                                </button>
-                              </div>
-
-                              <div className="flex items-center justify-between">
-                                <label className="text-xs font-medium text-[rgb(60_28_84)]">
-                                  {dir === "rtl"
-                                    ? "تتبع المخزون لكل خيار"
-                                    : "Track stock per option"}
-                                </label>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    updateVariantGroup(
-                                      group.id,
-                                      "allowStock",
-                                      !group.allowStock,
-                                    )
-                                  }
-                                  className="transition-colors"
-                                >
-                                  {group.allowStock ? (
-                                    <ToggleRight className="w-5 h-5 text-emerald-600" />
-                                  ) : (
-                                    <ToggleLeft className="w-5 h-5 text-gray-300" />
-                                  )}
-                                </button>
+                              <div className="flex rounded-lg border border-[rgb(207_195_223)] overflow-hidden">
+                                {(["select", "text"] as const).map((t) => (
+                                  <button
+                                    key={t}
+                                    type="button"
+                                    onClick={() =>
+                                      updateVariantGroup(group.id, "type", t)
+                                    }
+                                    className={`flex-1 py-2 text-xs font-bold transition-colors ${
+                                      group.type === t
+                                        ? "bg-[rgb(60_28_84)] text-white"
+                                        : "bg-white text-[rgb(60_28_84)] hover:bg-[rgb(244_242_245)]"
+                                    }`}
+                                  >
+                                    {t === "select"
+                                      ? dir === "rtl"
+                                        ? "خيارات محددة"
+                                        : "Options"
+                                      : dir === "rtl"
+                                        ? "نص حر"
+                                        : "Free Text"}
+                                  </button>
+                                ))}
                               </div>
                             </div>
+
+                            {/* Toggles — only for Options type */}
+                            {group.type === "select" && (
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <label className="text-xs font-medium text-[rgb(60_28_84)]">
+                                    {dir === "rtl"
+                                      ? "السماح بتجاوز السعر"
+                                      : "Allow price override"}
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateVariantGroup(
+                                        group.id,
+                                        "allowPrice",
+                                        !group.allowPrice,
+                                      )
+                                    }
+                                    className="transition-colors"
+                                  >
+                                    {group.allowPrice ? (
+                                      <ToggleRight className="w-5 h-5 text-emerald-600" />
+                                    ) : (
+                                      <ToggleLeft className="w-5 h-5 text-gray-300" />
+                                    )}
+                                  </button>
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                  <label className="text-xs font-medium text-[rgb(60_28_84)]">
+                                    {dir === "rtl"
+                                      ? "تتبع المخزون لكل خيار"
+                                      : "Track stock per option"}
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateVariantGroup(
+                                        group.id,
+                                        "allowStock",
+                                        !group.allowStock,
+                                      )
+                                    }
+                                    className="transition-colors"
+                                  >
+                                    {group.allowStock ? (
+                                      <ToggleRight className="w-5 h-5 text-emerald-600" />
+                                    ) : (
+                                      <ToggleLeft className="w-5 h-5 text-gray-300" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
 
                           {/* Options List */}
@@ -766,14 +769,17 @@ export default function ProductFormModal({
                               <label className="text-xs font-bold text-[rgb(60_28_84)] uppercase">
                                 {dir === "rtl" ? "الخيارات" : "Options"}
                               </label>
-                              <button
-                                type="button"
-                                onClick={() => addVariantOption(group.id)}
-                                className="flex items-center gap-1 text-[10px] font-bold text-[rgb(60_28_84)] bg-white px-2.5 py-1.5 rounded-md hover:bg-[rgb(244_242_245)] transition-colors border border-[rgb(207_195_223)]/50"
-                              >
-                                <Plus className="w-3 h-3" />
-                                {dir === "rtl" ? "إضافة" : "Add"}
-                              </button>
+                              {/* Hide "Add" button for free text — one option is always enough */}
+                              {group.type === "select" && (
+                                <button
+                                  type="button"
+                                  onClick={() => addVariantOption(group.id)}
+                                  className="flex items-center gap-1 text-[10px] font-bold text-[rgb(60_28_84)] bg-white px-2.5 py-1.5 rounded-md hover:bg-[rgb(244_242_245)] transition-colors border border-[rgb(207_195_223)]/50"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  {dir === "rtl" ? "إضافة" : "Add"}
+                                </button>
+                              )}
                             </div>
 
                             {group.options.map(
@@ -801,67 +807,75 @@ export default function ProductFormModal({
                                       }
                                       className="flex-1 px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
                                     />
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        removeVariantOption(group.id, option.id)
-                                      }
-                                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
+                                    {/* Hide remove button for free text with a single option */}
+                                    {(group.type === "select" ||
+                                      group.options.length > 1) && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          removeVariantOption(
+                                            group.id,
+                                            option.id,
+                                          )
+                                        }
+                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    )}
                                   </div>
 
-                                  {/* Price and Stock rows - only show if enabled */}
-                                  {(group.allowPrice || group.allowStock) && (
-                                    <div className="flex gap-2">
-                                      {group.allowPrice && (
-                                        <input
-                                          type="number"
-                                          step="0.01"
-                                          value={option.price ?? ""}
-                                          onChange={(e) =>
-                                            updateVariantOption(
-                                              group.id,
-                                              option.id,
-                                              "price",
-                                              e.target.value
-                                                ? parseFloat(e.target.value)
-                                                : undefined,
-                                            )
-                                          }
-                                          placeholder={
-                                            dir === "rtl"
-                                              ? "السعر (اختياري)"
-                                              : "Price (opt)"
-                                          }
-                                          className="flex-1 px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
-                                        />
-                                      )}
-                                      {group.allowStock && (
-                                        <input
-                                          type="number"
-                                          value={option.stock ?? ""}
-                                          onChange={(e) =>
-                                            updateVariantOption(
-                                              group.id,
-                                              option.id,
-                                              "stock",
-                                              e.target.value
-                                                ? parseInt(e.target.value)
-                                                : undefined,
-                                            )
-                                          }
-                                          placeholder={
-                                            dir === "rtl"
-                                              ? "الكمية (اختياري)"
-                                              : "Stock (opt)"
-                                          }
-                                          className="flex-1 px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
-                                        />
-                                      )}
-                                    </div>
-                                  )}
+                                  {/* Price / Stock inputs — only for Options type with toggles on */}
+                                  {group.type === "select" &&
+                                    (group.allowPrice || group.allowStock) && (
+                                      <div className="flex gap-2">
+                                        {group.allowPrice && (
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            value={option.price ?? ""}
+                                            onChange={(e) =>
+                                              updateVariantOption(
+                                                group.id,
+                                                option.id,
+                                                "price",
+                                                e.target.value
+                                                  ? parseFloat(e.target.value)
+                                                  : undefined,
+                                              )
+                                            }
+                                            placeholder={
+                                              dir === "rtl"
+                                                ? "السعر (اختياري)"
+                                                : "Price (opt)"
+                                            }
+                                            className="flex-1 px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
+                                          />
+                                        )}
+                                        {group.allowStock && (
+                                          <input
+                                            type="number"
+                                            value={option.stock ?? ""}
+                                            onChange={(e) =>
+                                              updateVariantOption(
+                                                group.id,
+                                                option.id,
+                                                "stock",
+                                                e.target.value
+                                                  ? parseInt(e.target.value)
+                                                  : undefined,
+                                              )
+                                            }
+                                            placeholder={
+                                              dir === "rtl"
+                                                ? "الكمية (اختياري)"
+                                                : "Stock (opt)"
+                                            }
+                                            className="flex-1 px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
+                                          />
+                                        )}
+                                      </div>
+                                    )}
                                 </div>
                               ),
                             )}
@@ -884,7 +898,7 @@ export default function ProductFormModal({
             </div>
 
             {/* ============================================ */}
-            {/* IMAGES SECTION - NOW AFTER VARIANTS */}
+            {/* IMAGES SECTION                               */}
             {/* ============================================ */}
             <div>
               <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-3">
@@ -988,6 +1002,7 @@ export default function ProductFormModal({
                   </label>
                 )}
               </div>
+
               <p className="text-[10px] font-medium text-[rgb(60_28_84)]/50 mt-3 flex items-center gap-1.5">
                 <Info className="w-3.5 h-3.5" />
                 {tr.imageUploadHint ||

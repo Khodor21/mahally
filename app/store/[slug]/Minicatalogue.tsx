@@ -82,7 +82,7 @@ const CONTENT_DICTIONARY = {
     of: "of",
     products: "Products",
     allCategories: "All Categories",
-    filters: "Filters",
+    filters: "Categories",
     storeHours: "Store Hours",
     location: "Location",
     contact: "Contact",
@@ -99,7 +99,7 @@ const CONTENT_DICTIONARY = {
     of: "من",
     products: "منتجات",
     allCategories: "جميع الفئات",
-    filters: "المرشحات",
+    filters: "الأصناف",
     storeHours: "ساعات العمل",
     location: "الموقع",
     contact: "الاتصال",
@@ -369,7 +369,7 @@ export default function MiniCatalogue({
 
         {/* Product Count indicator */}
         <div className="hidden md:flex items-center justify-between mb-8 border-b border-gray-100 pb-5 mt-10">
-          <h3 className="text-lg font-bold text-gray-900 capitalize tracking-tight">
+          <h3 className="text-lg font-medium text-gray-900 capitalize tracking-tight">
             <bdi>{selectedCategoryTitle}</bdi>
           </h3>
           <span className="text-xs font-semibold text-gray-500 bg-gray-50 px-3.5 py-1.5 rounded-full border border-gray-100 shadow-sm">

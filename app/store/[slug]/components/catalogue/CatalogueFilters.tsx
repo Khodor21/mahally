@@ -135,10 +135,10 @@ export default function CatalogueFilters({
             <div className="flex items-center gap-2.5 overflow-x-auto pb-2 -mb-2 hide-scrollbar snap-x scroll-smooth">
               <button
                 onClick={() => onCategoryChange(null)}
-                className={`snap-start whitespace-nowrap min-h-[40px] px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 border ${
+                className={`snap-start whitespace-nowrap min-h-[40px] px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
                   selectedCategory === null
-                    ? "bg-[rgb(var(--color-brand-primary))] border-[rgb(var(--color-brand-primary))] text-white shadow-md shadow-brand/20"
-                    : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm"
+                    ? "bg-[rgb(var(--color-brand-primary))] border-[rgb(var(--color-brand-primary))] text-white"
+                    : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
                 }`}
               >
                 {t.allCategories}

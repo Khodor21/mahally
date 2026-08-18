@@ -1,3 +1,4 @@
+"use client";
 import { useCallback, useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import {
@@ -179,7 +180,7 @@ export function useProductDelete() {
     setLoading(true);
     setError(null);
     try {
-      await deleteProduct(id);
+      return await deleteProduct(id);
     } catch (err) {
       const error =
         err instanceof Error ? err : new Error("Failed to delete product");
@@ -194,14 +195,118 @@ export function useProductDelete() {
 }
 
 // ============================================
-// ORDERS
+// ORDERS (WITH SUPABASE REALTIME WEBSOCKETS & SAFE UNIQUE CHANNELS)
 // ============================================
 
 export function useOrders(
   storeId: string,
   options: UseFetchOptions<Order[]> = {},
 ) {
-  return useFetch(() => getOrders(storeId), options);
+  return useOrdersRealtime(storeId, options);
+}
+
+function useOrdersRealtime(
+  storeId: string,
+  options: UseFetchOptions<Order[]> = {},
+) {
+  const [data, setData] = useState<Order[] | undefined>(undefined);
+  const [loading, setLoading] = useState(!options.skip);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetcherRef = useRef(() => getOrders(storeId));
+
+  useEffect(() => {
+    fetcherRef.current = () => getOrders(storeId);
+  }, [storeId]);
+
+  const execute = useCallback(async () => {
+    if (!storeId || options.skip) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await fetcherRef.current();
+      setData(result);
+      options.onSuccess?.(result);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error("Unknown error");
+      setError(error);
+      options.onError?.(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [storeId, options.skip, options.onSuccess, options.onError]);
+
+  useEffect(() => {
+    execute();
+  }, [execute]);
+
+  // Setup Supabase Realtime subscription with unique channel naming to prevent duplicate collisions
+  useEffect(() => {
+    if (!storeId || options.skip) return;
+
+    const uniqueChannelName = `orders-realtime-${storeId}-${Math.random().toString(36).substring(2, 9)}`;
+    console.log(
+      `[Orders Realtime] Subscribing via channel: ${uniqueChannelName}`,
+    );
+
+    const channel = supabase
+      .channel(uniqueChannelName)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+          filter: `store_id=eq.${storeId}`,
+        },
+        async (payload) => {
+          console.log("[Orders Realtime] Event payload received:", payload);
+
+          if (payload.eventType === "INSERT") {
+            const newOrder = payload.new as Order;
+            try {
+              const freshOrders = await getOrders(storeId);
+              setData(freshOrders);
+            } catch {
+              setData((prev) => [newOrder, ...(prev || [])]);
+            }
+          } else if (payload.eventType === "UPDATE") {
+            const updatedOrder = payload.new as Order;
+            setData((prev) =>
+              (prev || []).map((o) =>
+                o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o,
+              ),
+            );
+          } else if (payload.eventType === "DELETE") {
+            const deletedOrder = payload.old as { id: string };
+            setData((prev) =>
+              (prev || []).filter((o) => o.id !== deletedOrder.id),
+            );
+          }
+        },
+      )
+      .subscribe((status, err) => {
+        console.log(`[Orders Realtime] Status: ${status}`, err || "");
+      });
+
+    const backupInterval = setInterval(() => {
+      fetcherRef
+        .current()
+        .then((res) => setData(res))
+        .catch(() => {});
+    }, 60000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(backupInterval);
+    };
+  }, [storeId, options.skip]);
+
+  const retry = useCallback(() => execute(), [execute]);
+
+  return { data, loading, error, execute, retry };
 }
 
 export function useOrderStatusUpdate() {
@@ -238,14 +343,10 @@ export function useCustomers(options: UseFetchOptions<Customer[]> = {}) {
 // COUPONS
 // ============================================
 
-// Add/replace these hooks in your useApi.ts file
-
-// ===== GET COUPONS =====
 export function useCoupons(options: UseFetchOptions<Coupon[]> = {}) {
   return useFetch(() => getCoupons(), options);
 }
 
-// ===== CREATE COUPON =====
 export const useCouponCreate = () => {
   const [loading, setLoading] = useState(false);
 
@@ -273,7 +374,6 @@ export const useCouponCreate = () => {
   return { execute, loading };
 };
 
-// ===== UPDATE COUPON =====
 export const useCouponUpdate = () => {
   const [loading, setLoading] = useState(false);
 
@@ -284,7 +384,7 @@ export const useCouponUpdate = () => {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          couponId, // ✅ Include couponId in body
+          couponId,
           ...payload,
         }),
       });
@@ -304,14 +404,12 @@ export const useCouponUpdate = () => {
   return { execute, loading };
 };
 
-// ===== DELETE COUPON =====
 export const useCouponDelete = () => {
   const [loading, setLoading] = useState(false);
 
   const execute = useCallback(async (couponId: string) => {
     setLoading(true);
     try {
-      // ✅ Pass couponId as query parameter
       const response = await fetch(
         `/api/coupons?couponId=${encodeURIComponent(couponId)}`,
         {
@@ -333,7 +431,6 @@ export const useCouponDelete = () => {
   return { execute, loading };
 };
 
-// ===== TOGGLE COUPON ACTIVE STATUS =====
 export const useCouponToggle = () => {
   const [loading, setLoading] = useState(false);
 
@@ -344,7 +441,7 @@ export const useCouponToggle = () => {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          couponId, // ✅ Include couponId in body
+          couponId,
           isActive,
         }),
       });
@@ -499,7 +596,6 @@ export function useHeroBannerCreate() {
       setLoading(true);
       setError(null);
       try {
-        // ensure image is a string for API (backend expects string, not undefined)
         const payload = { ...form, image: form.image ?? "" };
         return await createHeroBanner(storeId, payload);
       } catch (err) {
@@ -526,7 +622,6 @@ export function useHeroBannerUpdate() {
       setLoading(true);
       setError(null);
       try {
-        // ensure image is a string for API (backend expects string, not undefined)
         const payload = { ...form, image: form.image ?? "" };
         return await updateHeroBanner(bannerId, payload);
       } catch (err) {
@@ -544,8 +639,6 @@ export function useHeroBannerUpdate() {
   return { execute, loading, error };
 }
 
-// Add this to your existing useApi.ts file
-
 export function useVisitors(
   storeId: string,
   options: UseFetchOptions<VisitorCount[]> = {},
@@ -562,9 +655,6 @@ export function useVisitors(
     }
 
     const result = await response.json();
-
-    console.log("DEBUG Visitors API RESULT:", result);
-
     return result.data || [];
   }, options);
 }

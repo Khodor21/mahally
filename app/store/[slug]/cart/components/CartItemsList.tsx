@@ -96,13 +96,13 @@ export default function CartItemsList({
                   </p>
 
                   {/* ── VARIANT BADGE UI ── */}
-                  {item.product.variantDescription && (
+                  {/* {item.product.variantDescription && (
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
                         {item.product.variantDescription}
                       </span>
                     </div>
-                  )}
+                  )} */}
 
                   {/* Price */}
                   <p className="text-base sm:text-base font-extrabold text-brand-primary mt-1.5">

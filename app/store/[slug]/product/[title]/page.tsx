@@ -31,7 +31,8 @@ export default async function ProductPage({
       id, 
       title, 
       description, 
-      price, 
+      price,
+      discount_price,
       stock, 
       images, 
       categories(title),
@@ -39,7 +40,7 @@ export default async function ProductPage({
     `,
     )
     .eq("store_id", store.id)
-    .ilike("title", decodedTitle) // 👉 Case-insensitive match
+    .ilike("title", decodedTitle)
     .single();
 
   if (error || !product) return notFound();
