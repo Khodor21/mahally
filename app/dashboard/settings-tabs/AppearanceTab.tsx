@@ -17,7 +17,6 @@ import {
 import FeatureForm from "./FeatureForm";
 import Testimonials from "./Testimonials";
 import { useDashboard } from "../DashboardContext";
-import { HeroBanner, Feature } from "@/types/api";
 
 interface AppearanceTabProps {
   lang: string;

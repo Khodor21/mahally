@@ -90,7 +90,7 @@ export default function CategoriesSection({
   return (
     <section
       id="categories"
-      className="w-full px-4 md:px-10 mx-auto bg-white py-8 md:py-12"
+      className="w-full px-4 md:px-10 mx-auto bg-white py-3"
       dir={lang === "ar" ? "rtl" : "ltr"}
     >
       <div className="max-w-7xl mx-auto">

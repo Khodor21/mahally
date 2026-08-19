@@ -106,7 +106,7 @@ export default async function StorePage({
             lang={lang}
           />
         </Suspense>
-        <Features storeSlug={params.slug} />
+        <Features storeSlug={params.slug} lang={lang} />{" "}
         <Testimonial lang={lang} storeSlug={params.slug} />
       </div>
     </main>

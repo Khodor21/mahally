@@ -21,7 +21,6 @@ export default function FeaturesSection({
     const fetchFeatures = async () => {
       try {
         setLoading(true);
-        // Added public=true parameter
         const res = await fetch(
           `/api/features?store_slug=${storeSlug}&public=true`,
           { cache: "no-store" },
@@ -45,8 +44,7 @@ export default function FeaturesSection({
   return (
     <section className="py-6 bg-white" dir={dir}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Title Section matching image_8e8947.png */}
-
+        {/* Title Section dynamically localized using lang */}
         <div className="text-center mb-4">
           <p className="text-2xl md:text-3xl font-bold text-brand-black mb-2">
             {lang === "ar" ? "لماذا يفضلنا عملاؤنا؟" : "Store Features"}
@@ -54,15 +52,14 @@ export default function FeaturesSection({
           <p className="text-sm md:text-base text-brand-black/90 font-medium">
             {lang === "ar"
               ? "تجربة تسوق مضمونة ترقى لتوقعاتكم"
-              : "Real experiences from our valued customers"}
+              : "Guaranteed shopping experience that meets your expectations"}
           </p>
-          {/* UPDATED COLOR */}
           <div className="w-12 h-[3px] bg-[rgb(var(--color-brand-primary))] mx-auto rounded-full mt-3" />
         </div>
-        {/* Features Grid - 2x2 on mobile, 4x1 or 2x2 on desktop */}
+
+        {/* Features Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {features.map((feature) => {
-            // Dynamically load the icon from lucide-react
             const IconComponent =
               (LucideIcons as any)[feature.icon_name] || LucideIcons.Box;
 
@@ -81,9 +78,6 @@ export default function FeaturesSection({
                   <h3 className="font-medium text-black text-sm sm:text-base leading-tight">
                     {feature.title}
                   </h3>
-                  {/* <p className="text-brand-primary/80 text-sm md:text-base">
-                    {feature.description}
-                  </p> */}
                 </div>
               </div>
             );

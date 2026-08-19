@@ -103,7 +103,7 @@ export default function FeatureForm({
     if (initialData) {
       setFormData({
         title: initialData.title,
-        description: initialData.description,
+        description: initialData.description || "",
         icon_name: initialData.icon_name,
       });
       setErrors({});
@@ -117,12 +117,6 @@ export default function FeatureForm({
       newErrors.title = t.errors.title_required;
     } else if (formData.title.length > 255) {
       newErrors.title = t.errors.title_max;
-    }
-
-    if (!formData.description.trim()) {
-      newErrors.description = t.errors.desc_required;
-    } else if (formData.description.length > 500) {
-      newErrors.description = t.errors.desc_max;
     }
 
     setErrors(newErrors);
@@ -259,7 +253,6 @@ export default function FeatureForm({
           disabled={
             isLoading ||
             !formData.title.trim() ||
-            !formData.description.trim() ||
             Object.keys(errors).length > 0
           }
           className="flex-1 px-4 py-2.5 text-sm font-semibold bg-[rgb(60_28_84)] text-white rounded-lg hover:bg-[rgb(60_28_84)]/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"

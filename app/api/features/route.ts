@@ -9,9 +9,6 @@ function isValidFeature(feature: any): boolean {
     typeof feature.title === "string" &&
     feature.title.trim().length > 0 &&
     feature.title.trim().length <= 255 &&
-    typeof feature.description === "string" &&
-    feature.description.trim().length > 0 &&
-    feature.description.trim().length <= 2000 &&
     typeof feature.icon_name === "string" &&
     feature.icon_name.trim().length > 0 &&
     feature.icon_name.trim().length <= 100
@@ -94,15 +91,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validation - Description
-    if (!description || description.trim() === "") {
-      return NextResponse.json(
-        { success: false, message: "Description is required" },
-        { status: 400 },
-      );
-    }
-
-    if (description.length > 2000) {
+    // Validation - Description (Only check max length if it exists)
+    if (description && description.length > 2000) {
       return NextResponse.json(
         {
           success: false,
@@ -148,7 +138,8 @@ export async function POST(req: Request) {
       .insert({
         store_id: user.id,
         title: title.trim(),
-        description: description.trim(),
+        description:
+          description && description.trim() !== "" ? description.trim() : "-",
         icon_name: icon_name.trim(),
         display_order: parsedDisplayOrder,
         is_active: is_active !== undefined ? is_active : true,
@@ -224,12 +215,6 @@ export async function PATCH(req: Request) {
     }
 
     if (description !== undefined) {
-      if (description.trim() === "") {
-        return NextResponse.json(
-          { success: false, message: "Description cannot be empty" },
-          { status: 400 },
-        );
-      }
       if (description.length > 2000) {
         return NextResponse.json(
           {

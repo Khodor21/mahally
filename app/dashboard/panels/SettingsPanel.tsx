@@ -25,7 +25,6 @@ import {
   HelpCircle,
 } from "lucide-react";
 import AppearanceTab from "../settings-tabs/AppearanceTab";
-import FeaturesTab from "../components/Features";
 import StoreTab from "../settings-tabs/StoreTab";
 import AccountTab from "../settings-tabs/AccountTab";
 import PoliciesTab from "../settings-tabs/PoliciesTab";
