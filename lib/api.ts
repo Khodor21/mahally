@@ -68,6 +68,7 @@ export async function createProduct(form: ProductFormData): Promise<Product> {
       images: form.images,
       category_id: form.category_id,
       variantGroups: form.variantGroups,
+      pin: form.pin ?? false,
     }),
   });
 
@@ -404,7 +405,6 @@ export async function updateHeroBanner(
     id: bannerId,
     ...form,
   };
-
 
   const res = await fetch(`/api/hero`, {
     method: "PUT",
