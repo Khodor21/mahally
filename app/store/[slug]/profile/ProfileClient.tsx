@@ -175,6 +175,7 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
   >("account");
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutModal, setLogoutModal] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
 
@@ -192,11 +193,9 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
     newPassword: "",
   });
 
-  // 1. Replace your static orders state with these:
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
-  // 2. Add the status mapping dictionaries
   const statusMapEn: Record<string, string> = {
     pending: "Pending",
     processing: "Processing",
@@ -221,7 +220,6 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
         const json = await res.json();
 
         if (json.success && json.data) {
-          // Inside fetchOrders, replace the formattedOrders mapping with this:
           const formattedOrders = json.data
             .filter((order: any) => order.customer_phone === customer.phone)
             .map((order: any) => {
@@ -294,7 +292,6 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
     },
   ];
 
-  // Map context favorites to perfectly match ProductCard expectations
   const mappedFavorites = (favorites || []).map((item: any) => ({
     id: item.id,
     title: item.title || "Untitled Product",
@@ -375,16 +372,18 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
       await fetch("/api/store-customers/logout", { method: "POST" });
 
       setLogoutModal(false);
+      setIsLoggingOut(true); // Trigger full page overlay
       setToast({ message: tr.logoutSuccess, type: "success" });
 
-      // Delay the redirect so the toast has time to be seen
+      // Hard reload ensures client-side cache & state is completely wiped
       setTimeout(() => {
-        router.push("/auth");
-      }, 1500);
+        window.location.href = "/auth";
+      }, 800);
     } catch (error) {
       console.error("Logout error:", error);
       setToast({ message: "Failed to logout", type: "error" });
       setLoading(false);
+      setIsLoggingOut(false);
     }
   }
 
@@ -393,8 +392,12 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
       setLoading(true);
       const res = await fetch("/api/profile", { method: "DELETE" });
       const data = await res.json();
-      if (data.success) router.push("/auth");
-      else setToast({ message: data.message, type: "error" });
+      if (data.success) {
+        window.location.href = "/auth";
+      } else {
+        setToast({ message: data.message, type: "error" });
+        setLoading(false);
+      }
     } catch (error) {
       console.error("Delete error:", error);
       setToast({ message: "Failed to delete account", type: "error" });
@@ -404,6 +407,16 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
 
   return (
     <>
+      {/* Full Page Logout Overlay */}
+      {isLoggingOut && (
+        <div className="fixed inset-0 z-[9999] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center transition-all animate-in fade-in duration-300">
+          <Loader2 className="w-12 h-12 text-brand-primary animate-spin mb-4" />
+          <p className="text-lg font-medium text-gray-900 animate-pulse">
+            {tr.loggingOut}
+          </p>
+        </div>
+      )}
+
       {toast && (
         <Toast
           message={toast.message}
@@ -493,14 +506,10 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                       <div className="flex items-center gap-2 sm:gap-3">
                         <button
                           onClick={() => setLogoutModal(true)}
-                          disabled={loading}
+                          disabled={loading || isLoggingOut}
                           className="h-9 md:h-10 px-3 sm:px-4 rounded border border-red-200 bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 hover:border-red-300 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                         >
-                          {loading ? (
-                            <Loader2 size={16} className="animate-spin" />
-                          ) : (
-                            <LogOut size={16} />
-                          )}
+                          <LogOut size={16} />
                           <span className="hidden sm:inline">{tr.logout}</span>
                         </button>
 
@@ -643,29 +652,10 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                       </>
                     )}
                   </section>
-
-                  {/* Addresses Section (Merged into Account) */}
-                  {/* <section className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200 p-4 sm:p-6 md:p-7">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-6">
-                      {tr.addresses}
-                    </h3>
-                    <div className="text-center py-12">
-                      <MapPin
-                        size={40}
-                        className="mx-auto text-gray-300 mb-3"
-                      />
-                      <p className="text-sm font-medium text-gray-900">
-                        {tr.noAddresses}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {tr.noAddressesDesc}
-                      </p>
-                    </div>
-                  </section> */}
                 </>
               )}
 
-              {/* Inside your Main Content -> Orders Section */}
+              {/* Orders Section */}
               {activeSection === "orders" && (
                 <section className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200 p-4 sm:p-6 md:p-7">
                   <div className="mb-6">
@@ -677,14 +667,12 @@ export default function ProfileClient({ customer, lang, slug }: Props) {
                     </p>
                   </div>
 
-                  {/* Render the extracted component here */}
                   <OrdersSection
                     orders={orders}
                     lang={lang}
                     loading={ordersLoading}
                     onOrderClick={(orderId) => {
                       console.log("Clicked order UUID:", orderId);
-                      // You can add routing here later: router.push(`/orders/${orderId}`)
                     }}
                   />
                 </section>

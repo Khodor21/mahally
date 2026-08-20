@@ -19,15 +19,16 @@ export default function NotificationInitializer() {
         if (!res.ok) return;
         const data = await res.json();
 
-        if (data.authenticated && data.customerId) {
-          setCustomerId(data.customerId);
-          const isRegistered = localStorage.getItem(
-            `push_reg_${data.customerId}`,
-          );
-          if (!isRegistered) {
-            setTimeout(() => setShowBanner(true), 1500);
-          }
-        }
+        // ✅ فقط للمستخدمين المسجلين — مش guests
+        if (!data.authenticated || !data.customerId) return;
+
+        const isRegistered = localStorage.getItem(
+          `push_reg_${data.customerId}`,
+        );
+        if (isRegistered) return;
+
+        setCustomerId(data.customerId);
+        setTimeout(() => setShowBanner(true), 1500);
       } catch (e) {
         console.error(e);
       }
@@ -43,7 +44,6 @@ export default function NotificationInitializer() {
       if (!("Notification" in window) || !("serviceWorker" in navigator))
         return;
 
-      // iOS requires permission request from direct user gesture — this click IS the gesture
       const permission = await Notification.requestPermission();
       if (permission !== "granted") return;
 
@@ -74,8 +74,8 @@ export default function NotificationInitializer() {
         body: JSON.stringify({ token }),
       });
 
-      if (response.ok) {
-        if (customerId) localStorage.setItem(`push_reg_${customerId}`, "true");
+      if (response.ok && customerId) {
+        localStorage.setItem(`push_reg_${customerId}`, "true");
       }
     } catch (err) {
       console.error("Push registration failed:", err);
@@ -89,37 +89,50 @@ export default function NotificationInitializer() {
 
   if (!showBanner) return null;
 
-  const text = {
-    en: {
-      msg: "Enable notifications to get order updates & offers",
-      enable: "Enable",
-      dismiss: "No thanks",
-    },
-    ar: {
-      msg: "فعّل الإشعارات لتصلك تحديثات الطلبات والعروض",
-      enable: "تفعيل",
-      dismiss: "لا شكراً",
-    },
-  }[lang];
+  const text =
+    lang === "ar"
+      ? {
+          msg: "فعّل الإشعارات لتصلك تحديثات الطلبات والعروض",
+          enable: "تفعيل",
+          dismiss: "لا شكراً",
+        }
+      : {
+          msg: "Enable notifications to get order updates & offers",
+          enable: "Enable",
+          dismiss: "No thanks",
+        };
 
   return (
-    <div
-      className="fixed bottom-4 left-4 right-4 z-50 max-w-md mx-auto bg-white rounded-2xl shadow-lg border border-gray-100 p-4 flex items-center gap-3"
-      dir={lang === "ar" ? "rtl" : "ltr"}
-    >
-      <p className="text-sm text-gray-700 flex-1">{text.msg}</p>
-      <button
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
         onClick={dismiss}
-        className="text-xs text-gray-400 hover:text-gray-600 shrink-0"
-      >
-        {text.dismiss}
-      </button>
-      <button
-        onClick={registerPush}
-        className="text-xs font-semibold text-white bg-brand-primary px-3 py-1.5 rounded-lg shrink-0"
-      >
-        {text.enable}
-      </button>
-    </div>
+      />
+
+      {/* ✅ Center modal */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6 flex flex-col gap-4"
+          dir={lang === "ar" ? "rtl" : "ltr"}
+        >
+          <p className="text-sm text-gray-700 text-center">{text.msg}</p>
+          <div className="flex gap-3">
+            <button
+              onClick={dismiss}
+              className="flex-1 text-sm text-gray-500 border border-gray-200 rounded-xl py-2.5 hover:bg-gray-50"
+            >
+              {text.dismiss}
+            </button>
+            <button
+              onClick={registerPush}
+              className="flex-1 text-sm font-semibold text-white bg-brand-primary rounded-xl py-2.5 hover:opacity-90"
+            >
+              {text.enable}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
