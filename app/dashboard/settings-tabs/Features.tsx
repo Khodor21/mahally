@@ -158,6 +158,12 @@ export default function FeaturesPanel({
       errors.title = msgs.titleMax;
     }
 
+    if (!formData.description.trim()) {
+      errors.description = msgs.descriptionRequired;
+    } else if (formData.description.length > 2000) {
+      errors.description = msgs.descriptionMax;
+    }
+
     if (!formData.icon_name.trim()) {
       errors.icon_name = msgs.iconRequired;
     } else if (formData.icon_name.length > 100) {
@@ -279,7 +285,7 @@ export default function FeaturesPanel({
   const handleEditClick = (feature: Feature) => {
     setFormData({
       title: feature.title,
-      description: feature.description || "",
+      description: feature.description,
       icon_name: feature.icon_name,
       display_order: feature.display_order,
       is_active: feature.is_active,
@@ -461,19 +467,17 @@ export default function FeaturesPanel({
                     </span>
                   )}
                 </div>
-                {feature.description && (
-                  <p
-                    style={{
-                      margin: "0 0 8px 0",
-                      fontSize: "13px",
-                      color: "var(--color-text-secondary)",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {feature.description.substring(0, 100)}
-                    {feature.description.length > 100 ? "..." : ""}
-                  </p>
-                )}
+                <p
+                  style={{
+                    margin: "0 0 8px 0",
+                    fontSize: "13px",
+                    color: "var(--color-text-secondary)",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {feature.description.substring(0, 100)}
+                  {feature.description.length > 100 ? "..." : ""}
+                </p>
                 <div
                   style={{
                     display: "flex",
@@ -773,6 +777,53 @@ export default function FeaturesPanel({
                     }}
                   >
                     {formErrors.title}
+                  </p>
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    marginBottom: "6px",
+                    color: "var(--color-text-primary)",
+                  }}
+                >
+                  {msgs.description}
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  maxLength={2000}
+                  placeholder={msgs.description}
+                  rows={4}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    backgroundColor: "var(--color-background-secondary)",
+                    border: "0.5px solid var(--color-border-tertiary)",
+                    borderRadius: "var(--border-radius-md)",
+                    fontSize: "14px",
+                    fontFamily: "inherit",
+                    color: "var(--color-text-primary)",
+                    boxSizing: "border-box",
+                    resize: "vertical",
+                  }}
+                />
+                {formErrors.description && (
+                  <p
+                    style={{
+                      margin: "4px 0 0 0",
+                      fontSize: "12px",
+                      color: "var(--color-text-danger)",
+                    }}
+                  >
+                    {formErrors.description}
                   </p>
                 )}
               </div>
