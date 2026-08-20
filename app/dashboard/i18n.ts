@@ -60,7 +60,7 @@ export const t = {
     // Storefront
     storefront: "أقسام الصفحة الرئيسية",
     addSection: "إضافة قسم",
-
+storefrontDesc: "إدارة أقسام واجهة العرض واللافتات الإعلانية",
     // Form / Modal
     addProductTitle: "إضافة منتج جديد",
     editProductTitle: "تعديل المنتج",
@@ -230,6 +230,7 @@ export const t = {
     ai: "Ai Assistant",
     categories: "Categories",
     storefront: "Sections",
+    storefrontDesc: "Manage storefront sections and promotional banners",
     marketing: "Marketing",
     coupons: "Discount Coupons",
     partnerships: "Partnerships",
