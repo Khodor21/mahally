@@ -1,99 +1,125 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePushNotifications } from "@/hooks/usePushNotifications";
-import NotificationPrompt from "./NotificationPrompt";
+import { getToken } from "firebase/messaging";
+import { getFirebaseMessaging } from "@/lib/firebase";
 
 export default function NotificationInitializer() {
-  const [showPrompt, setShowPrompt] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
   const [lang, setLang] = useState<"en" | "ar">("en");
 
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout;
-    let timeoutId: NodeJS.Timeout;
-    let attempts = 0;
-    const maxAttempts = 10;
-
-    const justSignedUp =
-      localStorage.getItem("_mahally_just_signed_up") === "true";
+    const docLang = document.documentElement.lang as "en" | "ar";
+    if (docLang) setLang(docLang);
 
     const checkAuth = async () => {
-      attempts++;
       try {
         const res = await fetch("/api/customer/auth-status");
-
-        // Bail out early if the user is 401 Unauthorized so we don't crash on res.json()
-        if (!res.ok) {
-          if (attempts >= maxAttempts && pollInterval) {
-            clearInterval(pollInterval);
-          }
-          return;
-        }
-
+        if (!res.ok) return;
         const data = await res.json();
 
         if (data.authenticated && data.customerId) {
           setCustomerId(data.customerId);
-          setIsAuthenticated(true);
-
           const isRegistered = localStorage.getItem(
             `push_reg_${data.customerId}`,
           );
-
           if (!isRegistered) {
-            if (justSignedUp) {
-              setShowPrompt(true);
-              localStorage.removeItem("_mahally_just_signed_up");
-            } else {
-              timeoutId = setTimeout(() => {
-                setShowPrompt(true);
-              }, 1000);
-            }
+            setTimeout(() => setShowBanner(true), 1500);
           }
-
-          if (pollInterval) clearInterval(pollInterval);
-        } else if (attempts >= maxAttempts) {
-          if (pollInterval) clearInterval(pollInterval);
         }
-      } catch (error) {
-        console.error("Auth status check failed:", error);
-        if (attempts >= maxAttempts && pollInterval) {
-          clearInterval(pollInterval);
-        }
+      } catch (e) {
+        console.error(e);
       }
     };
 
-    const docLang = document.documentElement.lang as "en" | "ar";
-    if (docLang) setLang(docLang);
-
-    if (justSignedUp) {
-      // 1. If they just signed up, check immediately, then poll to wait for the cookie
-      checkAuth();
-      pollInterval = setInterval(checkAuth, 500);
-    } else {
-      // 2. Normal visitor: just check ONCE. No polling.
-      checkAuth();
-    }
-
-    return () => {
-      if (pollInterval) clearInterval(pollInterval);
-      if (timeoutId) clearTimeout(timeoutId);
-    };
+    checkAuth();
   }, []);
 
-  // ONLY call the hook when showPrompt is true AND we have customerId
-  usePushNotifications(showPrompt && isAuthenticated, customerId || undefined);
+  const registerPush = async () => {
+    setShowBanner(false);
 
-  // Don't render anything - the prompt handles itself
+    try {
+      if (!("Notification" in window) || !("serviceWorker" in navigator))
+        return;
+
+      // iOS requires permission request from direct user gesture — this click IS the gesture
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") return;
+
+      const reg = await navigator.serviceWorker.register(
+        "/firebase-messaging-sw.js",
+        {
+          scope: "/",
+          updateViaCache: "none",
+        },
+      );
+      await reg.update();
+
+      const messaging = await getFirebaseMessaging();
+      if (!messaging) return;
+
+      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+      if (!vapidKey) return;
+
+      const token = await getToken(messaging, {
+        vapidKey,
+        serviceWorkerRegistration: reg,
+      });
+      if (!token) return;
+
+      const response = await fetch("/api/notifications/register-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+
+      if (response.ok) {
+        if (customerId) localStorage.setItem(`push_reg_${customerId}`, "true");
+      }
+    } catch (err) {
+      console.error("Push registration failed:", err);
+    }
+  };
+
+  const dismiss = () => {
+    setShowBanner(false);
+    if (customerId) localStorage.setItem(`push_reg_${customerId}`, "true");
+  };
+
+  if (!showBanner) return null;
+
+  const text = {
+    en: {
+      msg: "Enable notifications to get order updates & offers",
+      enable: "Enable",
+      dismiss: "No thanks",
+    },
+    ar: {
+      msg: "فعّل الإشعارات لتصلك تحديثات الطلبات والعروض",
+      enable: "تفعيل",
+      dismiss: "لا شكراً",
+    },
+  }[lang];
+
   return (
-    showPrompt && (
-      <NotificationPrompt
-        onClose={() => setShowPrompt(false)}
-        customerId={customerId}
-        lang={lang}
-      />
-    )
+    <div
+      className="fixed bottom-4 left-4 right-4 z-50 max-w-md mx-auto bg-white rounded-2xl shadow-lg border border-gray-100 p-4 flex items-center gap-3"
+      dir={lang === "ar" ? "rtl" : "ltr"}
+    >
+      <p className="text-sm text-gray-700 flex-1">{text.msg}</p>
+      <button
+        onClick={dismiss}
+        className="text-xs text-gray-400 hover:text-gray-600 shrink-0"
+      >
+        {text.dismiss}
+      </button>
+      <button
+        onClick={registerPush}
+        className="text-xs font-semibold text-white bg-brand-primary px-3 py-1.5 rounded-lg shrink-0"
+      >
+        {text.enable}
+      </button>
+    </div>
   );
 }

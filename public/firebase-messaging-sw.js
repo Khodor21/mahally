@@ -1,7 +1,3 @@
-// /public/firebase-messaging-sw.js
-// Firebase Cloud Messaging Service Worker - FINAL VERSION
-// Use importScripts, NOT ES6 imports!
-
 importScripts(
   "https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js",
 );
@@ -13,11 +9,11 @@ console.log("🚀 Service Worker initializing...");
 
 // Initialize Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyDummyKey", // Doesn't matter - public anyway
-  authDomain: "dummy.firebaseapp.com",
-  projectId: "dummy",
-  messagingSenderId: "123456",
-  appId: "1:123456:web:abc",
+  apiKey: "AIzaSyBQZoA1lhg8TZ0jIAkRrn_QgW8nmpp0XeQ",
+  authDomain: "mahally-notification.firebaseapp.com",
+  projectId: "mahally-notification",
+  messagingSenderId: "893549676994",
+  appId: "1:893549676994:web:1a66a47ab644619c6bee5b",
 };
 
 try {

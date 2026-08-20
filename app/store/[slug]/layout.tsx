@@ -102,6 +102,7 @@ export async function generateMetadata({
       description: description,
       images: logoUrl ? [logoUrl] : [],
     },
+    manifest: "/manifest.json",
   };
 }
 
