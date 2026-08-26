@@ -335,6 +335,10 @@ export default function ProductClientUI({
     price: activePrice,
     variantDescription: variantDescription || undefined,
     image: images[0],
+    discount_price:
+      product.discount_price != null
+        ? Number(product.discount_price)
+        : undefined,
   };
 
   // --- Handlers ---

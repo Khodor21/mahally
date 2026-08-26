@@ -147,6 +147,10 @@ export default function ProductCard({
   const normalizedProduct = {
     ...product,
     id: String(product.id),
+    discount_price:
+      product.discount_price != null
+        ? Number(product.discount_price)
+        : undefined,
   };
 
   const handleAddToCart = () => {

@@ -277,6 +277,7 @@ export default function CartClientPage({ store }: Props) {
             qty: item.qty,
             variantSelections: item.variantSelections || undefined,
             variantDescription: item.product.variantDescription || "",
+            discountPrice: item.product.discount_price,
           })),
         }),
       });
