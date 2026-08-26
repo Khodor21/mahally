@@ -6,12 +6,14 @@ import {
   useCallback,
   useEffect,
 } from "react";
+
 // ── Types ──────────────────────────────────────────
 export interface Product {
   id: string;
   title: string;
   image?: string;
   price?: number;
+  discount_price?: number;
   rating?: number;
   badge?: string;
   variantDescription?: string;
@@ -160,7 +162,6 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
   }, [buyNowItem, isHydrated]);
 
   // ── Cart Actions ──────────────────────────────────────────
-  // UPDATED: Accept variantSelections parameter
   const addToCart = useCallback(
     (
       product: Product,
@@ -168,7 +169,6 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
       variantSelections?: Record<string, VariantSelection>,
     ) => {
       setCartItems((prev) => {
-        // NEW: Match by product ID AND variant selections (if product has variants)
         const existing = prev.find((i) => {
           if (i.product.id !== product.id) return false;
 
@@ -224,7 +224,6 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // ── Buy Now Actions ────────────────────────────────────────
-  // UPDATED: Accept variantSelections parameter
   const setBuyNowItem = useCallback(
     (
       product: Product,
@@ -240,12 +239,17 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     setBuyNowItemState(null);
   }, []);
 
-  // ── Derived Cart Math ─────────────────────────────────────
+  // ── Derived Cart Math (UPDATED TO RESPECT DISCOUNT) ───────
   const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
-  const cartTotal = cartItems.reduce(
-    (sum, i) => sum + (i.product.price ?? 0) * i.qty,
-    0,
-  );
+
+  const cartTotal = cartItems.reduce((sum, i) => {
+    const basePrice = Number(i.product.price || 0);
+    const discountPrice = Number(i.product.discount_price || 0);
+    const hasDiscount = discountPrice > 0 && discountPrice < basePrice;
+    const activePrice = hasDiscount ? discountPrice : basePrice;
+
+    return sum + activePrice * i.qty;
+  }, 0);
 
   const checkoutItems = buyNowItem ? [buyNowItem] : cartItems;
   const isBuyNowMode = buyNowItem !== null;

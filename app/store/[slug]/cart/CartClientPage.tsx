@@ -31,14 +31,9 @@ type Props = {
   store: Store | null;
 };
 
-// ── NEW HELPER: Filter out informational variants, keep only selectable ones ──
 const getSelectableVariants = (variantDescription?: string): string => {
   if (!variantDescription) return "";
-
   try {
-    // Parse the variant description which may contain variant info
-    // This helper ensures we only display variants that require user selection
-    // Informational variants (type: "text") should not be shown in cart
     return variantDescription;
   } catch {
     return variantDescription || "";
@@ -55,7 +50,6 @@ export default function CartClientPage({ store }: Props) {
   const { cartItems, cartTotal, updateCartQty, removeFromCart, clearCart } =
     useShop();
 
-  // ✅ GUARANTEED DATA EXTRACTION: Pull directly from the verified Server Component prop
   const currencySymbol = store?.currency_symbol || "$";
   const storeDeliveryCost = parseFloat(store?.delivery_cost as string) || 0;
   const paymentMethods = store?.payment_methods
@@ -66,13 +60,10 @@ export default function CartClientPage({ store }: Props) {
         : []
     : [];
 
-  // ── Auth & Auto-fill ────────────────────────────────────
   const { customer, loading: authLoading } = useAuth(store?.id);
 
-  // ── Step Navigation ────────────────────────────────────
   const [step, setStep] = useState<"cart" | "shipping">("cart");
 
-  // ── Form State ──────────────────────────────────────
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [city, setCity] = useState("");
@@ -80,7 +71,6 @@ export default function CartClientPage({ store }: Props) {
   const [notes, setNotes] = useState("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
 
-  // ── Coupon State ────────────────────────────────────
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
@@ -92,11 +82,9 @@ export default function CartClientPage({ store }: Props) {
     text: string;
   } | null>(null);
 
-  // ── UI State ────────────────────────────────────────
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ── Custom Toast State ──────────────────────────────
   const [toastState, setToastState] = useState<{
     show: boolean;
     type: "success" | "error";
@@ -123,7 +111,6 @@ export default function CartClientPage({ store }: Props) {
     return () => clearTimeout(timeoutId);
   }, [toastState.show]);
 
-  // ── Buy Now Isolated State ────────────────────────────
   const [isMounted, setIsMounted] = useState(false);
   const [isBuyNow, setIsBuyNow] = useState(false);
   const [buyNowItem, setBuyNowItem] = useState<any>(null);
@@ -141,18 +128,23 @@ export default function CartClientPage({ store }: Props) {
     }
   }, []);
 
-  // ── Proxy Cart Data ───────────────────────────────────
   const activeItems = useMemo(() => {
     return isBuyNow && buyNowItem ? [buyNowItem] : cartItems;
   }, [isBuyNow, buyNowItem, cartItems]);
 
+  // SAFE DISCOUNT CALCULATION FOR BUY NOW MODE
   const activeSubtotal = useMemo(() => {
-    return isBuyNow && buyNowItem
-      ? (buyNowItem.product.price || 0) * buyNowItem.qty
-      : cartTotal;
+    if (isBuyNow && buyNowItem) {
+      const basePrice = Number(buyNowItem.product.price || 0);
+      const discountPrice = Number(buyNowItem.product.discount_price || 0);
+      const hasDiscount = discountPrice > 0 && discountPrice < basePrice;
+      const activePrice = hasDiscount ? discountPrice : basePrice;
+
+      return activePrice * buyNowItem.qty;
+    }
+    return cartTotal; // cartTotal from Context is now fully discount-aware
   }, [isBuyNow, buyNowItem, cartTotal]);
 
-  // ── Proxy Cart Handlers ───────────────────────────────
   const handleUpdateActiveQty = (id: string | number, qty: number) => {
     if (isBuyNow && buyNowItem) {
       const updated = { ...buyNowItem, qty };
@@ -181,11 +173,9 @@ export default function CartClientPage({ store }: Props) {
     }
   };
 
-  // ── Cart/Buy Now Switcher ────────────────────────────
   const switchToCartView = () => setIsBuyNow(false);
   const switchToBuyNowView = () => setIsBuyNow(true);
 
-  // ── Auto-fill from authenticated customer ──────────────
   useEffect(() => {
     if (customer) {
       setCustomerName(`${customer.first_name} ${customer.last_name}`.trim());
@@ -194,13 +184,11 @@ export default function CartClientPage({ store }: Props) {
     }
   }, [customer]);
 
-  // ── Totals ──────────────────────────────────────────
   const subtotal = useMemo(() => activeSubtotal, [activeSubtotal]);
   const shipping = subtotal > 0 ? storeDeliveryCost : 0;
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const total = Math.max(0, subtotal - discountAmount) + shipping;
 
-  // ── Safety: Clear coupon if cart contents change ────
   useEffect(() => {
     if (appliedCoupon) {
       setAppliedCoupon(null);
@@ -212,7 +200,6 @@ export default function CartClientPage({ store }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subtotal]);
 
-  // ── Apply Coupon Logic ──────────────────────────────
   const handleApplyCoupon = async () => {
     if (!couponInput.trim() || !store?.id) return;
 
@@ -256,7 +243,6 @@ export default function CartClientPage({ store }: Props) {
     setCouponMessage(null);
   };
 
-  // ── Checkout ────────────────────────────────────────
   const handleCheckout = async () => {
     try {
       setLoading(true);
@@ -354,10 +340,8 @@ export default function CartClientPage({ store }: Props) {
     }
   };
 
-  // Prevent hydration mismatch layout shift
   if (!isMounted) return null;
 
-  // ── Empty Cart ──────────────────────────────────────
   if (activeItems.length === 0) {
     return (
       <EmptyCartState
@@ -378,7 +362,6 @@ export default function CartClientPage({ store }: Props) {
     selectedPaymentMethod &&
     activeItems.length > 0;
 
-  // Premium UI Icon Logic Based on Direction
   const ProceedIcon = isArabic ? ArrowLeft : ArrowRight;
   const BackIcon = isArabic ? ArrowRight : ArrowLeft;
 
@@ -386,7 +369,6 @@ export default function CartClientPage({ store }: Props) {
     <div
       className={`w-full bg-white py-8 px-4 sm:px-6 md:px-8 pb-40 ${isArabic ? "rtl" : "ltr"}`}
     >
-      {/* ── CUSTOM TOAST INJECTION ── */}
       {toastState.show && (
         <div
           className={`fixed top-4 ${
@@ -394,7 +376,6 @@ export default function CartClientPage({ store }: Props) {
           } z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300`}
           dir={isArabic ? "rtl" : "ltr"}
         >
-          {/* PROGRESS BAR */}
           <div
             className={`h-1 ease-linear ${
               toastState.type === "success" ? "bg-emerald-500" : "bg-red-500"
@@ -466,10 +447,8 @@ export default function CartClientPage({ store }: Props) {
           </div>
         </div>
       )}
-      {/* ── END CUSTOM TOAST ── */}
 
       <div className="max-w-2xl mx-auto">
-        {/* Cart/Buy Now Switcher */}
         {step === "cart" && isBuyNow && cartItems.length > 0 && (
           <div className="mb-6 flex flex-col sm:flex-row gap-3">
             <button
@@ -516,7 +495,6 @@ export default function CartClientPage({ store }: Props) {
           </div>
         )}
 
-        {/* Header */}
         <div className="mb-8">
           <div>
             <h3 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
@@ -540,7 +518,6 @@ export default function CartClientPage({ store }: Props) {
           </div>
         </div>
 
-        {/* STEP 1: CART VIEW */}
         {step === "cart" && (
           <div className="space-y-6 animate-fade-in">
             <CartItemsList
@@ -567,7 +544,6 @@ export default function CartClientPage({ store }: Props) {
               onRemoveCoupon={handleRemoveCoupon}
             />
 
-            {/* Navigation - Fixed Bottom Action Bar */}
             <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-200 p-4 z-[100] pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
               <div className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3">
                 <button
@@ -598,7 +574,6 @@ export default function CartClientPage({ store }: Props) {
           </div>
         )}
 
-        {/* STEP 2: SHIPPING FORM */}
         {step === "shipping" && (
           <div className="space-y-6 animate-fade-in">
             <ShippingForm
@@ -634,7 +609,6 @@ export default function CartClientPage({ store }: Props) {
               </div>
             )}
 
-            {/* Navigation - Fixed Bottom Action Bar */}
             <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-200 p-4 z-[100] pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
               <div className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3">
                 <button
