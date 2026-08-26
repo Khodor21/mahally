@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Trash2, Minus, Plus, AlertTriangle, X } from "lucide-react";
+import { Trash2, Minus, Plus, AlertTriangle, X, Package } from "lucide-react";
 
 type CartItem = {
   product: {
@@ -69,93 +69,103 @@ export default function CartItemsList({
   return (
     <div className="bg-white">
       <div className="space-y-5">
-        {items.map((item) => (
-          <div
-            key={`${item.product.id}-${item.product.variantDescription || "base"}`}
-            className="flex gap-4 pb-5 border-b border-gray-100 last:border-0 last:pb-0"
-          >
-            {/* Product Image */}
-            {item.product.image && (
-              <div className="flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 bg-gray-50/50 rounded-2xl border border-gray-100 overflow-hidden relative">
-                <Image
-                  src={item.product.image}
-                  alt={item.product.title}
-                  fill
-                  className="object-cover transition-transform duration-300 hover:scale-105"
-                />
-              </div>
-            )}
+        {items.map((item) => {
+          const hasImage =
+            item.product.image && item.product.image.trim() !== "";
 
-            {/* Product Details */}
-            <div className="flex-1 min-w-0 py-0.5 flex flex-col justify-between">
-              <div className="flex justify-between items-start gap-3">
-                <div className="min-w-0 flex-1">
-                  {/* Product Title */}
-                  <p className="font-medium text-gray-900 text-sm sm:text-base leading-snug line-clamp-2">
-                    {item.product.title}
-                  </p>
-
-                  {/* ── VARIANT BADGE UI ── */}
-                  {/* {item.product.variantDescription && (
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
-                        {item.product.variantDescription}
-                      </span>
-                    </div>
-                  )} */}
-
-                  {/* Price */}
-                  <p className="text-base sm:text-base font-extrabold text-brand-primary mt-1.5">
-                    {currencySymbol}
-                    {item.product.price !== undefined
-                      ? item.product.price.toLocaleString()
-                      : "0"}
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleDeleteClick(item)}
-                  className="text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0 p-2 rounded-lg"
-                  aria-label="Remove item"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Quantity Controls & Warning */}
-              <div className="mt-3">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() =>
-                      onUpdateQty(item.product.id, Math.max(1, item.qty - 1))
-                    }
-                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600 active:scale-95"
-                  >
-                    <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </button>
-                  <span className="w-6 text-center font-bold text-gray-900 text-sm">
-                    {item.qty}
-                  </span>
-                  <button
-                    onClick={() => handleIncrement(item)}
-                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600 active:scale-95"
-                  >
-                    <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </button>
-                </div>
-
-                {/* Out of Stock Warning */}
-                {warningId === item.product.id.toString() && (
-                  <p className="text-xs text-red-500 font-bold mt-2.5 animate-in slide-in-from-top-1 fade-in duration-200 flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    {isArabic
-                      ? "تم الوصول للحد الأقصى للمخزون المتوفر"
-                      : "Max available stock reached"}
-                  </p>
+          return (
+            <div
+              key={`${item.product.id}-${item.product.variantDescription || "base"}`}
+              className="flex gap-4 pb-5 border-b border-gray-100 last:border-0 last:pb-0"
+            >
+              {/* Product Image - ALWAYS RENDERED FOR CONSISTENT LAYOUT */}
+              <div className="flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden relative flex items-center justify-center">
+                {hasImage ? (
+                  <Image
+                    src={item.product.image!}
+                    alt={item.product.title}
+                    fill
+                    className="object-cover transition-transform duration-300 hover:scale-105"
+                  />
+                ) : (
+                  <Package
+                    className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300"
+                    strokeWidth={1.5}
+                  />
                 )}
               </div>
+
+              {/* Product Details */}
+              <div className="flex-1 min-w-0 py-0.5 flex flex-col justify-between">
+                <div className="flex justify-between items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    {/* Product Title */}
+                    <p className="font-medium text-gray-900 text-sm sm:text-base leading-snug line-clamp-2">
+                      {item.product.title}
+                    </p>
+
+                    {/* ── VARIANT BADGE UI ── */}
+                    {/* {item.product.variantDescription && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                          {item.product.variantDescription}
+                        </span>
+                      </div>
+                    )} */}
+
+                    {/* Price */}
+                    <p className="text-base sm:text-base font-extrabold text-brand-primary mt-1.5">
+                      {currencySymbol}
+                      {item.product.price !== undefined
+                        ? item.product.price.toLocaleString()
+                        : "0"}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteClick(item)}
+                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0 p-2 rounded-lg"
+                    aria-label="Remove item"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Quantity Controls & Warning */}
+                <div className="mt-3">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() =>
+                        onUpdateQty(item.product.id, Math.max(1, item.qty - 1))
+                      }
+                      className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600 active:scale-95"
+                    >
+                      <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+                    <span className="w-6 text-center font-bold text-gray-900 text-sm">
+                      {item.qty}
+                    </span>
+                    <button
+                      onClick={() => handleIncrement(item)}
+                      className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600 active:scale-95"
+                    >
+                      <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+                  </div>
+
+                  {/* Out of Stock Warning */}
+                  {warningId === item.product.id.toString() && (
+                    <p className="text-xs text-red-500 font-bold mt-2.5 animate-in slide-in-from-top-1 fade-in duration-200 flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      {isArabic
+                        ? "تم الوصول للحد الأقصى للمخزون المتوفر"
+                        : "Max available stock reached"}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Delete Confirmation Modal */}

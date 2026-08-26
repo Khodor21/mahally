@@ -9,9 +9,6 @@ import {
   Twitter,
   Ghost,
   Music,
-  Banknote,
-  Wallet,
-  CreditCard,
 } from "lucide-react";
 
 // Custom WhatsApp Icon to match Lucide's style
@@ -285,7 +282,11 @@ export default function Footer({
           <div className="flex flex-wrap items-center justify-center gap-3 md:justify-start order-2 md:order-1">
             {payment_methods.includes("cash_on_delivery") && (
               <div className="flex items-center gap-2 rounded-md bg-white/5 border border-white/10 px-3 py-2 backdrop-blur-sm shadow-sm transition-colors hover:bg-white/10">
-                <Banknote className="text-emerald-400" size={16} />
+                <img
+                  src="/payment-methods/Cash.jpg"
+                  alt={t.cashOnDelivery}
+                  className="w-4 h-4 object-contain"
+                />
                 <span className="text-xs font-bold text-white/90">
                   {t.cashOnDelivery}
                 </span>
@@ -294,7 +295,11 @@ export default function Footer({
 
             {payment_methods.includes("whish_money") && (
               <div className="flex items-center gap-2 rounded-md bg-white/5 border border-white/10 px-3 py-2 backdrop-blur-sm shadow-sm transition-colors hover:bg-white/10">
-                <Wallet className="text-rose-400" size={16} />
+                <img
+                  src="/payment-methods/Whish.jpg"
+                  alt={t.whishMoney}
+                  className="w-4 h-4 object-contain"
+                />
                 <span className="text-xs font-bold text-white/90">
                   {t.whishMoney}
                 </span>
@@ -303,7 +308,11 @@ export default function Footer({
 
             {payment_methods.includes("bob_finance") && (
               <div className="flex items-center gap-2 rounded-md bg-white/5 border border-white/10 px-3 py-2 backdrop-blur-sm shadow-sm transition-colors hover:bg-white/10">
-                <CreditCard className="text-sky-400" size={16} />
+                <img
+                  src="/payment-methods/Omt.jpg"
+                  alt={t.bobFinance}
+                  className="w-4 h-4 object-contain"
+                />
                 <span className="text-xs font-bold text-white/90">
                   {t.bobFinance}
                 </span>

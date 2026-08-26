@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, CreditCard } from "lucide-react";
+import { Loader2, CreditCard, ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const LEBANON_GOVERNORATES_EN = [
@@ -36,17 +36,17 @@ const PAYMENT_METHOD_LABELS = {
   cash_on_delivery: {
     en: "Cash on Delivery",
     ar: "الدفع عند الاستلام",
-    icon: "💰",
+    icon: "/payment-methods/Cash.jpg",
   },
   whish_money: {
     en: "Whish Money",
     ar: "ويش مني",
-    icon: "📱",
+    icon: "/payment-methods/Whish.jpg",
   },
   bob_finance: {
     en: "Bob Finance",
     ar: "بوب فاينانس",
-    icon: "🏦",
+    icon: "/payment-methods/Omt.jpg",
   },
 };
 
@@ -343,27 +343,32 @@ export default function ShippingForm({
               {t.city}
               <span className="text-red-500 ml-1">*</span>
             </label>
-            <select
-              value={city}
-              onChange={(e) => {
-                setCity(e.target.value);
-                handleFieldChange("city", e.target.value);
-              }}
-              onBlur={() => handleFieldBlur("city")}
-              className={`w-full h-11 rounded-xl border px-4 text-sm font-medium outline-none transition-all bg-gray-50 hover:bg-white focus:bg-white cursor-pointer ${
-                touched.city && errors.city
-                  ? "border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-200"
-                  : "border-gray-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
-              }`}
-              dir={isArabic ? "rtl" : "ltr"}
-            >
-              <option value="">{t.selectCity}</option>
-              {LEBANON_GOVERNORATES.map((gov) => (
-                <option key={gov.value} value={gov.value}>
-                  {isArabic ? gov.labelAr : gov.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={city}
+                onChange={(e) => {
+                  setCity(e.target.value);
+                  handleFieldChange("city", e.target.value);
+                }}
+                onBlur={() => handleFieldBlur("city")}
+                className={`appearance-none w-full h-11 rounded-xl border px-4 ${isArabic ? "pl-10" : "pr-10"} text-sm font-medium outline-none transition-all bg-gray-50 hover:bg-white focus:bg-white cursor-pointer ${
+                  touched.city && errors.city
+                    ? "border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                    : "border-gray-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                }`}
+                dir={isArabic ? "rtl" : "ltr"}
+              >
+                <option value="">{t.selectCity}</option>
+                {LEBANON_GOVERNORATES.map((gov) => (
+                  <option key={gov.value} value={gov.value}>
+                    {isArabic ? gov.labelAr : gov.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none ${isArabic ? "left-4" : "right-4"}`}
+              />
+            </div>
             {renderError("city")}
           </div>
 
@@ -419,9 +424,15 @@ export default function ShippingForm({
                   <span className="flex items-center gap-2">
                     {selectedPaymentMethod ? (
                       <>
-                        {PAYMENT_METHOD_LABELS[
-                          selectedPaymentMethod as keyof typeof PAYMENT_METHOD_LABELS
-                        ]?.icon || "💳"}
+                        <img
+                          src={
+                            PAYMENT_METHOD_LABELS[
+                              selectedPaymentMethod as keyof typeof PAYMENT_METHOD_LABELS
+                            ]?.icon || "/payment-methods/cash.png"
+                          }
+                          alt="payment icon"
+                          className="w-6 h-6 object-contain"
+                        />
                         <span>
                           {isArabic
                             ? PAYMENT_METHOD_LABELS[
@@ -440,11 +451,9 @@ export default function ShippingForm({
                       </span>
                     )}
                   </span>
-                  <span
-                    className={`text-gray-400 text-xs transition-transform ${isPaymentDropdownOpen ? "rotate-180" : ""}`}
-                  >
-                    ▼
-                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-gray-400 transition-transform ${isPaymentDropdownOpen ? "rotate-180" : ""}`}
+                  />
                 </button>
 
                 {/* Dropdown Menu */}
@@ -456,7 +465,7 @@ export default function ShippingForm({
                       ] || {
                         en: method,
                         ar: method,
-                        icon: "💳",
+                        icon: "/payment-methods/cash.png",
                       };
 
                       return (
@@ -474,7 +483,11 @@ export default function ShippingForm({
                           }`}
                           dir={isArabic ? "rtl" : "ltr"}
                         >
-                          <span className="text-lg">{label.icon}</span>
+                          <img
+                            src={label.icon}
+                            alt={label.en}
+                            className="w-6 h-6 object-contain"
+                          />
                           <span>{isArabic ? label.ar : label.en}</span>
                         </button>
                       );

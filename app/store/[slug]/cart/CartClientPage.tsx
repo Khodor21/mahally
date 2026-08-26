@@ -572,7 +572,7 @@ export default function CartClientPage({ store }: Props) {
               <div className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => setStep("shipping")}
-                  className="w-full sm:flex-[2] py-3 px-4 rounded bg-brand-primary text-white font-medium text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
+                  className="w-full sm:flex-[2] py-3 px-4 rounded-xl bg-brand-primary text-white font-medium text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
                 >
                   {isArabic ? "المتابعة للتوصيل" : "Proceed to Delivery"}
                   <ProceedIcon className="w-4 h-4" />
@@ -582,7 +582,7 @@ export default function CartClientPage({ store }: Props) {
                     clearBuyNowSession();
                     router.back();
                   }}
-                  className="w-full sm:flex-1 py-2 px-2 rounded border border-gray-200 text-gray-700 bg-white font-medium text-xs hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm order-2 sm:order-1"
+                  className="w-full sm:flex-1 py-2 px-2 rounded-xl border border-gray-200 text-gray-700 bg-white font-medium text-xs hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm order-2 sm:order-1"
                 >
                   <BackIcon className="w-3 h-3" />
                   {isBuyNow
@@ -640,7 +640,7 @@ export default function CartClientPage({ store }: Props) {
                 <button
                   onClick={handleCheckout}
                   disabled={!canCheckout || loading}
-                  className="w-full sm:flex-[2] py-3 px-4 rounded bg-brand-primary text-white font-medium text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
+                  className="w-full sm:flex-[2] py-3 px-4 rounded-xl bg-brand-primary text-white font-medium text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
                 >
                   {loading ? (
                     <>
@@ -656,7 +656,7 @@ export default function CartClientPage({ store }: Props) {
                 </button>
                 <button
                   onClick={() => setStep("cart")}
-                  className="w-full sm:flex-1 py-2 px-2 rounded border border-brand-primary/20 text-brand-primary bg-brand-primary/5 font-medium text-xs hover:bg-brand-primary/10 transition-all flex items-center justify-center gap-2 order-2 sm:order-1"
+                  className="w-full sm:flex-1 py-2 px-2 rounded-xl border border-brand-primary/20 text-brand-primary bg-brand-primary/5 font-medium text-xs hover:bg-brand-primary/10 transition-all flex items-center justify-center gap-2 order-2 sm:order-1"
                 >
                   <BackIcon className="w-3 h-3" />
                   {isArabic ? "تعديل السلة" : "Back to Cart"}

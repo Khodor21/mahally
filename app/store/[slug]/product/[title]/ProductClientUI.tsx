@@ -229,9 +229,8 @@ export default function ProductClientUI({
   const discountPriceNum = Number(product.discount_price || 0);
 
   // Safely check if there is a valid discount (must be > 0 and less than normal price)
-  const hasBaseDiscount = 
-    discountPriceNum > 0 && 
-    discountPriceNum < basePriceNum;
+  const hasBaseDiscount =
+    discountPriceNum > 0 && discountPriceNum < basePriceNum;
 
   // Calculate active price based on selected variant options & discounts
   const calculatePrice = (): number => {
@@ -267,17 +266,18 @@ export default function ProductClientUI({
 
   const activePrice = calculatePrice();
   const activeStock = calculateStock();
-  
+
   // Determine if a variant is actively overriding the price
   const hasVariantPriceOverride = useMemo(() => {
     return variantGroups.some(
-      (group) => group.allowPrice && selectedVariants[group.id]?.price !== undefined
+      (group) =>
+        group.allowPrice && selectedVariants[group.id]?.price !== undefined,
     );
   }, [variantGroups, selectedVariants]);
 
   // Show discount UI only if product has discount and no variant overrides it
   const showDiscountUI = hasBaseDiscount && !hasVariantPriceOverride;
-  const discountPercent = showDiscountUI 
+  const discountPercent = showDiscountUI
     ? calculateDiscount(basePriceNum, discountPriceNum)
     : 0;
 
@@ -327,12 +327,14 @@ export default function ProductClientUI({
     );
   }, [selectedVariants]);
 
+  // *** EXACT FIX APPLIED HERE: Added image: images[0] ***
   const normalizedProduct = {
     ...product,
     id: productId,
     quantity: quantity,
     price: activePrice,
     variantDescription: variantDescription || undefined,
+    image: images[0],
   };
 
   // --- Handlers ---
