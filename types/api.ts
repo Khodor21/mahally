@@ -92,6 +92,7 @@ export interface OrderItem {
   title?: string;
   price?: number;
   original_price?: number;
+  variant_json?: string | Record<string, { id: string; value: string; stock?: number }> | null;
 
   image?: string;
   total?: number;

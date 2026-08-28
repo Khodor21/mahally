@@ -795,6 +795,29 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                           <p className="text-sm font-semibold text-gray-900 truncate">
                             {item.title || `منتج #${item.id.slice(0, 8)}`}
                           </p>
+                          {item.variant_json && (() => {
+  try {
+    const variants = typeof item.variant_json === "string"
+      ? JSON.parse(item.variant_json)
+      : item.variant_json;
+    const entries = Object.values(variants) as Array<{ value: string }>;
+    if (!entries.length) return null;
+    return (
+      <div className="flex flex-wrap gap-1 mt-1">
+        {entries.map((v, i) => (
+          <span
+            key={i}
+            className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[rgb(60_28_84)]/8 text-[rgb(60_28_84)] border border-[rgb(60_28_84)]/15"
+          >
+            {v.value}
+          </span>
+        ))}
+      </div>
+    );
+  } catch {
+    return null;
+  }
+})()}
                           <p className="text-xs text-gray-400 mt-0.5">
                             {tr.quantity || "الكمية"}:{" "}
                             <span className="font-bold text-gray-600">
