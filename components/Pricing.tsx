@@ -157,7 +157,7 @@ export default function Pricing() {
               </div>
             </div>
             <a
-              href="/contact"
+              href="https://wa.me/+96171708103"
               className="w-full md:w-auto px-6 md:px-8 h-[44px] md:h-[48px] rounded-xl bg-brand-dark text-brand-white text-[13px] md:text-[14px] font-bold flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5 shadow-md whitespace-nowrap shrink-0"
             >
               تواصل معنا للتفصيل
