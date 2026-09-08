@@ -39,7 +39,7 @@ export default function Navbar() {
             {/* Right Side */}
             <div className="flex items-center gap-12">
               {/* Logo */}
-              <a href="#" className="flex items-center gap-3 shrink-0">
+              <a href="/" className="flex items-center gap-3 shrink-0">
                 <img
                   alt="logo here"
                   src="/Logo.svg"

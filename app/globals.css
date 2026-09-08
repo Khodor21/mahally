@@ -219,10 +219,6 @@ body::before {
   border-radius: 999px;
 }
 
-/* =========================================================
-   FORM ELEMENTS
-========================================================= */
-
 input:focus,
 textarea:focus,
 select:focus {
