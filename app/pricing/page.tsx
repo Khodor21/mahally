@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, X, Building2, Timer } from "lucide-react";
+import { Check, X, Zap, HelpCircle, Building2, Timer } from "lucide-react";
 import { Emoji } from "emoji-picker-react";
+import Navbar from "../../components/Navbar";
+import WhatsAppFloat from "../../components/WhatsAppFloat";
+import ScrollToTop from "../../components/ScrollToTop";
 
 const plans = [
-  // ... Keep your existing plans array exactly as is ...
   {
     id: "catalogue",
     name: "الكتالوج",
@@ -63,8 +65,61 @@ const plans = [
   },
 ];
 
+const faqItems = [
+  {
+    q: "هل يوجد عقد أو التزام طويل الأمد؟",
+    a: "لا. يمكنك إلغاء اشتراكك في أي وقت. نوصي بالخطة السنوية لتوفير مبالغ كبيرة لكنها ليست إلزامية.",
+  },
+  {
+    q: "هل يمكنني تغيير خطتي لاحقاً؟",
+    a: "نعم، يمكنك الترقية أو التخفيض في أي وقت. يتم احتساب الفارق بشكل تناسبي.",
+  },
+  {
+    q: "ما طرق الدفع المقبولة؟",
+    a: "نقبل الدفع عبر Whish Money وBob Finance وبطاقات الائتمان الدولية.",
+  },
+  {
+    q: "ماذا يحدث بعد انتهاء الـ 5 أيّام؟",
+    a: "بعد انتهاء الفترة التجريبية، تُختار خطتك تلقائياً ويتم إشعارك قبل أي خصم.",
+  },
+];
+
+const comparisonRows = [
+  { label: "المنتجات", catalogue: "حتى 200", ecommerce: "غير محدودة" },
+  { label: "الطلبات / شهر", catalogue: "حتى 150", ecommerce: "غير محدودة" },
+  { label: "حسابات العملاء", catalogue: false, ecommerce: true },
+  { label: "إشعارات فورية", catalogue: false, ecommerce: true },
+  { label: "تقارير متقدمة", catalogue: false, ecommerce: true },
+  { label: "كوبونات وعروض", catalogue: true, ecommerce: true },
+  { label: "دعم واتساب مباشر", catalogue: true, ecommerce: true },
+  { label: "دومين فرعي مجاني", catalogue: true, ecommerce: true },
+  { label: "SSL مجاني", catalogue: true, ecommerce: true },
+  { label: "نسخ احتياطي يومي", catalogue: true, ecommerce: true },
+];
+function CellValue({ value }: { value: boolean | string }) {
+  if (typeof value === "string") {
+    return (
+      <span className="text-brand-dark text-[13px] md:text-sm font-semibold">
+        {value}
+      </span>
+    );
+  }
+  return value ? (
+    <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-brand-light flex items-center justify-center mx-auto">
+      <Check size={12} strokeWidth={3} className="text-brand-dark" />
+    </div>
+  ) : (
+    <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-brand-grey flex items-center justify-center mx-auto">
+      <X size={11} strokeWidth={3} className="text-brand-dark/30" />
+    </div>
+  );
+}
+
 export default function Pricing() {
   const [showMonthly, setShowMonthly] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  // Timer State
   const [isMounted, setIsMounted] = useState(false);
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -76,16 +131,16 @@ export default function Pricing() {
   useEffect(() => {
     setIsMounted(true);
 
-    // Exact date string - format: YYYY-MM-DDTHH:mm:ss
-    const targetDate = new Date("2026-09-26T23:59:59").getTime();
+    // Using slashes (YYYY/MM/DD) prevents the NaN bug on Safari/iPhones
+    const targetDate = new Date("2026/09/26 23:59:59").getTime();
 
-    const calculateTimeLeft = () => {
+    const updateTimer = () => {
       const now = new Date().getTime();
       const distance = targetDate - now;
 
-      if (distance < 0) {
+      if (distance <= 0) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        return false; // Tells interval to stop
+        return false;
       }
 
       setTimeLeft({
@@ -99,15 +154,10 @@ export default function Pricing() {
       return true;
     };
 
-    // 1. Call immediately so it doesn't show 00:00:00 for the first second
-    calculateTimeLeft();
-
-    // 2. Set the interval to update every second
+    updateTimer();
     const interval = setInterval(() => {
-      const isStillActive = calculateTimeLeft();
-      if (!isStillActive) {
-        clearInterval(interval);
-      }
+      const isActive = updateTimer();
+      if (!isActive) clearInterval(interval);
     }, 1000);
 
     return () => clearInterval(interval);
@@ -116,11 +166,11 @@ export default function Pricing() {
   const formatTime = (time: number) => String(time).padStart(2, "0");
 
   return (
-    <section
-      id="pricing"
-      className="py-8 md:py-18 bg-brand-grey overflow-hidden"
-    >
-      <div className="w-full mx-auto px-4 md:px-10">
+    <div className="min-h-screen bg-brand-grey" dir="rtl" lang="ar">
+      <Navbar />
+
+      <div className="w-full mx-auto pt-24 px-4 md:px-10">
+        {/* Header */}
         <div className="text-center mb-10 md:mb-14">
           <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-brand-light text-brand-dark text-xs font-bold mb-5 md:mb-6 shadow-sm">
             الأسعار
@@ -137,27 +187,32 @@ export default function Pricing() {
             ابدأ بالكتالوج وطوّر متجرك لما تكبر مبيعاتك
           </p>
 
-          {/* Dynamic Discount Countdown Banner */}
-          {!showMonthly && isMounted && (
+          {/* Discount Countdown Banner */}
+          {!showMonthly && (
             <div className="max-w-md mx-auto mb-6 bg-red-50 border border-red-200 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-2 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-300 via-red-500 to-red-300 animate-pulse"></div>
-
               <div className="flex items-center gap-1.5 text-red-600 font-bold text-sm">
                 <Timer size={16} className="animate-spin-slow" />
-                <span>عرض لفترة محدودة ينتهي خلال:</span>
+                <span>عرض لفترة محدودة على الدفع السنوي!</span>
               </div>
 
               <div
                 dir="ltr"
-                className="flex items-center gap-2 text-red-700 font-bold text-lg tracking-widest font-mono"
+                className="flex items-center gap-2 text-red-700 font-bold text-lg tracking-widest font-mono min-w-[140px] justify-center"
               >
-                <span>{formatTime(timeLeft.days)}d</span> :
-                <span>{formatTime(timeLeft.hours)}h</span> :
-                <span>{formatTime(timeLeft.minutes)}m</span> :
-                <span>{formatTime(timeLeft.seconds)}s</span>
+                {isMounted ? (
+                  <>
+                    <span>{formatTime(timeLeft.days)}d</span> :
+                    <span>{formatTime(timeLeft.hours)}h</span> :
+                    <span>{formatTime(timeLeft.minutes)}m</span> :
+                    <span>{formatTime(timeLeft.seconds)}s</span>
+                  </>
+                ) : (
+                  <span className="text-sm opacity-70">جاري الحساب...</span>
+                )}
               </div>
 
-              <span className="text-red-700/80 text-xs font-semibold mt-1">
+              <span className="text-red-700/80 text-xs font-semibold">
                 وفّر حتى 50$ مقارنة بالدفع الشهري
               </span>
             </div>
@@ -200,6 +255,7 @@ export default function Pricing() {
 
         {/* Pricing Cards Container */}
         <div className="max-w-3xl mx-auto flex flex-col gap-6 items-stretch">
+          {/* Custom Plan Card (Top) */}
           <div className="w-full bg-brand-white border-2 border-brand-dark/10 rounded-[24px] md:rounded-[28px] p-5 md:p-8 flex flex-col md:flex-row items-center justify-between gap-5 shadow-sm hover:shadow-md transition-shadow text-center md:text-right">
             <div className="flex flex-col md:flex-row items-center gap-4 md:gap-5 w-full">
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-brand-light flex items-center justify-center shrink-0">
@@ -223,6 +279,7 @@ export default function Pricing() {
             </a>
           </div>
 
+          {/* Main Pricing Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 items-stretch">
             {plans.map((plan) => {
               const isPopular = plan.popular;
@@ -240,6 +297,7 @@ export default function Pricing() {
                       : "bg-brand-white border border-brand-light shadow-sm"
                   }`}
                 >
+                  {/* Badge */}
                   {plan.badge && (
                     <div className="absolute top-4 left-4 md:top-5 md:left-5">
                       <span className="px-3 md:px-4 py-1 md:py-1.5 rounded-full bg-brand-white text-brand-dark text-[10px] md:text-[11px] font-bold shadow-sm">
@@ -248,6 +306,7 @@ export default function Pricing() {
                     </div>
                   )}
 
+                  {/* Plan Info */}
                   <div className="mb-6 md:mb-8 mt-2 md:mt-0">
                     <p
                       className={`text-[11px] md:text-xs font-bold uppercase tracking-wider mb-1.5 md:mb-2 ${
@@ -269,6 +328,7 @@ export default function Pricing() {
                       {plan.description}
                     </p>
 
+                    {/* Price Section */}
                     <div className="flex flex-col gap-1.5 md:gap-1">
                       {isYearly && (
                         <div
@@ -328,6 +388,7 @@ export default function Pricing() {
                     </div>
                   </div>
 
+                  {/* Features */}
                   <ul className="space-y-3.5 flex-1 mb-6 md:mb-8">
                     {plan.features.map((feature, index) => (
                       <li
@@ -377,6 +438,7 @@ export default function Pricing() {
                     ))}
                   </ul>
 
+                  {/* CTA */}
                   <a
                     href="/onboarding"
                     className={`h-[44px] md:h-[52px] rounded-xl text-[13px] md:text-[14px] font-bold flex items-center justify-center transition-all duration-300 hover:-translate-y-0.5 ${
@@ -395,6 +457,7 @@ export default function Pricing() {
           </div>
         </div>
 
+        {/* Bottom Trust */}
         <div className="flex justify-center mt-8 md:mt-10">
           <div className="flex flex-wrap items-center justify-center gap-x-5 md:gap-x-8 gap-y-3 md:gap-y-4 rounded-[20px] md:rounded-[24px] border border-brand-light bg-brand-white px-5 md:px-8 py-4 md:py-5 shadow-sm max-w-full">
             <div className="flex items-center gap-2 md:gap-2.5 text-brand-dark/80 text-[12px] md:text-sm font-semibold">
@@ -413,7 +476,99 @@ export default function Pricing() {
             </div>
           </div>
         </div>
+
+        <section className="py-12 md:py-20 px-4 md:px-10">
+          <div className="max-w-3xl mx-auto flex flex-col items-center">
+            <div className="text-center mb-8 md:mb-10 w-full">
+              <h2
+                className="text-[24px] md:text-[40px] text-brand-dark"
+                style={{ fontFamily: "Lalezar, cursive" }}
+              >
+                قارن بين الخطط
+              </h2>
+            </div>
+
+            {/* Scrollable container for mobile table */}
+            <div className="w-full overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+              <div className="min-w-[600px] md:min-w-0 rounded-[20px] md:rounded-[24px] overflow-hidden border border-brand-light bg-brand-white shadow-sm">
+                <div className="grid grid-cols-3 bg-brand-dark text-brand-white">
+                  <div className="py-3 md:py-4 px-4 md:px-5 text-[13px] md:text-sm font-bold">
+                    الميزة
+                  </div>
+                  <div className="py-3 md:py-4 px-4 md:px-5 text-center text-[13px] md:text-sm font-bold border-r border-brand-white/10">
+                    الكتالوج
+                  </div>
+                  <div className="py-3 md:py-4 px-4 md:px-5 text-center text-[13px] md:text-sm font-bold border-r border-brand-white/10">
+                    المتجر الكامل
+                  </div>
+                </div>
+                {comparisonRows.map((row, i) => (
+                  <div
+                    key={i}
+                    className={`grid grid-cols-3 border-t border-brand-light ${
+                      i % 2 === 0 ? "bg-brand-white" : "bg-brand-grey/40"
+                    }`}
+                  >
+                    <div className="py-3 md:py-3.5 px-4 md:px-5 text-[12px] md:text-sm font-medium text-brand-dark/80 flex items-center">
+                      {row.label}
+                    </div>
+                    <div className="py-3 md:py-3.5 px-4 md:px-5 flex items-center justify-center border-r border-brand-light">
+                      <CellValue value={row.catalogue} />
+                    </div>
+                    <div className="py-3 md:py-3.5 px-4 md:px-5 flex items-center justify-center border-r border-brand-light">
+                      <CellValue value={row.ecommerce} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── FAQ ── */}
+        <section className="pb-16 md:pb-20 px-4 md:px-10">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-8 md:mb-10">
+              <h2
+                className="text-[24px] md:text-[40px] text-brand-dark"
+                style={{ fontFamily: "Lalezar, cursive" }}
+              >
+                أسئلة شائعة
+              </h2>
+            </div>
+            <div className="space-y-2.5 md:space-y-3">
+              {faqItems.map((item, i) => (
+                <div
+                  key={i}
+                  className="rounded-[16px] md:rounded-[18px] border border-brand-light bg-brand-white overflow-hidden shadow-sm"
+                >
+                  <button
+                    className="w-full text-right px-5 md:px-6 py-3.5 md:py-4 flex items-center justify-between gap-3 md:gap-4"
+                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  >
+                    <span className="text-[13px] md:text-[14px] font-bold text-brand-dark leading-snug">
+                      {item.q}
+                    </span>
+                    <HelpCircle
+                      size={18}
+                      className={`shrink-0 transition-colors ${
+                        openFaq === i ? "text-brand-dark" : "text-brand-dark/30"
+                      }`}
+                    />
+                  </button>
+                  {openFaq === i && (
+                    <div className="px-5 md:px-6 pb-4 md:pb-5 text-[12px] md:text-[13px] text-brand-dark/70 leading-relaxed font-medium border-t border-brand-light pt-3 md:pt-4">
+                      {item.a}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </div>
-    </section>
+      <WhatsAppFloat />
+      <ScrollToTop />
+    </div>
   );
 }
