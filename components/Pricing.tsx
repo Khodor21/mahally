@@ -5,7 +5,6 @@ import { Check, X, Building2, Timer } from "lucide-react";
 import { Emoji } from "emoji-picker-react";
 
 const plans = [
-  // ... Keep your existing plans array exactly as is ...
   {
     id: "catalogue",
     name: "الكتالوج",
@@ -64,7 +63,10 @@ const plans = [
 ];
 
 export default function Pricing() {
+  // Yearly shown first for client (yearly = false means yearly is active)
   const [showMonthly, setShowMonthly] = useState(false);
+
+  // Timer State
   const [isMounted, setIsMounted] = useState(false);
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -76,17 +78,16 @@ export default function Pricing() {
   useEffect(() => {
     setIsMounted(true);
 
-    // Set target to September 26th of the current year (Month is 0-indexed, so 8 = September)
-    const targetDate = new Date(new Date().getFullYear(), 8, 26).getTime();
+    // Set target date to September 26, 2026 at 23:59:59
+    const targetDate = new Date("2026-09-26T23:59:59").getTime();
 
-    const interval = setInterval(() => {
+    const updateTimer = () => {
       const now = new Date().getTime();
       const distance = targetDate - now;
 
-      if (distance < 0) {
-        clearInterval(interval);
+      if (distance <= 0) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        return;
+        return false;
       }
 
       setTimeLeft({
@@ -97,12 +98,18 @@ export default function Pricing() {
         minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
         seconds: Math.floor((distance % (1000 * 60)) / 1000),
       });
+      return true;
+    };
+
+    updateTimer(); // Initial call
+    const interval = setInterval(() => {
+      const isActive = updateTimer();
+      if (!isActive) clearInterval(interval);
     }, 1000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Helper to format numbers with leading zero (e.g., 09, 05)
   const formatTime = (time: number) => String(time).padStart(2, "0");
 
   return (
@@ -111,6 +118,7 @@ export default function Pricing() {
       className="py-8 md:py-18 bg-brand-grey overflow-hidden"
     >
       <div className="w-full mx-auto px-4 md:px-10">
+        {/* Header */}
         <div className="text-center mb-10 md:mb-14">
           <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-brand-light text-brand-dark text-xs font-bold mb-5 md:mb-6 shadow-sm">
             الأسعار
@@ -127,16 +135,16 @@ export default function Pricing() {
             ابدأ بالكتالوج وطوّر متجرك لما تكبر مبيعاتك
           </p>
 
-          {/* Dynamic Discount Countdown Banner */}
+          {/* Discount Countdown Banner */}
           {!showMonthly && isMounted && (
             <div className="max-w-md mx-auto mb-6 bg-red-50 border border-red-200 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-2 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-300 via-red-500 to-red-300 animate-pulse"></div>
-
               <div className="flex items-center gap-1.5 text-red-600 font-bold text-sm">
                 <Timer size={16} className="animate-spin-slow" />
-                <span>عرض لفترة محدودة ينتهي خلال:</span>
+                <span>عرض لفترة محدودة على الدفع السنوي!</span>
               </div>
 
+              {/* Added the dynamic counter here */}
               <div
                 dir="ltr"
                 className="flex items-center gap-2 text-red-700 font-bold text-lg tracking-widest font-mono"
@@ -147,7 +155,7 @@ export default function Pricing() {
                 <span>{formatTime(timeLeft.seconds)}s</span>
               </div>
 
-              <span className="text-red-700/80 text-xs font-semibold mt-1">
+              <span className="text-red-700/80 text-xs font-semibold">
                 وفّر حتى 50$ مقارنة بالدفع الشهري
               </span>
             </div>
@@ -187,8 +195,6 @@ export default function Pricing() {
             </button>
           </div>
         </div>
-
-        {/* ... The rest of your JSX remains exactly the same ... */}
 
         {/* Pricing Cards Container */}
         <div className="max-w-3xl mx-auto flex flex-col gap-6 items-stretch">
