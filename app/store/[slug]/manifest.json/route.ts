@@ -15,8 +15,8 @@ export async function GET(
     name: store.store_name || "Store",
     short_name: store.store_name || "Store",
     display: "standalone",
-    start_url: `/store/${params.slug}`,
-    scope: `/store/${params.slug}`,
+    start_url: `/`,
+    scope: `/`,
     background_color: "#ffffff",
     theme_color: settings.primary_color || "#000000",
     icons: [
