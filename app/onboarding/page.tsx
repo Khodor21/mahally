@@ -130,7 +130,11 @@ export default function OnboardingPage() {
         if (!form.location.trim()) errs.location = "المدينة مطلوبة";
       }
       if (targetStep === 3) {
-        if (!form.storeName.trim()) errs.storeName = "اسم المتجر مطلوب";
+        if (!form.storeName.trim()) {
+          errs.storeName = "اسم المتجر مطلوب";
+        } else if (form.storeName.trim().length < 2) {
+          errs.storeName = "اسم المتجر قصير جداً"; // ← أضف هيدا
+        }
         if (!form.storeType) errs.storeType = "اختر نوع المتجر";
         if (form.paymentMethods.length === 0) {
           errs.paymentMethods = "اختر طريقة دفع واحدة على الأقل";
