@@ -62,7 +62,9 @@ export async function GET() {
       : ["cash_on_delivery"],
     // Contact info
     email: store.admin_email,
-
+    // Safely enforce lowercase to prevent UI breakage
+    category_display_style:
+      settings?.category_display_style?.toLowerCase() ?? "grid",
     // Branding
     primary_color: settings?.primary_color || null,
     logo_url: settings?.logo_url || null,
@@ -99,7 +101,6 @@ export async function GET() {
     TESTIMONIAL VALIDATION SCHEMAS
 ───────────────────────────────────────────── */
 const BilingualTextSchema = z.object({
-  // ✅ Removed .min(1) to allow empty strings when store uses only one language
   ar: z.string().max(500).optional().default(""),
   en: z.string().max(500).optional().default(""),
 });
@@ -120,12 +121,10 @@ const TestimonialsListSchema = z.object({
 const BilingualFaqItemSchema = z.object({
   id: z.union([z.string(), z.number()]).optional(),
   question: z.object({
-    // ✅ Removed .min(1) to allow empty strings when store uses only one language
     ar: z.string().max(500).optional().default(""),
     en: z.string().max(500).optional().default(""),
   }),
   answer: z.object({
-    // ✅ Removed .min(1) to allow empty strings when store uses only one language
     ar: z.string().max(500).optional().default(""),
     en: z.string().max(500).optional().default(""),
   }),
@@ -474,6 +473,7 @@ export async function PUT(request: NextRequest) {
       testimonials,
       promo_text,
       faq,
+      category_display_style,
     } = body;
 
     /* ─────────────────────────────
@@ -573,6 +573,21 @@ export async function PUT(request: NextRequest) {
     if (snapchat_url !== undefined) settingsUpdate.snapchat_url = snapchat_url;
     if (whatsapp_number !== undefined)
       settingsUpdate.whatsapp_number = whatsapp_number;
+
+    if (category_display_style !== undefined) {
+      // Normalize to lowercase before validation so "Grid" / "Circle" pass successfully.
+      const normalizedStyle = String(category_display_style).toLowerCase();
+      if (!["grid", "circle"].includes(normalizedStyle)) {
+        return NextResponse.json(
+          {
+            error: "Invalid category_display_style",
+            field: "category_display_style",
+          },
+          { status: 422 },
+        );
+      }
+      settingsUpdate.category_display_style = normalizedStyle;
+    }
 
     if (testimonials !== undefined) {
       const testimonialsPayload = Array.isArray(testimonials)

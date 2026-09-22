@@ -10,6 +10,8 @@ import {
   Image as ImageIcon,
   Loader2,
   GripVertical,
+  LayoutGrid,
+  Circle,
 } from "lucide-react";
 import { useDashboard } from "../DashboardContext";
 import Toast from "../components/Toast";
@@ -26,9 +28,49 @@ interface ToastState {
   type: "success" | "error";
 }
 
-export default function CategoriesPanel({ storeId }: { storeId: string }) {
+// 👉 UPDATED: Added store prop to access plan_type and category_display_style
+export default function CategoriesPanel({
+  storeId,
+  isMini = false,
+  store,
+}: {
+  storeId: string;
+  isMini?: boolean;
+  store?: any; // Accepting store object from parent
+}) {
   const { tr, lang } = useDashboard();
   const dir = lang === "ar" ? "rtl" : "ltr";
+
+  // 👉 FIXED: Case-insensitive check for Starter plan to prevent failure
+  const isStarterPlan =
+    !store?.plan_type || String(store.plan_type).toLowerCase() === "starter";
+
+  const initialStyle =
+    store?.category_display_style?.toLowerCase() === "circle"
+      ? "circle"
+      : "grid";
+  const [displayStyle, setDisplayStyle] = useState<"grid" | "circle">(
+    initialStyle,
+  );
+  const [updatingStyle, setUpdatingStyle] = useState(false);
+
+  // 👉 NEW: Synchronize displayStyle when store prop updates from database/async fetch
+  useEffect(() => {
+    if (store?.category_display_style) {
+      const serverStyle =
+        String(store.category_display_style).toLowerCase() === "circle"
+          ? "circle"
+          : "grid";
+      setDisplayStyle(serverStyle);
+    }
+  }, [store?.category_display_style]);
+
+  // 👉 NEW: States for the Preview Modal
+  const [previewMounted, setPreviewMounted] = useState(false);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [pendingStyle, setPendingStyle] = useState<"grid" | "circle" | null>(
+    null,
+  );
 
   const { data, loading, retry: fetchCategories } = useCategories(storeId);
 
@@ -104,6 +146,49 @@ export default function CategoriesPanel({ storeId }: { storeId: string }) {
 
   const showToast = (message: string, type: "success" | "error") =>
     setToast({ message, type });
+
+  // 👉 NEW: Opens the preview modal instead of saving immediately
+  const requestStyleChange = (newStyle: "grid" | "circle") => {
+    if (newStyle === displayStyle) return;
+    setPendingStyle(newStyle);
+    setPreviewMounted(true);
+    setTimeout(() => setPreviewVisible(true), 10);
+  };
+
+  const closePreview = () => {
+    setPreviewVisible(false);
+    setTimeout(() => {
+      setPreviewMounted(false);
+      setPendingStyle(null);
+    }, 300);
+  };
+
+  // 👉 NEW: Executes the API call only after admin confirms in the preview modal
+  const confirmStyleChange = async () => {
+    if (!pendingStyle) return;
+
+    setUpdatingStyle(true);
+    try {
+      const response = await fetch("/api/stores", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_display_style: pendingStyle }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update style");
+
+      setDisplayStyle(pendingStyle);
+      showToast(
+        lang === "ar" ? "تم تحديث نمط العرض" : "Display style updated",
+        "success",
+      );
+      closePreview();
+    } catch (error) {
+      showToast(tr.errorOccurred, "error");
+    } finally {
+      setUpdatingStyle(false);
+    }
+  };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -282,8 +367,51 @@ export default function CategoriesPanel({ storeId }: { storeId: string }) {
         </div>
       </div>
 
+      {/* 👉 DISPLAY STYLE TOGGLE (STARTER PLAN ONLY) */}
+      {isStarterPlan && (
+        <div className="bg-white py-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <h3 className="font-bold text-gray-900 text-sm">
+              {lang === "ar" ? "نمط عرض الأقسام" : "Category Display Style"}
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              {lang === "ar"
+                ? "اختر كيف تظهر الأقسام في واجهة متجرك"
+                : "Choose how categories appear in your storefront"}
+            </p>
+          </div>
+
+          <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-200">
+            <button
+              onClick={() => requestStyleChange("grid")}
+              disabled={updatingStyle}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                displayStyle === "grid"
+                  ? "bg-white text-[rgb(60_28_84)] shadow-sm border border-gray-200"
+                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+              }`}
+            >
+              <LayoutGrid size={16} />
+              {lang === "ar" ? " بطاقات" : "Cards"}
+            </button>
+            <button
+              onClick={() => requestStyleChange("circle")}
+              disabled={updatingStyle}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                displayStyle === "circle"
+                  ? "bg-white text-[rgb(60_28_84)] shadow-sm border border-gray-200"
+                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+              }`}
+            >
+              <Circle size={16} />
+              {lang === "ar" ? "دوائر" : "Circles"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* CONTROLS */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between bg-white p-4 rounded-xl border border-gray-100 shadow-sm gap-3">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between py-4 gap-3">
         <div className="flex items-center gap-2 w-full md:w-auto">
           <div className="relative flex-1 md:flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -318,9 +446,11 @@ export default function CategoriesPanel({ storeId }: { storeId: string }) {
           <thead className="bg-gray-50/80 border-b border-gray-100">
             <tr>
               <th className="p-4 font-bold text-gray-400 w-12 text-xs uppercase tracking-wider"></th>
-              <th className="p-4 font-bold text-gray-400 text-xs uppercase tracking-wider">
-                {tr.logo}
-              </th>
+              {!isMini && (
+                <th className="p-4 font-bold text-gray-400 text-xs uppercase tracking-wider">
+                  {tr.logo}
+                </th>
+              )}
               <th className="p-4 font-bold text-gray-400 text-xs uppercase tracking-wider">
                 {tr.title}
               </th>
@@ -335,14 +465,14 @@ export default function CategoriesPanel({ storeId }: { storeId: string }) {
           <tbody className="divide-y divide-gray-50">
             {loading ? (
               <tr>
-                <td colSpan={5} className="p-12 text-center">
+                <td colSpan={isMini ? 4 : 5} className="p-12 text-center">
                   <Loader2 className="animate-spin mx-auto text-[rgb(60_28_84)] w-8 h-8" />
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={isMini ? 4 : 5}
                   className="p-12 text-center text-gray-500 font-medium"
                 >
                   {tr.noData || "No categories found"}
@@ -365,21 +495,21 @@ export default function CategoriesPanel({ storeId }: { storeId: string }) {
                   <td className="p-4 text-gray-300 hover:text-gray-500 transition-colors">
                     <GripVertical size={16} className="mx-auto" />
                   </td>
-
-                  <td className="p-4">
-                    {cat.logo_url ? (
-                      <img
-                        src={cat.logo_url}
-                        alt={cat.title}
-                        className="w-10 h-10 rounded-lg object-cover mx-auto bg-gray-50 border border-gray-100"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-lg bg-gray-50 mx-auto flex items-center justify-center border border-gray-100 text-[10px] font-bold text-gray-400">
-                        N/A
-                      </div>
-                    )}
-                  </td>
-
+                  {!isMini && (
+                    <td className="p-4">
+                      {cat.logo_url ? (
+                        <img
+                          src={cat.logo_url}
+                          alt={cat.title}
+                          className="w-10 h-10 rounded-lg object-cover mx-auto bg-gray-50 border border-gray-100"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-gray-50 mx-auto flex items-center justify-center border border-gray-100 text-[10px] font-bold text-gray-400">
+                          N/A
+                        </div>
+                      )}
+                    </td>
+                  )}
                   <td className="p-4 font-bold text-gray-900">{cat.title}</td>
 
                   <td className="p-4 text-gray-600">
@@ -466,47 +596,49 @@ export default function CategoriesPanel({ storeId }: { storeId: string }) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">
-                  {tr.logo}
-                </label>
-                {formData.logo ? (
-                  <div className="relative inline-block group">
-                    <img
-                      src={formData.logo}
-                      alt="Category Logo"
-                      className="w-32 h-32 rounded-xl object-cover border border-gray-200 shadow-sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, logo: "" })}
-                      className="absolute -top-2 -right-2 bg-white text-red-500 hover:bg-red-50 border border-gray-100 rounded-full p-1.5 shadow-sm transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 hover:border-[rgb(60_28_84)] transition-colors group">
-                    {uploading ? (
-                      <Loader2 className="w-6 h-6 animate-spin text-[rgb(60_28_84)]" />
-                    ) : (
-                      <>
-                        <ImageIcon className="w-6 h-6 mb-2 text-gray-300 group-hover:text-[rgb(60_28_84)] transition-colors" />
-                        <span className="text-xs font-bold text-gray-400 group-hover:text-[rgb(60_28_84)] transition-colors">
-                          Upload Image
-                        </span>
-                      </>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      onChange={handleImageUpload}
-                      disabled={uploading}
-                      className="hidden"
-                    />
+              {!isMini && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">
+                    {tr.logo}
                   </label>
-                )}
-              </div>
+                  {formData.logo ? (
+                    <div className="relative inline-block group">
+                      <img
+                        src={formData.logo}
+                        alt="Category Logo"
+                        className="w-32 h-32 rounded-xl object-cover border border-gray-200 shadow-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, logo: "" })}
+                        className="absolute -top-2 -right-2 bg-white text-red-500 hover:bg-red-50 border border-gray-100 rounded-full p-1.5 shadow-sm transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 hover:border-[rgb(60_28_84)] transition-colors group">
+                      {uploading ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-[rgb(60_28_84)]" />
+                      ) : (
+                        <>
+                          <ImageIcon className="w-6 h-6 mb-2 text-gray-300 group-hover:text-[rgb(60_28_84)] transition-colors" />
+                          <span className="text-xs font-bold text-gray-400 group-hover:text-[rgb(60_28_84)] transition-colors">
+                            Upload Image
+                          </span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        onChange={handleImageUpload}
+                        disabled={uploading}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
 
               <div className="flex gap-3 justify-end pt-5 mt-2 border-t border-gray-100">
                 <button
@@ -584,6 +716,84 @@ export default function CategoriesPanel({ storeId }: { storeId: string }) {
                   "حذف"
                 ) : (
                   "Delete"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STYLE PREVIEW MODAL */}
+      {previewMounted && pendingStyle && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center pointer-events-none p-0 md:p-4">
+          <div
+            className={`absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto ${
+              previewVisible ? "opacity-100" : "opacity-0"
+            }`}
+            onClick={closePreview}
+          />
+
+          <div
+            className={`relative bg-white rounded-t-[1.5rem] md:rounded-2xl shadow-2xl w-full max-w-lg p-6 pointer-events-auto transition-all duration-300 transform ${
+              previewVisible
+                ? "translate-y-0 opacity-100 md:scale-100"
+                : "translate-y-full md:translate-y-8 opacity-0 md:scale-95"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-gray-900">
+                {lang === "ar" ? "معاينة نمط العرض" : "Preview Display Style"}
+              </h3>
+              <button
+                onClick={closePreview}
+                className="p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-600 rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Skeleton Preview Area */}
+            <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 mb-6 min-h-[200px] flex items-center justify-center">
+              {pendingStyle === "grid" ? (
+                <div className="grid grid-cols-2 gap-4 w-full max-w-xs mx-auto">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-full aspect-[1/1.3] rounded-xl bg-gray-200 animate-pulse"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-wrap justify-center gap-6 w-full">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex flex-col items-center gap-3">
+                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gray-200 animate-pulse" />
+                      <div className="w-12 h-2 rounded bg-gray-200 animate-pulse" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={closePreview}
+                disabled={updatingStyle}
+                className="px-5 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-xs rounded-lg transition-colors w-full md:w-auto"
+              >
+                {tr.cancel}
+              </button>
+              <button
+                onClick={confirmStyleChange}
+                disabled={updatingStyle}
+                className="px-5 py-2.5 bg-[rgb(60_28_84)] hover:bg-[rgb(75_35_105)] text-white font-bold text-xs rounded-lg transition-colors w-full md:w-auto flex items-center justify-center min-w-[120px]"
+              >
+                {updatingStyle ? (
+                  <Loader2 className="animate-spin w-4 h-4" />
+                ) : lang === "ar" ? (
+                  "تأكيد وتطبيق"
+                ) : (
+                  "Confirm & Apply"
                 )}
               </button>
             </div>

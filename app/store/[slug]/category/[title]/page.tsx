@@ -13,7 +13,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import ProductCard from "../../components/landing/ProductCard";
-
+import { Emoji } from "emoji-picker-react";
 // --- Types ---
 interface BackendProduct {
   id: string;
@@ -188,6 +188,8 @@ function Pagination({
 // --- Main Page Component ---
 export default function CategoryPage() {
   const params = useParams();
+  const subdomain = params.slug as string;
+
   const searchParams = useSearchParams();
 
   const rawTitle = params.title as string;
@@ -246,7 +248,7 @@ export default function CategoryPage() {
       try {
         setLoading(true);
         const res = await fetch(
-          `/api/categories/by-title/${encodeURIComponent(categoryTitle)}/products?lang=${lang}`,
+          `/api/categories/by-title/${encodeURIComponent(categoryTitle)}/products?lang=${lang}&store=${subdomain}`,
         );
 
         if (!res.ok) throw new Error("Failed to fetch category data");
@@ -343,7 +345,7 @@ export default function CategoryPage() {
   }
 
   const BreadcrumbIcon = dir === "rtl" ? ChevronLeft : ChevronRight;
-
+  console.log("params:", params);
   return (
     <div dir={dir} className="min-h-screen bg-white pb-16">
       {/* Header & Breadcrumbs */}
@@ -385,12 +387,9 @@ export default function CategoryPage() {
 
         {/* Products Grid / Empty States */}
         {categoryData.products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-            <PackageX
-              className="w-20 h-20 mb-4 text-gray-300"
-              strokeWidth={1.5}
-            />
-            <p className="text-lg font-medium">{t.emptyState}</p>
+          <div className="flex items-center gap-1 justify-center pt-32 text-black">
+            <Emoji unified="1f4e6" size={24} />
+            <p className="text font-medium">{t.emptyState}</p>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-500">

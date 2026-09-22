@@ -16,6 +16,7 @@ type Product = {
   created_at?: string;
   storeSlug?: string;
   pin?: boolean;
+  variantGroups?: string | any[];
 };
 
 type ProductGridProps = {
@@ -38,6 +39,7 @@ type MappedProduct = {
   stock?: number;
   rating: number;
   badge?: "New" | "Best Seller" | "Hot" | "Sale";
+  variantGroups?: string | any[];
 };
 
 export default function ProductGrid({
@@ -69,6 +71,8 @@ export default function ProductGrid({
       discount_price: product.discount_price || null,
       stock: product.stock ?? 1,
       rating: 5,
+      variantGroups: product.variantGroups,
+
       badge:
         product.stock !== undefined
           ? product.stock > 0

@@ -93,12 +93,19 @@ export default function Dashboard({ store }: DashboardProps) {
       case "settings":
         return <SettingsPanel />;
       case "categories":
-        return <CategoriesPanel storeId={store.id} />;
+        // 👉 UPDATED: Passing the entire store object to CategoriesPanel so it has access to plan_type and category_display_style
+        return (
+          <CategoriesPanel
+            storeId={store.id}
+            isMini={isMiniPlan}
+            store={store}
+          />
+        );
       case "ai":
         return isMiniPlan ? (
           <HomePanel setActiveNav={setActiveNav} store={store} />
         ) : (
-          <AIChatPanel />
+          <AIChatPanel storeId={store.id} />
         );
       case "sections":
         return isMiniPlan ? (

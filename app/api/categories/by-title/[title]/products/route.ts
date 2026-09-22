@@ -6,21 +6,42 @@ export async function GET(
   { params }: { params: { title: string } },
 ) {
   try {
-    // 1. Decode the title from the URL (e.g., "smart-watches" or "ساعات")
     const decodedTitle = decodeURIComponent(params.title).trim();
 
-    // 2. Fetch the category by its exact title
+    // ✅ استقبل الـ subdomain من الـ query
+    const { searchParams } = new URL(req.url);
+    const storeSubdomain = searchParams.get("store");
+
+    if (!storeSubdomain) {
+      return NextResponse.json(
+        { success: false, message: "Store not specified" },
+        { status: 400 },
+      );
+    }
+
+    const { data: store, error: storeError } = await supabaseAdmin
+      .from("stores")
+      .select("id")
+      .eq("slug", storeSubdomain)
+      .maybeSingle();
+
+    if (storeError) throw storeError;
+    if (!store) {
+      return NextResponse.json(
+        { success: false, message: "Store not found" },
+        { status: 404 },
+      );
+    }
+
+    // ✅ دور على الـ category مربوطة بالـ store تحديداً
     const { data: category, error: categoryError } = await supabaseAdmin
       .from("categories")
       .select("id, title, logo_url")
-      // Use ilike for case-insensitive matching if needed, or eq for exact
       .ilike("title", decodedTitle)
-      .limit(1) // Prevent PGRST116 error if multiple categories share the same title
+      .eq("store_id", store.id) // ← هنا الإصلاح
       .maybeSingle();
 
     if (categoryError) throw categoryError;
-
-    // If no category is found with that title, return a 404
     if (!category) {
       return NextResponse.json(
         { success: false, message: "Category not found" },
@@ -32,7 +53,7 @@ export async function GET(
       .from("products")
       .select("*")
       .eq("category_id", category.id)
-      .eq("is_active", true); 
+      .eq("is_active", true);
 
     if (productsError) throw productsError;
 
@@ -41,7 +62,7 @@ export async function GET(
       data: {
         id: category.id,
         title: category.title,
-        banner_url: category.logo_url, // Mapping your DB schema to frontend type
+        banner_url: category.logo_url,
         products: products || [],
       },
     });

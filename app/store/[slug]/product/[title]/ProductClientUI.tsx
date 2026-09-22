@@ -144,6 +144,7 @@ export default function ProductClientUI({
       addedToFav: "تمت الإضافة للمفضلة",
       removedFromFav: "تم الإزالة من المفضلة",
       sale: "خصم",
+      outOfStock: "هذا الخيار غير متوفر حالياً",
     },
     en: {
       home: "Home",
@@ -169,6 +170,7 @@ export default function ProductClientUI({
       addedToFav: "Added to favorites",
       removedFromFav: "Removed from favorites",
       sale: "Sale",
+      outOfStock: "This option is currently out of stock",
     },
   }[lang];
 
@@ -197,12 +199,15 @@ export default function ProductClientUI({
     {},
   );
 
-  // Initialize selected variants
+  // Initialize: prefer first in-stock option per group
   useEffect(() => {
     const initialSelected: SelectedVariants = {};
     variantGroups.forEach((group) => {
-      if (group.options.length > 0) {
-        initialSelected[group.id] = group.options[0];
+      const firstAvailable =
+        group.options.find((o) => !group.allowStock || (o.stock ?? 0) > 0) ||
+        group.options[0];
+      if (firstAvailable) {
+        initialSelected[group.id] = firstAvailable;
       }
     });
     setSelectedVariants(initialSelected);
@@ -212,11 +217,9 @@ export default function ProductClientUI({
   const [added, setAdded] = useAddedFlash(5000);
   const [progress, setProgress] = useState(100);
 
-  // 👉 Stock Warning state
   const [stockWarning, setStockWarning] = useAddedFlash(4000);
   const [stockWarningProgress, setStockWarningProgress] = useState(100);
 
-  // 👉 Favorite Toast state
   const [favToast, setFavToast] = useState(false);
   const [favAction, setFavAction] = useState<"added" | "removed">("added");
   const [favProgress, setFavProgress] = useState(100);
@@ -228,14 +231,11 @@ export default function ProductClientUI({
   const basePriceNum = Number(product.price || 0);
   const discountPriceNum = Number(product.discount_price || 0);
 
-  // Safely check if there is a valid discount (must be > 0 and less than normal price)
   const hasBaseDiscount =
     discountPriceNum > 0 && discountPriceNum < basePriceNum;
 
-  // Calculate active price based on selected variant options & discounts
   const calculatePrice = (): number => {
     let totalPrice = hasBaseDiscount ? discountPriceNum : basePriceNum;
-
     variantGroups.forEach((group) => {
       const variantPrice = selectedVariants[group.id]?.price;
       if (group.allowPrice && variantPrice !== undefined) {
@@ -247,27 +247,22 @@ export default function ProductClientUI({
 
   const calculateStock = (): number => {
     const stockTrackingGroups = variantGroups.filter((g) => g.allowStock);
-
     if (stockTrackingGroups.length === 0) {
       return Number(product.stock || 0);
     }
-
     let minStock = Number(product.stock) || 99999;
-
     stockTrackingGroups.forEach((group) => {
       const selectedOption = selectedVariants[group.id];
       if (selectedOption?.stock !== undefined) {
         minStock = Math.min(minStock, Number(selectedOption.stock));
       }
     });
-
     return minStock === 99999 ? Number(product.stock || 0) : minStock;
   };
 
   const activePrice = calculatePrice();
   const activeStock = calculateStock();
 
-  // Determine if a variant is actively overriding the price
   const hasVariantPriceOverride = useMemo(() => {
     return variantGroups.some(
       (group) =>
@@ -275,13 +270,11 @@ export default function ProductClientUI({
     );
   }, [variantGroups, selectedVariants]);
 
-  // Show discount UI only if product has discount and no variant overrides it
   const showDiscountUI = hasBaseDiscount && !hasVariantPriceOverride;
   const discountPercent = showDiscountUI
     ? calculateDiscount(basePriceNum, discountPriceNum)
     : 0;
 
-  // Safely calculate exactly how many of this product are already in the cart
   const existingCartQty = useMemo(() => {
     if (!cartItems || !Array.isArray(cartItems)) return 0;
     return cartItems
@@ -313,7 +306,6 @@ export default function ProductClientUI({
 
   const variantSelectionsForCart = useMemo(() => {
     if (Object.keys(selectedVariants).length === 0) return undefined;
-
     return Object.entries(selectedVariants).reduce(
       (acc, [groupId, option]) => {
         acc[groupId] = {
@@ -327,7 +319,6 @@ export default function ProductClientUI({
     );
   }, [selectedVariants]);
 
-  // *** EXACT FIX APPLIED HERE: Added image: images[0] ***
   const normalizedProduct = {
     ...product,
     id: productId,
@@ -380,13 +371,33 @@ export default function ProductClientUI({
   };
 
   const isActionDisabled = activeStock < 1 || isStockLimitReached();
+  const isAtMaxQty = activeStock > 0 && quantity >= activeStock;
+
+  // Label for the active stock source (variant option value or null)
+  const activeStockVariantLabel: { title: string; value: string } | null =
+    useMemo(() => {
+      const trackingGroup = variantGroups.find((g) => g.allowStock);
+      if (!trackingGroup) return null;
+      const value = selectedVariants[trackingGroup.id]?.value;
+      if (!value) return null;
+      return { title: trackingGroup.title, value };
+    }, [variantGroups, selectedVariants]);
+
+  const maxQtyMessage = isAtMaxQty
+    ? activeStockVariantLabel
+      ? lang === "ar"
+        ? `وصلت للحد الأقصى لـ ${activeStockVariantLabel.title} "${activeStockVariantLabel.value}"`
+        : `Max reached for ${activeStockVariantLabel.title} "${activeStockVariantLabel.value}"`
+      : lang === "ar"
+        ? `وصلت للحد الأقصى — ${activeStock} قطع فقط متوفرة`
+        : `That's all we have — only ${activeStock} in stock`
+    : null;
 
   const handleAddToCart = () => {
     if (isActionDisabled) {
       setStockWarning(true);
       return;
     }
-
     if (existingCartQty > 0) {
       setAdded(true);
     } else {
@@ -400,12 +411,7 @@ export default function ProductClientUI({
       setStockWarning(true);
       return;
     }
-
-    if (existingCartQty > 0) {
-      addToCart(normalizedProduct, quantity, variantSelectionsForCart);
-    } else {
-      addToCart(normalizedProduct, quantity, variantSelectionsForCart);
-    }
+    addToCart(normalizedProduct, quantity, variantSelectionsForCart);
     router.push("/cart");
   };
 
@@ -608,11 +614,14 @@ export default function ProductClientUI({
                 {variantGroups.map((group) => {
                   const isSingleOption = group.options.length === 1;
                   const singleOption = group.options[0];
+                  const selectedOptionIsOos =
+                    group.allowStock &&
+                    (selectedVariants[group.id]?.stock ?? 1) === 0;
 
                   return (
                     <div key={group.id}>
                       {isSingleOption ? (
-                        <div className="flex items-center justify-between ">
+                        <div className="flex items-center justify-between">
                           <span className="font-medium text-gray-800">
                             {group.title}
                           </span>
@@ -631,30 +640,57 @@ export default function ProductClientUI({
                           <label className="font-medium text-gray-800 mb-2.5 block">
                             {group.title}
                           </label>
-                          {/* Select Type (Dropdown Buttons) */}
+
+                          {/* Select Type (Chip Buttons) */}
                           {group.type === "select" ? (
-                            <div className="flex flex-wrap gap-2">
-                              {group.options.map((option) => (
-                                <button
-                                  key={option.id}
-                                  onClick={() =>
-                                    handleVariantOptionChange(group.id, option)
-                                  }
-                                  className={`px-2 py-1 border-2 rounded text-sm font-medium transition-colors ${
-                                    selectedVariants[group.id]?.id === option.id
-                                      ? "border-brand-primary bg-[rgb(244_242_245)] text-brand-primary"
-                                      : "border-gray-200 text-gray-600 hover:border-gray-300"
-                                  }`}
-                                >
-                                  {option.value}
-                                  {group.allowPrice && option.price && (
-                                    <span className="text-xs mx-1.5 opacity-70">
-                                      - ({option.price.toFixed(2)})
-                                    </span>
-                                  )}
-                                </button>
-                              ))}
-                            </div>
+                            <>
+                              <div className="flex flex-wrap gap-2">
+                                {group.options.map((option) => {
+                                  const isOos =
+                                    group.allowStock &&
+                                    (option.stock ?? 0) === 0;
+                                  const isSelected =
+                                    selectedVariants[group.id]?.id ===
+                                    option.id;
+
+                                  return (
+                                    <button
+                                      key={option.id}
+                                      onClick={() =>
+                                        !isOos &&
+                                        handleVariantOptionChange(
+                                          group.id,
+                                          option,
+                                        )
+                                      }
+                                      disabled={isOos}
+                                      className={`px-2 py-1 border-2 rounded text-sm font-medium transition-colors ${
+                                        isOos
+                                          ? "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through"
+                                          : isSelected
+                                            ? "border-brand-primary bg-[rgb(244_242_245)] text-brand-primary"
+                                            : "border-gray-200 text-gray-600 hover:border-gray-300"
+                                      }`}
+                                    >
+                                      {option.value}
+                                      {group.allowPrice && option.price && (
+                                        <span className="text-xs mx-1.5 opacity-70">
+                                          - ({option.price.toFixed(2)})
+                                        </span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Out-of-stock notice for selected option */}
+                              {selectedOptionIsOos && (
+                                <p className="mt-2 text-xs font-medium text-red-500 flex items-center gap-1.5 animate-in fade-in duration-200">
+                                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                                  {t.outOfStock}
+                                </p>
+                              )}
+                            </>
                           ) : (
                             /* Text Type (Free Input) */
                             <input
@@ -706,18 +742,16 @@ export default function ProductClientUI({
                     </button>
                   </div>
                 </div>
-                {/* INLINE WARNING */}
-                {isActionDisabled && existingCartQty === 0 && (
-                  <p className="text-xs text-red-500 font-bold mt-1.5 animate-in slide-in-from-top-1 fade-in duration-200 flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    {lang === "ar"
-                      ? "تم الوصول للحد الأقصى للمخزون المتوفر"
-                      : "Max available stock reached"}
+                {/* Max qty notice */}
+                {maxQtyMessage && (
+                  <p className="text-xs text-amber-600 font-medium mt-1.5 animate-in slide-in-from-top-1 fade-in duration-200 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                    {maxQtyMessage}
                   </p>
                 )}
               </div>
 
-              {/* Price Total (Kept visible on mobile for context) */}
+              {/* Price Total */}
               <div className="flex items-start gap-2 justify-between sm:justify-start">
                 <span className="text-black/80 font-medium sm:mt-1">
                   {t.total}:
@@ -766,7 +800,7 @@ export default function ProductClientUI({
         {/* BOTTOM SECTION: TABS */}
         <div className="mt-2 border-t-2 border-gray-100 pt-6">
           <div className="flex flex-col md:flex-row gap-10 lg:gap-20">
-            <div className="w-full md:w-64 flex flex-row  md:flex-col gap-2 shrink-0">
+            <div className="w-full md:w-64 flex flex-row md:flex-col gap-2 shrink-0">
               <button
                 onClick={() => setActiveTab("details")}
                 className={`text-center md:text-start text-sm py-2 px-4 rounded-lg font-regular transition-colors ${
@@ -807,12 +841,13 @@ export default function ProductClientUI({
         {children}
       </div>
 
+      {/* MOBILE FIXED BOTTOM BAR */}
       <div
         dir={dir}
-        className="md:hidden fixed bottom-0 left-0 right-0 z-[999] bg-white border-t border-gray-200 px-4 py-3 "
+        className="md:hidden fixed bottom-0 left-0 right-0 z-[999] bg-white border-t border-gray-200 px-4 py-3"
       >
         <div className="flex flex-col gap-3">
-          {/* Mobile Quantity Selector (Full Width) */}
+          {/* Mobile Quantity Selector */}
           <div className="flex items-center w-full border border-gray-200 rounded-sm overflow-hidden h-10 bg-white">
             <button
               onClick={increment}
@@ -833,7 +868,15 @@ export default function ProductClientUI({
             </button>
           </div>
 
-          {/* Mobile Add to Cart Button (Black style per image) */}
+          {/* Mobile max qty notice */}
+          {maxQtyMessage && (
+            <p className="text-xs text-amber-600 font-medium -mt-1 animate-in slide-in-from-top-1 fade-in duration-200 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+              {maxQtyMessage}
+            </p>
+          )}
+
+          {/* Mobile Add to Cart Button */}
           <button
             onClick={handleAddToCart}
             disabled={isActionDisabled}
@@ -845,7 +888,7 @@ export default function ProductClientUI({
         </div>
       </div>
 
-      {/* FAVORITE TOAST (NEW COMPONENT) */}
+      {/* FAVORITE TOAST */}
       <FavoriteToast
         favToast={favToast}
         setFavToast={setFavToast}
@@ -861,7 +904,6 @@ export default function ProductClientUI({
           dir={dir}
           className="fixed top-4 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100vw-2rem)] md:w-[400px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
         >
-          {/* PROGRESS BAR */}
           <div
             className="h-1.5 bg-emerald-500 ease-linear"
             style={{
@@ -977,7 +1019,6 @@ export default function ProductClientUI({
           dir={dir}
           className="fixed top-4 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-lg shadow-2xl overflow-hidden border border-red-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300"
         >
-          {/* PROGRESS BAR */}
           <div
             className="h-1 ease-linear bg-red-500"
             style={{

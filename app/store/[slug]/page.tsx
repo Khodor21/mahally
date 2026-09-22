@@ -92,7 +92,16 @@ export default async function StorePage({
         <HeroSection storeId={(actualStore as any).id} lang={lang} />
       </div>
 
-      <CategorySection storeId={(actualStore as any).id} lang={lang} />
+      <CategorySection
+        storeId={(actualStore as any).id}
+        lang={lang}
+        // Defensive check applied: look in storeSettings, fallback to actualStore, then fallback to "grid"
+        displayStyle={
+          storeSettings?.category_display_style ||
+          (actualStore as any)?.category_display_style ||
+          "grid"
+        }
+      />
 
       <div className="w-full flex flex-col gap-10">
         <Suspense

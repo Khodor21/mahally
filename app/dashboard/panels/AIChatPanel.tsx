@@ -4,9 +4,9 @@ import { Suspense } from "react";
 import AIChatWindow from "../components/AIChatWindow";
 import { useDashboard } from "../DashboardContext";
 
-export default function AIChatPanel() {
+// استقبال storeId كـ Prop
+export default function AIChatPanel({ storeId }: { storeId: string }) {
   const { lang } = useDashboard();
-
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   return (
@@ -16,7 +16,7 @@ export default function AIChatPanel() {
     >
       <div className="w-full max-w-4xl flex flex-col">
         <Suspense fallback={<div className="h-full w-full bg-[#f7f7f8]" />}>
-          <AIChatWindow />
+          <AIChatWindow storeId={storeId} /> {/* تمرير الـ ID هنا */}
         </Suspense>
       </div>
     </div>
