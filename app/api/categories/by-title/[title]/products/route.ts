@@ -54,7 +54,9 @@ export async function GET(
       .select("*")
       .eq("category_id", category.id)
       .eq("is_active", true);
-
+    console.log("Products count:", products?.length);
+    console.log("Products error:", productsError);
+    console.log("Category id used:", category.id);
     if (productsError) throw productsError;
 
     return NextResponse.json({
