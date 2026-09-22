@@ -56,7 +56,7 @@ export default function Topbar({
       </button>
 
       {/* Notifications / Live Orders Bell */}
-      <button
+      {/* <button
         onClick={onNotificationClick}
         className="relative p-2 rounded-xl hover:bg-[rgb(244_242_245)] text-[rgb(60_28_84)] transition-colors"
         title={lang === "ar" ? "الطلبات الجديدة" : "New Orders"}
@@ -72,7 +72,7 @@ export default function Topbar({
         ) : (
           <span className="absolute top-1.5 end-1.5 w-2 h-2 bg-[rgb(60_28_84)] rounded-full border-2 border-white" />
         )}
-      </button>
+      </button> */}
     </header>
   );
 }
