@@ -103,7 +103,9 @@ export default function AIChatWindow({ storeId }: AIChatWindowProps) {
 
   const stopGeneration = () => {
     abortControllerRef.current?.abort();
-    setIsLoading(false);
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
   };
 
   const sendMessage = async () => {
@@ -134,13 +136,15 @@ export default function AIChatWindow({ storeId }: AIChatWindowProps) {
         body: JSON.stringify({
           message: userMessage.content,
           storeId,
-          conversationHistory: messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
+          conversationHistory: messages
+            .filter((m) => !m.content.startsWith("⚠️"))
+            .slice(-6)
+            .map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
         }),
       });
-
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Request failed");
 
@@ -187,6 +191,7 @@ export default function AIChatWindow({ storeId }: AIChatWindowProps) {
         onChange={(e) => handleInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={t.placeholder}
+        maxLength={500}
         className="flex-1 resize-none bg-transparent text-sm outline-none max-h-44 leading-relaxed text-gray-800 placeholder:text-gray-400"
         dir={dir}
         rows={1}

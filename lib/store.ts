@@ -35,7 +35,10 @@ export async function getCurrentStore() {
     .select(
       `
       id, admin_name, admin_email, store_name,
-      slug, location, phone, store_type, created_at, is_active, payment_methods, plan_type
+      slug, location, phone, store_type, created_at, is_active, payment_methods, plan_type,
+      store_settings (
+        category_display_style
+      )
     `,
     )
     .eq("id", storeId)
@@ -46,7 +49,17 @@ export async function getCurrentStore() {
     return null;
   }
 
-  return data ?? null;
+  if (!data) return null;
+
+  // Flatten store_settings into the store object
+  const settings = Array.isArray(data.store_settings)
+    ? data.store_settings[0]
+    : data.store_settings;
+
+  return {
+    ...data,
+    category_display_style: settings?.category_display_style ?? "grid",
+  };
 }
 
 export async function getCurrentStoreMeta() {
