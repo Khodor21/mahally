@@ -247,7 +247,7 @@ interface RateLimitEntry {
 
 const rateLimitMap = new Map<string, RateLimitEntry>();
 const WINDOW_MS = 60 * 60 * 1000;
-const MAX_REQUESTS = 5;
+const MAX_REQUESTS = 50;
 const BLOCK_DURATION_MS = 24 * 60 * 60 * 1000;
 
 function getRateLimitKey(req: NextRequest): string {
