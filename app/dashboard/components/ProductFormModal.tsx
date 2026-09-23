@@ -489,7 +489,7 @@ export default function ProductFormModal({
             </div>
 
             {/* Pricing */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-2.5">
                   {tr.price || "Price"} *
@@ -532,6 +532,17 @@ export default function ProductFormModal({
                     {errors.discount_price}
                   </p>
                 )}
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-2.5">
+                  {dir === "rtl" ? "سعر الجملة" : "Wholesale Price"}
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  className="w-full px-4 py-3 rounded-xl border border-[rgb(207_195_223)] bg-white text-sm text-[rgb(60_28_84)] outline-none focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10 transition-all"
+                />
               </div>
             </div>
 
