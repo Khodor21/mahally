@@ -3,24 +3,24 @@
 import { useState, useEffect, useRef } from "react";
 import {
   X,
-  ImageIcon,
-  Package,
   Loader2,
   Trash2,
   Plus,
   Info,
-  Pin,
   Star,
   ChevronDown,
   ToggleLeft,
   ToggleRight,
+  TrendingUp,
 } from "lucide-react";
+
 import type {
   Product,
   ProductFormData,
   VariantGroup,
   VariantOption,
 } from "@/types/api";
+
 import type { Translations } from "../i18n";
 import { uploadImages } from "@/lib/image-upload";
 import { useCategories } from "@/hooks/useApi";
@@ -41,12 +41,62 @@ const EMPTY_FORM: any = {
   description: "",
   price: "",
   discount_price: "",
+  cost_price: "",
+  preorder_enabled: false,
+  preorder_label: "",
   stock: "",
   images: [],
   category_id: "",
   variantGroups: [],
   pin: false,
 };
+
+// ============================================
+// PROFIT BADGE
+// ============================================
+function ProfitBadge({
+  price,
+  costPrice,
+  dir,
+}: {
+  price: string;
+  costPrice: string;
+  dir: "ltr" | "rtl";
+}) {
+  const p = parseFloat(price);
+  const c = parseFloat(costPrice);
+
+  if (!costPrice || !price || isNaN(p) || isNaN(c) || p <= 0) return null;
+
+  const profit = p - c;
+  const margin = (profit / p) * 100;
+  const isLoss = profit < 0;
+
+  return (
+    <div
+      className={`mt-2 p-2.5 rounded-xl border flex items-center gap-2.5 ${
+        isLoss ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"
+      }`}
+    >
+      <TrendingUp
+        className={`w-3.5 h-3.5 shrink-0 ${isLoss ? "text-red-500 rotate-180" : "text-emerald-500"}`}
+      />
+      <div className="flex gap-3 flex-wrap">
+        <span
+          className={`text-xs font-bold ${isLoss ? "text-red-700" : "text-emerald-700"}`}
+        >
+          {dir === "rtl" ? "الربح:" : "Profit:"} {profit >= 0 ? "+" : ""}
+          {profit.toFixed(2)}
+        </span>
+        <span
+          className={`text-xs font-medium ${isLoss ? "text-red-500" : "text-emerald-500"}`}
+        >
+          ({margin.toFixed(1)}%)
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export default function ProductFormModal({
   mode,
@@ -61,7 +111,10 @@ export default function ProductFormModal({
   const [form, setForm] = useState<any>(EMPTY_FORM);
   const [errors, setErrors] = useState<
     Partial<
-      Record<keyof ProductFormData | "discount_price" | "variants", string>
+      Record<
+        keyof ProductFormData | "discount_price" | "variants" | "cost_price",
+        string
+      >
     >
   >({});
   const [uploading, setUploading] = useState(false);
@@ -86,22 +139,11 @@ export default function ProductFormModal({
         let rawGroups =
           (product as any).variantGroups ?? (product as any).variant_groups;
 
-        console.log("🔍 DEBUG: Edit mode - product object:", product);
-        console.log("🔍 DEBUG: rawGroups value:", rawGroups);
-        console.log("🔍 DEBUG: rawGroups type:", typeof rawGroups);
-        console.log("🔍 DEBUG: Is array?", Array.isArray(rawGroups));
-
         if (rawGroups) {
           while (typeof rawGroups === "string" && rawGroups.trim() !== "") {
             try {
-              console.log(
-                "🔍 DEBUG: Attempting to parse string:",
-                rawGroups.substring(0, 100),
-              );
               rawGroups = JSON.parse(rawGroups);
-              console.log("🔍 DEBUG: After JSON.parse:", rawGroups);
             } catch (e) {
-              console.error("🔍 DEBUG: JSON.parse failed:", e);
               break;
             }
           }
@@ -111,19 +153,7 @@ export default function ProductFormModal({
               ...g,
               options: Array.isArray(g?.options) ? g.options : [],
             }));
-            console.log(
-              "🔍 DEBUG: Successfully set parsedVariantGroups:",
-              parsedVariantGroups,
-            );
-          } else {
-            console.log(
-              "🔍 DEBUG: rawGroups is not an array:",
-              typeof rawGroups,
-              rawGroups,
-            );
           }
-        } else {
-          console.log("🔍 DEBUG: No rawGroups found");
         }
       } catch (error) {
         console.error("❌ Failed to parse variant groups:", error);
@@ -138,12 +168,18 @@ export default function ProductFormModal({
           product.discount_price !== undefined
             ? String(product.discount_price)
             : "",
+        cost_price:
+          product.cost_price !== null && product.cost_price !== undefined
+            ? String(product.cost_price)
+            : "",
         stock: String(product.stock),
         images: product.images ?? [],
         category_id:
           (product as any).category_id ?? (product as any).categoryId ?? "",
         variantGroups: parsedVariantGroups,
         pin: Boolean((product as any).pin),
+        preorder_enabled: Boolean((product as any).preorder_enabled),
+        preorder_label: (product as any).preorder_label ?? "",
       });
 
       if (parsedVariantGroups.length > 0 && parsedVariantGroups[0]?.id) {
@@ -165,7 +201,10 @@ export default function ProductFormModal({
 
   function validate(): boolean {
     const errs: Partial<
-      Record<keyof ProductFormData | "discount_price" | "variants", string>
+      Record<
+        keyof ProductFormData | "discount_price" | "variants" | "cost_price",
+        string
+      >
     > = {};
 
     if (!form.title.trim()) errs.title = tr.titleRequired;
@@ -179,6 +218,20 @@ export default function ProductFormModal({
       if (isNaN(dp) || dp < 0) {
         errs.discount_price =
           dir === "rtl" ? "سعر خصم غير صالح" : "Invalid discount price";
+      }
+    }
+
+    // cost_price validation: must not exceed selling price
+    if (form.cost_price !== "" && form.cost_price !== null) {
+      const cp = parseFloat(form.cost_price);
+      if (isNaN(cp) || cp < 0) {
+        errs.cost_price =
+          dir === "rtl" ? "تكلفة غير صالحة" : "Invalid cost price";
+      } else if (!isNaN(p) && cp > p) {
+        errs.cost_price =
+          dir === "rtl"
+            ? "تكلفة المنتج لا يمكن أن تتجاوز سعر البيع"
+            : "Cost price cannot exceed the selling price";
       }
     }
 
@@ -238,12 +291,7 @@ export default function ProductFormModal({
       }))
       .filter((group: any) => group.options.length > 0);
 
-    const cleanedForm = {
-      ...form,
-      variantGroups: cleanedVariantGroups,
-    };
-
-    onSubmit(cleanedForm);
+    onSubmit({ ...form, variantGroups: cleanedVariantGroups });
   }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -257,13 +305,9 @@ export default function ProductFormModal({
       setUploading(true);
       setUploadProgress(tr.uploading || "Uploading images...");
       const result = await uploadImages(files);
-      setForm((f: any) => ({
-        ...f,
-        images: [...f.images, ...result.urls],
-      }));
+      setForm((f: any) => ({ ...f, images: [...f.images, ...result.urls] }));
       setUploadProgress("");
     } catch (error: any) {
-      console.error("Upload error:", error);
       alert(error.message || "Failed to upload images");
       setUploadProgress("");
     } finally {
@@ -307,26 +351,21 @@ export default function ProductFormModal({
       allowPrice: true,
       allowStock: true,
       options: [
-        {
-          id: crypto.randomUUID?.() || Date.now().toString(),
-          value: "",
-        },
+        { id: crypto.randomUUID?.() || Date.now().toString(), value: "" },
       ],
     };
-
     setForm((f: any) => ({
       ...f,
       variantGroups: [...(f.variantGroups || []), newGroup],
     }));
-
     setExpandedVariantGroup(newGroup.id);
   };
 
-  const updateVariantGroup = (groupId: string, field: string, value: any) => {
+  const updateVariantGroup = (groupId: string, key: string, value: any) => {
     setForm((f: any) => ({
       ...f,
-      variantGroups: f.variantGroups.map((group: any) =>
-        group.id === groupId ? { ...group, [field]: value } : group,
+      variantGroups: f.variantGroups.map((g: any) =>
+        g.id === groupId ? { ...g, [key]: value } : g,
       ),
     }));
   };
@@ -334,28 +373,26 @@ export default function ProductFormModal({
   const removeVariantGroup = (groupId: string) => {
     setForm((f: any) => ({
       ...f,
-      variantGroups: f.variantGroups.filter(
-        (group: any) => group.id !== groupId,
-      ),
+      variantGroups: f.variantGroups.filter((g: any) => g.id !== groupId),
     }));
   };
 
   const addVariantOption = (groupId: string) => {
     setForm((f: any) => ({
       ...f,
-      variantGroups: f.variantGroups.map((group: any) =>
-        group.id === groupId
+      variantGroups: f.variantGroups.map((g: any) =>
+        g.id === groupId
           ? {
-              ...group,
+              ...g,
               options: [
-                ...group.options,
+                ...g.options,
                 {
                   id: crypto.randomUUID?.() || Date.now().toString(),
                   value: "",
                 },
               ],
             }
-          : group,
+          : g,
       ),
     }));
   };
@@ -363,20 +400,20 @@ export default function ProductFormModal({
   const updateVariantOption = (
     groupId: string,
     optionId: string,
-    field: string,
+    key: string,
     value: any,
   ) => {
     setForm((f: any) => ({
       ...f,
-      variantGroups: f.variantGroups.map((group: any) =>
-        group.id === groupId
+      variantGroups: f.variantGroups.map((g: any) =>
+        g.id === groupId
           ? {
-              ...group,
-              options: group.options.map((opt: any) =>
-                opt.id === optionId ? { ...opt, [field]: value } : opt,
+              ...g,
+              options: g.options.map((opt: any) =>
+                opt.id === optionId ? { ...opt, [key]: value } : opt,
               ),
             }
-          : group,
+          : g,
       ),
     }));
   };
@@ -384,13 +421,13 @@ export default function ProductFormModal({
   const removeVariantOption = (groupId: string, optionId: string) => {
     setForm((f: any) => ({
       ...f,
-      variantGroups: f.variantGroups.map((group: any) =>
-        group.id === groupId
+      variantGroups: f.variantGroups.map((g: any) =>
+        g.id === groupId
           ? {
-              ...group,
-              options: group.options.filter((opt: any) => opt.id !== optionId),
+              ...g,
+              options: g.options.filter((opt: any) => opt.id !== optionId),
             }
-          : group,
+          : g,
       ),
     }));
   };
@@ -489,61 +526,91 @@ export default function ProductFormModal({
             </div>
 
             {/* Pricing */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-2.5">
-                  {tr.price || "Price"} *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={form.price}
-                  onChange={(e) => field("price", e.target.value)}
-                  placeholder="0.00"
-                  className={`w-full px-4 py-3 rounded-xl border bg-white text-sm text-[rgb(60_28_84)] outline-none transition-all ${
-                    errors.price
-                      ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-                      : "border-[rgb(207_195_223)] focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10"
-                  }`}
-                />
-                {errors.price && (
-                  <p className="text-xs text-red-600 mt-1">{errors.price}</p>
-                )}
+            <div>
+              <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-2.5">
+                {dir === "rtl" ? "التسعير" : "Pricing"}
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Selling Price */}
+                <div>
+                  <label className="block text-xs text-[rgb(60_28_84)]/60 mb-1.5">
+                    {tr.price || "Price"} *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.price}
+                    onChange={(e) => field("price", e.target.value)}
+                    placeholder="0.00"
+                    className={`w-full px-4 py-3 rounded-xl border bg-white text-sm text-[rgb(60_28_84)] outline-none transition-all ${
+                      errors.price
+                        ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                        : "border-[rgb(207_195_223)] focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10"
+                    }`}
+                  />
+                  {errors.price && (
+                    <p className="text-xs text-red-600 mt-1">{errors.price}</p>
+                  )}
+                </div>
+
+                {/* Discount Price */}
+                <div>
+                  <label className="block text-xs text-[rgb(60_28_84)]/60 mb-1.5">
+                    {dir === "rtl" ? "سعر الخصم" : "Discount Price"}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.discount_price}
+                    onChange={(e) => field("discount_price", e.target.value)}
+                    placeholder="0.00"
+                    className={`w-full px-4 py-3 rounded-xl border bg-white text-sm text-[rgb(60_28_84)] outline-none transition-all ${
+                      errors.discount_price
+                        ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                        : "border-[rgb(207_195_223)] focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10"
+                    }`}
+                  />
+                  {errors.discount_price && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {errors.discount_price}
+                    </p>
+                  )}
+                </div>
+
+                {/* Cost Price */}
+                <div>
+                  <label className="block text-xs text-[rgb(60_28_84)]/60 mb-1.5">
+                    {dir === "rtl" ? "تكلفة المنتج" : "Cost Price"}
+                    <span className="text-[rgb(60_28_84)]/40 ms-1">
+                      ({dir === "rtl" ? "اختياري" : "optional"})
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.cost_price}
+                    onChange={(e) => field("cost_price", e.target.value)}
+                    placeholder="0.00"
+                    className={`w-full px-4 py-3 rounded-xl border bg-white text-sm text-[rgb(60_28_84)] outline-none transition-all ${
+                      errors.cost_price
+                        ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                        : "border-[rgb(207_195_223)] focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10"
+                    }`}
+                  />
+                  {errors.cost_price && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {errors.cost_price}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-2.5">
-                  {dir === "rtl" ? "سعر الخصم" : "Discount Price"}
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={form.discount_price}
-                  onChange={(e) => field("discount_price", e.target.value)}
-                  placeholder="0.00"
-                  className={`w-full px-4 py-3 rounded-xl border bg-white text-sm text-[rgb(60_28_84)] outline-none transition-all ${
-                    errors.discount_price
-                      ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-                      : "border-[rgb(207_195_223)] focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10"
-                  }`}
-                />
-                {errors.discount_price && (
-                  <p className="text-xs text-red-600 mt-1">
-                    {errors.discount_price}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-2.5">
-                  {dir === "rtl" ? "سعر الجملة" : "Wholesale Price"}
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  className="w-full px-4 py-3 rounded-xl border border-[rgb(207_195_223)] bg-white text-sm text-[rgb(60_28_84)] outline-none focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10 transition-all"
-                />
-              </div>
+              {/* Profit Badge — spans full width below the 3 fields */}
+              <ProfitBadge
+                price={form.price}
+                costPrice={form.cost_price}
+                dir={dir}
+              />
             </div>
 
             {/* Stock */}
@@ -564,6 +631,41 @@ export default function ProductFormModal({
               />
               {errors.stock && (
                 <p className="text-xs text-red-600 mt-1">{errors.stock}</p>
+              )}
+
+              {/* Pre-order toggle */}
+              <div className="mt-4 flex items-center justify-between p-3 bg-[rgb(244_242_245)] rounded-xl">
+                <label className="text-sm font-medium text-[rgb(60_28_84)] cursor-pointer flex-1">
+                  {dir === "rtl"
+                    ? "تفعيل الطلب المسبق عند نفاد المخزون"
+                    : "Enable pre-order when out of stock"}
+                </label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    field("preorder_enabled", !form.preorder_enabled)
+                  }
+                >
+                  {form.preorder_enabled ? (
+                    <ToggleRight className="w-6 h-6 text-emerald-600" />
+                  ) : (
+                    <ToggleLeft className="w-6 h-6 text-gray-300" />
+                  )}
+                </button>
+              </div>
+
+              {form.preorder_enabled && (
+                <input
+                  type="text"
+                  value={form.preorder_label ?? ""}
+                  onChange={(e) => field("preorder_label", e.target.value)}
+                  placeholder={
+                    dir === "rtl"
+                      ? "نص الزر (اختياري) — مثال: طلب مسبق"
+                      : "Button label (optional) — e.g. Pre-order"
+                  }
+                  className="mt-3 w-full px-4 py-3 rounded-xl border border-[rgb(207_195_223)] bg-white text-sm text-[rgb(60_28_84)] outline-none focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10 transition-all"
+                />
               )}
             </div>
 
@@ -613,7 +715,6 @@ export default function ProductFormModal({
                       key={group.id}
                       className="border border-[rgb(207_195_223)]/50 rounded-xl overflow-hidden bg-[rgb(244_242_245)]/30"
                     >
-                      {/* Group Header */}
                       <button
                         type="button"
                         onClick={() =>
@@ -658,12 +759,9 @@ export default function ProductFormModal({
                         </button>
                       </button>
 
-                      {/* Group Content */}
                       {expandedVariantGroup === group.id && (
                         <div className="border-t border-[rgb(207_195_223)]/50 p-4 space-y-4 bg-white">
-                          {/* Group Settings */}
                           <div className="space-y-3">
-                            {/* Group Title */}
                             <div>
                               <label className="block text-xs font-bold text-[rgb(60_28_84)] mb-2">
                                 {dir === "rtl" ? "اسم المجموعة" : "Group Title"}
@@ -687,7 +785,6 @@ export default function ProductFormModal({
                               />
                             </div>
 
-                            {/* Option Type — segmented buttons */}
                             <div>
                               <label className="block text-xs font-bold text-[rgb(60_28_84)] mb-2">
                                 {dir === "rtl" ? "نوع الخيار" : "Option Type"}
@@ -718,7 +815,6 @@ export default function ProductFormModal({
                               </div>
                             </div>
 
-                            {/* Toggles — only for Options type */}
                             {group.type === "select" && (
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between">
@@ -736,7 +832,6 @@ export default function ProductFormModal({
                                         !group.allowPrice,
                                       )
                                     }
-                                    className="transition-colors"
                                   >
                                     {group.allowPrice ? (
                                       <ToggleRight className="w-5 h-5 text-emerald-600" />
@@ -745,7 +840,6 @@ export default function ProductFormModal({
                                     )}
                                   </button>
                                 </div>
-
                                 <div className="flex items-center justify-between">
                                   <label className="text-xs font-medium text-[rgb(60_28_84)]">
                                     {dir === "rtl"
@@ -761,7 +855,6 @@ export default function ProductFormModal({
                                         !group.allowStock,
                                       )
                                     }
-                                    className="transition-colors"
                                   >
                                     {group.allowStock ? (
                                       <ToggleRight className="w-5 h-5 text-emerald-600" />
@@ -774,13 +867,11 @@ export default function ProductFormModal({
                             )}
                           </div>
 
-                          {/* Options List */}
                           <div className="border-t border-[rgb(244_242_245)] pt-4 space-y-2">
                             <div className="flex items-center justify-between mb-3">
                               <label className="text-xs font-bold text-[rgb(60_28_84)] uppercase">
                                 {dir === "rtl" ? "الخيارات" : "Options"}
                               </label>
-                              {/* Hide "Add" button for free text — one option is always enough */}
                               {group.type === "select" && (
                                 <button
                                   type="button"
@@ -793,103 +884,96 @@ export default function ProductFormModal({
                               )}
                             </div>
 
-                            {group.options.map(
-                              (option: VariantOption, optIdx: number) => (
-                                <div
-                                  key={option.id}
-                                  className="flex flex-col gap-2 p-3 bg-[rgb(244_242_245)]/50 rounded-lg border border-[rgb(207_195_223)]/50"
-                                >
-                                  <div className="flex gap-2">
-                                    <input
-                                      type="text"
-                                      value={option.value}
-                                      onChange={(e) =>
-                                        updateVariantOption(
-                                          group.id,
-                                          option.id,
-                                          "value",
-                                          e.target.value,
-                                        )
+                            {group.options.map((option: VariantOption) => (
+                              <div
+                                key={option.id}
+                                className="flex flex-col gap-2 p-3 bg-[rgb(244_242_245)]/50 rounded-lg border border-[rgb(207_195_223)]/50"
+                              >
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={option.value}
+                                    onChange={(e) =>
+                                      updateVariantOption(
+                                        group.id,
+                                        option.id,
+                                        "value",
+                                        e.target.value,
+                                      )
+                                    }
+                                    placeholder={
+                                      dir === "rtl"
+                                        ? "مثال: 100ml، أحمر، John Doe"
+                                        : "e.g., 100ml, Red, John Doe"
+                                    }
+                                    className="flex-1 px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
+                                  />
+                                  {(group.type === "select" ||
+                                    group.options.length > 1) && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        removeVariantOption(group.id, option.id)
                                       }
-                                      placeholder={
-                                        dir === "rtl"
-                                          ? "مثال: 100ml، أحمر، John Doe"
-                                          : "e.g., 100ml, Red, John Doe"
-                                      }
-                                      className="flex-1 px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
-                                    />
-                                    {/* Hide remove button for free text with a single option */}
-                                    {(group.type === "select" ||
-                                      group.options.length > 1) && (
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          removeVariantOption(
-                                            group.id,
-                                            option.id,
-                                          )
-                                        }
-                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    )}
-                                  </div>
-
-                                  {/* Price / Stock inputs — only for Options type with toggles on */}
-                                  {group.type === "select" &&
-                                    (group.allowPrice || group.allowStock) && (
-                                      <div className="flex gap-2">
-                                        {group.allowPrice && (
-                                          <input
-                                            type="number"
-                                            step="0.01"
-                                            value={option.price ?? ""}
-                                            onChange={(e) =>
-                                              updateVariantOption(
-                                                group.id,
-                                                option.id,
-                                                "price",
-                                                e.target.value
-                                                  ? parseFloat(e.target.value)
-                                                  : undefined,
-                                              )
-                                            }
-                                            placeholder={
-                                              dir === "rtl"
-                                                ? "السعر (اختياري)"
-                                                : "Price (opt)"
-                                            }
-                                            className="flex-1 px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
-                                          />
-                                        )}
-                                        {group.allowStock && (
-                                          <input
-                                            type="number"
-                                            value={option.stock ?? ""}
-                                            onChange={(e) =>
-                                              updateVariantOption(
-                                                group.id,
-                                                option.id,
-                                                "stock",
-                                                e.target.value
-                                                  ? parseInt(e.target.value)
-                                                  : undefined,
-                                              )
-                                            }
-                                            placeholder={
-                                              dir === "rtl"
-                                                ? "الكمية (اختياري)"
-                                                : "Stock (opt)"
-                                            }
-                                            className="flex-1 px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
-                                          />
-                                        )}
-                                      </div>
-                                    )}
+                                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  )}
                                 </div>
-                              ),
-                            )}
+
+                                {group.type === "select" &&
+                                  (group.allowPrice || group.allowStock) && (
+                                    <div className="flex gap-2">
+                                      {group.allowPrice && (
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          value={option.price ?? ""}
+                                          onChange={(e) =>
+                                            updateVariantOption(
+                                              group.id,
+                                              option.id,
+                                              "price",
+                                              e.target.value
+                                                ? parseFloat(e.target.value)
+                                                : undefined,
+                                            )
+                                          }
+                                          placeholder={
+                                            dir === "rtl"
+                                              ? "السعر (اختياري)"
+                                              : "Price (opt)"
+                                          }
+                                          className="flex-1 px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
+                                        />
+                                      )}
+                                      {group.allowStock && (
+                                        <input
+                                          type="number"
+                                          value={option.stock ?? ""}
+                                          onChange={(e) =>
+                                            updateVariantOption(
+                                              group.id,
+                                              option.id,
+                                              "stock",
+                                              e.target.value
+                                                ? parseInt(e.target.value)
+                                                : undefined,
+                                            )
+                                          }
+                                          placeholder={
+                                            dir === "rtl"
+                                              ? "الكمية (اختياري)"
+                                              : "Stock (opt)"
+                                          }
+                                          className="flex-1 px-3 py-2 rounded-lg border border-[rgb(207_195_223)] bg-white text-sm outline-none focus:border-[rgb(60_28_84)] focus:ring-1 focus:ring-[rgb(60_28_84)]/50 transition-all"
+                                        />
+                                      )}
+                                    </div>
+                                  )}
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
@@ -899,7 +983,7 @@ export default function ProductFormModal({
               )}
 
               {errors.variants && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 animate-in fade-in zoom-in-95 duration-300">
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
                   <Info className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                   <p className="text-xs text-red-700 font-medium leading-relaxed">
                     {errors.variants}
@@ -920,7 +1004,7 @@ export default function ProductFormModal({
                 <p className="text-[10px] text-[rgb(60_28_84)]/60 mb-3">
                   {dir === "rtl"
                     ? "الصورة الأولى سيتم استخدامها كغلاف في المتجر"
-                    : "The first image with the 'Main Cover' badge will be used as the product card thumbnail. Click 'Make Cover' on any image to change it."}
+                    : "The first image will be used as the product cover. Click 'Make Cover' to change it."}
                 </p>
               )}
 
@@ -950,7 +1034,6 @@ export default function ProductFormModal({
                       alt={`Product ${idx + 1}`}
                       className="w-full h-full object-cover"
                     />
-
                     {idx === 0 && (
                       <div className="absolute top-2 left-2 right-2 flex justify-center">
                         <div className="bg-[rgb(60_28_84)]/90 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5">
@@ -959,7 +1042,6 @@ export default function ProductFormModal({
                         </div>
                       </div>
                     )}
-
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/0 group-hover:bg-black/50 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-[1px]">
                       {idx !== 0 && (
                         <button

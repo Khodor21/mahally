@@ -24,12 +24,15 @@ export interface Product {
   description: string;
   price: number;
   discount_price?: number | null;
+  cost_price?: number | null;
   stock: number;
   images: string[];
   category_id?: string;
   variantGroups?: VariantGroup[];
   sales_count?: number;
   pin: boolean;
+  preorder_enabled?: boolean;
+  preorder_label?: string | null;
   created_at: string;
 }
 
@@ -38,11 +41,14 @@ export interface ProductFormData {
   description: string;
   price: string;
   discount_price?: string;
+  cost_price?: string;
   stock: string;
   images: string[];
   category_id: string;
-  variantGroups?: VariantGroup[]; // NEW: Renamed from variants
+  variantGroups?: VariantGroup[];
   pin?: boolean;
+  preorder_enabled?: boolean;
+  preorder_label?: string;
 }
 
 // ============================================
@@ -92,10 +98,14 @@ export interface OrderItem {
   title?: string;
   price?: number;
   original_price?: number;
-  variant_json?: string | Record<string, { id: string; value: string; stock?: number }> | null;
+  variant_json?:
+    | string
+    | Record<string, { id: string; value: string; stock?: number }>
+    | null;
 
   image?: string;
   total?: number;
+  is_preorder?: boolean;
 }
 
 export interface Order {
@@ -115,6 +125,7 @@ export interface Order {
   notes?: string;
   discount_amount?: number;
   coupon_code?: string;
+  has_preorder?: boolean;
 }
 
 export interface Customer {

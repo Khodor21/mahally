@@ -299,13 +299,9 @@ export default function CartClientPage({ store }: Props) {
           );
 
           if (outOfStockItem) {
-            const productName = isArabic
-              ? outOfStockItem.product.name_ar || outOfStockItem.product.name
-              : outOfStockItem.product.name;
-
             errorMsg = isArabic
-              ? `عذراً، المنتج "${productName}" غير متوفر بالكمية المطلوبة`
-              : `Sorry, the product "${productName}" is out of stock.`;
+              ? `عذراً، المنتج "${outOfStockItem.product.title}" غير متوفر بالكمية المطلوبة`
+              : `Sorry, "${outOfStockItem.product.title}" is out of stock.`;
           }
         }
 

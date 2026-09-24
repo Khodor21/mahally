@@ -99,12 +99,10 @@ export async function GET(req: Request) {
       }
     }
 
-    // 3. Fetch products securely for the resolved store
-    // 3. Fetch products securely for the resolved store
     const { data, error } = await supabaseAdmin
       .from("products")
       .select(
-        "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variantGroups, sales_count",
+        "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variantGroups, sales_count , cost_price, preorder_enabled, preorder_label",
       )
       .eq("store_id", store_id)
       .order("created_at", { ascending: false });
@@ -154,12 +152,24 @@ export async function POST(req: Request) {
       category_id,
       variantGroups,
       pin,
+      cost_price,
+      preorder_enabled,
+      preorder_label,
     } = body;
 
     // ============================================
     // VALIDATION
     // ============================================
-
+    let parsedCostPrice = null;
+    if (cost_price !== undefined && cost_price !== null && cost_price !== "") {
+      parsedCostPrice = parseFloat(cost_price);
+      if (isNaN(parsedCostPrice) || parsedCostPrice < 0) {
+        return NextResponse.json(
+          { success: false, message: "Invalid cost price" },
+          { status: 400 },
+        );
+      }
+    }
     if (!title || title.trim() === "") {
       return NextResponse.json(
         { success: false, message: "Title is required" },
@@ -244,10 +254,13 @@ export async function POST(req: Request) {
         category_id: category_id || null,
         variantGroups: variantGroupsArray,
         pin: isPinned,
-        sales_count: 0, // Initialize sales_count
+        sales_count: 0,
+        cost_price: parsedCostPrice,
+        preorder_enabled: preorder_enabled === true,
+        preorder_label: preorder_label || null,
       })
       .select(
-        "id, title, description, price, discount_price, stock, images, category_id, variantGroups, pin, sales_count",
+        "id, title, description, price, discount_price, stock, images, category_id, variantGroups, pin, sales_count, cost_price, preorder_enabled, preorder_label",
       )
       .single();
 
@@ -296,6 +309,9 @@ export async function PATCH(req: Request) {
       category_id,
       variantGroups,
       pin,
+      cost_price,
+      preorder_enabled,
+      preorder_label,
     } = body;
 
     if (!id) {
@@ -310,7 +326,20 @@ export async function PATCH(req: Request) {
     // ============================================
 
     const updates: any = {};
-
+    if (cost_price !== undefined) {
+      if (cost_price === "" || cost_price === null) {
+        updates.cost_price = null;
+      } else {
+        const parsedCostPrice = parseFloat(cost_price);
+        if (isNaN(parsedCostPrice) || parsedCostPrice < 0) {
+          return NextResponse.json(
+            { success: false, message: "Invalid cost price" },
+            { status: 400 },
+          );
+        }
+        updates.cost_price = parsedCostPrice;
+      }
+    }
     if (title !== undefined) {
       if (title.trim() === "") {
         return NextResponse.json(
@@ -395,7 +424,12 @@ export async function PATCH(req: Request) {
         { status: 400 },
       );
     }
-
+    if (preorder_enabled !== undefined) {
+      updates.preorder_enabled = Boolean(preorder_enabled);
+    }
+    if (preorder_label !== undefined) {
+      updates.preorder_label = preorder_label || null;
+    }
     // ============================================
     // UPDATE
     // ============================================
@@ -406,7 +440,7 @@ export async function PATCH(req: Request) {
       .eq("id", id)
       .eq("store_id", user.id)
       .select(
-        "id, title, description, price, discount_price, stock, images, category_id, variantGroups, pin, sales_count",
+        "id, title, description, price, discount_price, stock, images, category_id, variantGroups, pin, sales_count, cost_price, preorder_enabled, preorder_label",
       )
       .single();
 

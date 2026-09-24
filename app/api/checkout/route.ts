@@ -126,7 +126,9 @@ export async function POST(request: NextRequest) {
 
     const { data: products, error: productsError } = await supabaseAdmin
       .from("products")
-      .select("id, title, price,discount_price, images, stock, store_id")
+      .select(
+        "id, title, price,discount_price, images, stock, store_id, preorder_enabled",
+      )
       .in("id", productIds);
 
     if (productsError || !products || products.length === 0) {
@@ -149,6 +151,9 @@ export async function POST(request: NextRequest) {
     const orderItems = items.map((item) => {
       const product = products.find((p) => p.id === item.productId);
       if (!product) throw new Error("Product not found");
+
+      const isPreorder =
+        product.stock === 0 && Boolean(product.preorder_enabled);
       const effectivePrice = product.discount_price
         ? Number(product.discount_price)
         : Number(product.price);
@@ -160,10 +165,11 @@ export async function POST(request: NextRequest) {
         product_id: product.id,
         title: product.title,
         image: product.images?.[0] || null,
-        price: effectivePrice, // discounted price
+        price: effectivePrice,
         original_price: Number(product.price),
         qty: item.qty,
         total: itemTotal,
+        is_preorder: isPreorder, // ← NEW
         variant_json: item.variantSelections
           ? JSON.stringify(item.variantSelections)
           : null,
@@ -202,7 +208,10 @@ export async function POST(request: NextRequest) {
     }
 
     const total = Math.max(0, subtotal - discountAmount) + shipping;
-
+    const hasPreorder = items.some((item) => {
+      const product = products.find((p) => p.id === item.productId);
+      return product && product.stock === 0 && product.preorder_enabled;
+    });
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
       .insert({
@@ -220,6 +229,7 @@ export async function POST(request: NextRequest) {
         total,
         payment_method: paymentMethod,
         status: "pending",
+        has_preorder: hasPreorder,
       })
       .select()
       .single();
@@ -239,24 +249,41 @@ export async function POST(request: NextRequest) {
       throw new Error(itemsError?.message || "Failed to create order items");
     }
 
-    const { error: stockError } = await supabaseAdmin.rpc(
-      "reduce_stock_securely",
-      {
-        items: items.map((item) => ({
-          product_id: item.productId,
-          qty: item.qty,
-          // FIXED: Pass as JSONB object, NOT stringified
-          variant_selections: item.variantSelections || null,
-        })),
-      },
-    );
+    // افصل pre-order items عن العادية
+    const regularItems = items.filter((item) => {
+      const product = products.find((p) => p.id === item.productId);
+      return product && (product.stock > 0 || !product.preorder_enabled);
+    });
 
-    if (stockError) {
-      await supabaseAdmin.from("order_items").delete().eq("order_id", order.id);
-      await supabaseAdmin.from("orders").delete().eq("id", order.id);
-      console.error("Stock reduction error:", stockError);
-      throw new Error(stockError?.message || "Failed to secure product stock.");
+    const preorderItems = items.filter((item) => {
+      const product = products.find((p) => p.id === item.productId);
+      return product && product.stock === 0 && product.preorder_enabled;
+    });
+
+    if (regularItems.length > 0) {
+      const { error: stockError } = await supabaseAdmin.rpc(
+        "reduce_stock_securely",
+        {
+          items: regularItems.map((item) => ({
+            product_id: item.productId,
+            qty: item.qty,
+            variant_selections: item.variantSelections || null,
+          })),
+        },
+      );
+
+      if (stockError) {
+        await supabaseAdmin
+          .from("order_items")
+          .delete()
+          .eq("order_id", order.id);
+        await supabaseAdmin.from("orders").delete().eq("id", order.id);
+        throw new Error(
+          stockError?.message || "Failed to secure product stock.",
+        );
+      }
     }
+    // pre-order items → ما نخفض stock، بس نحفظ الطلب عادي
 
     // ============================================
     // SALES COUNT INCREMENT - Lightweight approach

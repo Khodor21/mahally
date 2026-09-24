@@ -51,6 +51,8 @@ export interface Product {
   images?: string[];
   categories?: { title: string };
   variantGroups?: string | VariantGroup[];
+  preorder_enabled?: boolean;
+  preorder_label?: string | null;
 }
 
 export type ProductClientUIProps = {
@@ -145,6 +147,7 @@ export default function ProductClientUI({
       removedFromFav: "تم الإزالة من المفضلة",
       sale: "خصم",
       outOfStock: "هذا الخيار غير متوفر حالياً",
+      preorder: product.preorder_label || "طلب مسبق",
     },
     en: {
       home: "Home",
@@ -171,6 +174,7 @@ export default function ProductClientUI({
       removedFromFav: "Removed from favorites",
       sale: "Sale",
       outOfStock: "This option is currently out of stock",
+      preorder: product.preorder_label || "طلب مسبق",
     },
   }[lang];
 
@@ -363,14 +367,18 @@ export default function ProductClientUI({
     }
   }, [activeStock, existingCartQty, quantity]);
 
+  const canPreorder = product.preorder_enabled === true && activeStock < 1;
+
   const isStockLimitReached = () => {
+    if (canPreorder) return false;
     if (existingCartQty === 0) {
       return quantity > activeStock;
     }
     return false;
   };
 
-  const isActionDisabled = activeStock < 1 || isStockLimitReached();
+  const isActionDisabled =
+    (activeStock < 1 && !canPreorder) || isStockLimitReached();
   const isAtMaxQty = activeStock > 0 && quantity >= activeStock;
 
   // Label for the active stock source (variant option value or null)
@@ -606,6 +614,12 @@ export default function ProductClientUI({
                   {t.stock}
                 </div>
               )}
+              {canPreorder && (
+                <div className="flex items-center gap-1.5 text-amber-600 font-bold text-xs py-1.5 rounded-md">
+                  <CheckCircle2 className="w-4 h-4" />
+                  {t.preorder}
+                </div>
+              )}
             </div>
 
             {/* Variant Groups Selector */}
@@ -779,10 +793,14 @@ export default function ProductClientUI({
                 <button
                   onClick={handleAddToCart}
                   disabled={isActionDisabled}
-                  className="flex items-center justify-center gap-2 bg-brand-primary text-white py-2 rounded-sm font-medium hover:bg-[rgb(244_242_245)] hover:text-brand-primary hover:border hover:border-brand-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`flex items-center justify-center gap-2 py-2 rounded-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                    canPreorder
+                      ? "bg-[#b35000] text-white hover:bg-brand-primary"
+                      : "bg-brand-primary text-white hover:bg-[rgb(244_242_245)] hover:text-brand-primary hover:border hover:border-brand-primary"
+                  }`}
                 >
                   <ShoppingBag className="w-5 h-5" />
-                  {t.addToCart}
+                  {canPreorder ? t.preorder : t.addToCart}
                 </button>
                 <button
                   onClick={handleBuyNow}
@@ -880,9 +898,13 @@ export default function ProductClientUI({
           <button
             onClick={handleAddToCart}
             disabled={isActionDisabled}
-            className="w-full h-10 flex items-center justify-center gap-2 bg-brand-primary text-white rounded-sm font-medium hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`w-full h-10 flex items-center justify-center gap-2 rounded-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              canPreorder
+                ? "bg-[#b35000] text-white"
+                : "bg-brand-primary text-white hover:bg-gray-900"
+            }`}
           >
-            {t.addToCart}
+            {canPreorder ? t.preorder : t.addToCart}
             <ShoppingBag className="w-4 h-4" />
           </button>
         </div>
