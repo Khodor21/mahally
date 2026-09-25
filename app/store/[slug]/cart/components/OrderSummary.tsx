@@ -26,6 +26,8 @@ type Props = {
   onCouponInputChange: (value: string) => void;
   onApplyCoupon: () => void;
   onRemoveCoupon: () => void;
+  city?: string;
+  hasCityRates?: boolean;
 };
 
 export default function OrderSummary({
@@ -42,6 +44,8 @@ export default function OrderSummary({
   onCouponInputChange,
   onApplyCoupon,
   onRemoveCoupon,
+  city,
+  hasCityRates,
 }: Props) {
   return (
     // Reduced base padding to p-4 for mobile, scaled back to p-6 for sm+
@@ -69,13 +73,14 @@ export default function OrderSummary({
         <div className="flex justify-between">
           <span className="text-gray-600 font-medium">{t.shipping}</span>
           <span className="font-bold text-gray-900">
-            {shipping === 0 ? (
+            {hasCityRates && !city ? (
+              <span className="text-xs text-gray-400 font-medium">
+                التكلفة حسب المدينة
+              </span>
+            ) : shipping === 0 ? (
               "Free"
             ) : (
-              <>
-                {currencySymbol}
-                {shipping.toLocaleString()}
-              </>
+              `${currencySymbol}${shipping.toLocaleString()}`
             )}
           </span>
         </div>

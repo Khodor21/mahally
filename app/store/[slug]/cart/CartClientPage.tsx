@@ -49,7 +49,6 @@ export default function CartClientPage({ store }: Props) {
   // Pull cart management from Context
   const { cartItems, cartTotal, updateCartQty, removeFromCart, clearCart } =
     useShop();
-
   const currencySymbol = store?.currency_symbol || "$";
   const storeDeliveryCost = parseFloat(store?.delivery_cost as string) || 0;
   const paymentMethods = store?.payment_methods
@@ -76,6 +75,7 @@ export default function CartClientPage({ store }: Props) {
     code: string;
     discountAmount: number;
   } | null>(null);
+
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponMessage, setCouponMessage] = useState<{
     type: "success" | "error";
@@ -91,6 +91,9 @@ export default function CartClientPage({ store }: Props) {
     message: string;
   }>({ show: false, type: "success", message: "" });
   const [toastProgress, setToastProgress] = useState(0);
+
+  // New state for dynamic city delivery rates
+  const [cityRates, setCityRates] = useState<Record<string, number>>({});
 
   const showCustomToast = (type: "success" | "error", message: string) => {
     setToastState({ show: true, type, message });
@@ -127,6 +130,58 @@ export default function CartClientPage({ store }: Props) {
       }
     }
   }, []);
+
+  // Fetch delivery rates based on governorates
+  useEffect(() => {
+    if (!store?.id) return;
+    console.log("Fetching rates for store:", store.id);
+    fetch(`/api/delivery-rates?storeId=${store.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        console.log("Rates response:", data);
+
+        const map: Record<string, number> = {};
+
+        const normalizeMap: Record<string, string> = {
+          بيروت: "Beirut",
+          "جبل لبنان": "Mount Lebanon",
+          "لبنان الشمالي": "North",
+          عكار: "Akkar",
+          البقاع: "Bekaa",
+          "بعلبك-الهرمل": "Baalbek-Hermel",
+          "لبنان الجنوبي": "South",
+          النبطية: "Nabatieh",
+          "كسروان-جبيل": "Keserwan-Jbeil",
+        };
+
+        const ratesArray = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.rates)
+            ? data.rates
+            : Array.isArray(data?.data)
+              ? data.data
+              : [];
+
+        ratesArray.forEach((r: any) => {
+          if (!r.governorate) return;
+
+          // Trim whitespace from DB string (fixes "النبطية " bug)
+          const rawGov = String(r.governorate).trim();
+
+          // Translate to English, or fallback to the cleaned string
+          const normalizedKey = normalizeMap[rawGov] || rawGov;
+          const cost = Number(r.delivery_cost);
+
+          // Map BOTH the English translation AND the exact Arabic string
+          // This guarantees it will be found no matter what string `city` is holding
+          map[normalizedKey] = cost;
+          map[rawGov] = cost;
+        });
+
+        setCityRates(map);
+      })
+      .catch((err) => console.error("Failed to load delivery rates:", err));
+  }, [store?.id]);
 
   const activeItems = useMemo(() => {
     return isBuyNow && buyNowItem ? [buyNowItem] : cartItems;
@@ -185,7 +240,10 @@ export default function CartClientPage({ store }: Props) {
   }, [customer]);
 
   const subtotal = useMemo(() => activeSubtotal, [activeSubtotal]);
-  const shipping = subtotal > 0 ? storeDeliveryCost : 0;
+
+  // Dynamically calculate shipping cost based on the selected city rates
+  const shipping = subtotal > 0 ? (cityRates[city] ?? storeDeliveryCost) : 0;
+
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const total = Math.max(0, subtotal - discountAmount) + shipping;
 
@@ -539,6 +597,8 @@ export default function CartClientPage({ store }: Props) {
               onCouponInputChange={setCouponInput}
               onApplyCoupon={handleApplyCoupon}
               onRemoveCoupon={handleRemoveCoupon}
+              city={city}
+              hasCityRates={Object.keys(cityRates).length > 0}
             />
 
             <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-200 p-4 z-[100] pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
