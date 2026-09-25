@@ -239,12 +239,12 @@ function Pagination({
 // --- Page Content (Wrapped in Suspense) ---
 function CategoriesContent() {
   const searchParams = useSearchParams();
-  const rawStoreId = searchParams.get("store_id");
 
   // State initialization for browser-safe APIs
   const [lang, setLang] = useState<"ar" | "en">("ar");
   const [dir, setDir] = useState<"rtl" | "ltr">("rtl");
-  const [isLangReady, setIsLangReady] = useState(false);
+  const [activeStoreId, setActiveStoreId] = useState<string>("");
+  const [isClientReady, setIsClientReady] = useState(false);
 
   // Data States
   const [allCategories, setAllCategories] = useState<BackendCategory[]>([]);
@@ -259,25 +259,38 @@ function CategoriesContent() {
   // Cache ref
   const categoriesCache = useRef<BackendCategory[] | null>(null);
 
-  // --- 1. Robust Language Detection ---
+  // --- 1. Robust Initialization (Lang & Invisible Store ID extraction) ---
   useEffect(() => {
-    let activeLang: "ar" | "en" = "ar";
+    // Determine language
+    let resolvedLang: "ar" | "en" = "ar";
     const urlLang = searchParams.get("lang");
-
     if (urlLang === "en" || urlLang === "ar") {
-      activeLang = urlLang;
+      resolvedLang = urlLang;
     } else {
       const docLang = document.documentElement.lang;
-      if (docLang === "en") activeLang = "en";
+      if (docLang === "en") resolvedLang = "en";
       else {
         const localLang = window.localStorage.getItem("lang");
-        if (localLang === "en") activeLang = "en";
+        if (localLang === "en") resolvedLang = "en";
       }
     }
 
-    setLang(activeLang);
-    setDir(activeLang === "ar" ? "rtl" : "ltr");
-    setIsLangReady(true);
+    // Determine store ID without exposing it in the URL
+    const urlStoreId = searchParams.get("store_id");
+    let resolvedStoreId = urlStoreId;
+    if (!resolvedStoreId) {
+      resolvedStoreId = window.localStorage.getItem("store_id") || "";
+    }
+
+    // Self-healing: if found in URL, save it to local storage to clean URL later
+    if (resolvedStoreId) {
+      window.localStorage.setItem("store_id", resolvedStoreId);
+    }
+
+    setLang(resolvedLang);
+    setDir(resolvedLang === "ar" ? "rtl" : "ltr");
+    setActiveStoreId(resolvedStoreId || "");
+    setIsClientReady(true);
   }, [searchParams]);
 
   // --- Translations ---
@@ -321,8 +334,8 @@ function CategoriesContent() {
 
   // --- 2. Fetch Data ---
   useEffect(() => {
-    if (!isLangReady || !rawStoreId) {
-      if (isLangReady && !rawStoreId) setLoading(false);
+    if (!isClientReady || !activeStoreId) {
+      if (isClientReady && !activeStoreId) setLoading(false);
       return;
     }
 
@@ -337,7 +350,7 @@ function CategoriesContent() {
 
       try {
         setLoading(true);
-        const fetchUrl = `/api/categories?lang=${lang}&store_id=${rawStoreId}`;
+        const fetchUrl = `/api/categories?lang=${lang}&store_id=${activeStoreId}`;
 
         const res = await fetch(fetchUrl, { cache: "no-store" });
 
@@ -367,7 +380,7 @@ function CategoriesContent() {
     }
 
     fetchCategories();
-  }, [lang, rawStoreId, isLangReady]);
+  }, [lang, activeStoreId, isClientReady]);
 
   // --- Client-side Filtering, Sorting & Pagination ---
   const filteredCategories = useMemo(() => {
@@ -433,7 +446,7 @@ function CategoriesContent() {
   const BreadcrumbIcon = dir === "rtl" ? ChevronLeft : ChevronRight;
 
   // --- Render Loading (Returns perfectly matched Skeleton) ---
-  if (!isLangReady || loading) {
+  if (!isClientReady || loading) {
     return <PageSkeleton dir={dir} />;
   }
 

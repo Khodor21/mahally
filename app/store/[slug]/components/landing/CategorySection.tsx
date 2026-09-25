@@ -50,6 +50,11 @@ export default function CategoriesSection({
     String(displayStyle).toLowerCase() === "circle" ? "circle" : "grid";
 
   useEffect(() => {
+    // Silently sync the storeId to localStorage to keep URLs clean on navigation
+    if (storeId) {
+      window.localStorage.setItem("store_id", storeId);
+    }
+
     async function fetchCategories() {
       try {
         const res = await fetch(
@@ -347,12 +352,12 @@ export default function CategoriesSection({
           </>
         )}
 
-        {/* See More Button */}
+        {/* See More Button - Removed store_id from href */}
         {categories.length > 0 && (
-          <div className="mt-6 md:mt-10 flex justify-center">
+          <div className="mt-8 md:mt-12 flex justify-center">
             <Link
-              href={`/categories?store_id=${storeId}&lang=${lang}`}
-              className="inline-flex items-center justify-center px-5 py-2 md:px-8 md:py-3 rounded-md border-2 border-[rgb(var(--color-brand-primary))] text-[rgb(var(--color-brand-primary))] hover:bg-[rgb(var(--color-brand-primary))] hover:text-white font-semibold text-sm md:text-base transition-colors duration-300 shadow-sm"
+              href={`/categories?lang=${lang}`}
+              className="inline-flex items-center justify-center px-6 py-2.5 md:px-8 md:py-3 rounded-full border-2 border-[rgb(var(--color-brand-primary))] text-[rgb(var(--color-brand-primary))] hover:bg-[rgb(var(--color-brand-primary))] hover:text-white font-semibold text-sm md:text-base transition-colors duration-300 shadow-sm"
             >
               {t.seeMore}
             </Link>
