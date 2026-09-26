@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 interface Category {
   id: string;
@@ -23,13 +24,13 @@ const content = {
     title: "تشكيلتنا",
     subtitle: "كل ما تحتاجه في مكان واحد",
     shopNow: "تسوق الآن",
-    seeMore: "عرض المزيد",
+    seeMore: "عرض الكل",
   },
   en: {
     title: "Our Collection",
     subtitle: "Everything you need in one place",
     shopNow: "Shop Now",
-    seeMore: "See More",
+    seeMore: "See All",
   },
 };
 
@@ -357,9 +358,14 @@ export default function CategoriesSection({
           <div className="mt-8 md:mt-12 flex justify-center">
             <Link
               href={`/categories?lang=${lang}`}
-              className="inline-flex items-center justify-center px-6 py-2.5 md:px-8 md:py-3 rounded-full border-2 border-[rgb(var(--color-brand-primary))] text-[rgb(var(--color-brand-primary))] hover:bg-[rgb(var(--color-brand-primary))] hover:text-white font-semibold text-sm md:text-base transition-colors duration-300 shadow-sm"
+              className="inline-flex items-center justify-center underline text-sm font-medium text-brand-black/80 hover:text-[#111827] transition-colors duration-200"
             >
               {t.seeMore}
+              {lang === "en" ? (
+                <ArrowRight className="ml-1" size={18} strokeWidth={1.25} />
+              ) : (
+                <ArrowLeft className="mr-1" size={18} strokeWidth={1.25} />
+              )}
             </Link>
           </div>
         )}

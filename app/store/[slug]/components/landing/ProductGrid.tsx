@@ -17,6 +17,8 @@ type Product = {
   storeSlug?: string;
   pin?: boolean;
   variantGroups?: string | any[];
+  preorder_enabled?: boolean;
+  preorder_label?: string;
 };
 
 type ProductGridProps = {
@@ -40,6 +42,8 @@ type MappedProduct = {
   rating: number;
   badge?: "New" | "Best Seller" | "Hot" | "Sale";
   variantGroups?: string | any[];
+  preorder_enabled?: boolean;
+  preorder_label?: string;
 };
 
 export default function ProductGrid({
@@ -72,7 +76,8 @@ export default function ProductGrid({
       stock: product.stock ?? 1,
       rating: 5,
       variantGroups: product.variantGroups,
-
+      preorder_enabled: (product as any).preorder_enabled,
+      preorder_label: (product as any).preorder_label,
       badge:
         product.stock !== undefined
           ? product.stock > 0

@@ -97,6 +97,7 @@ type Props = {
   selectedPaymentMethod?: string;
   onPaymentMethodChange?: (method: string) => void;
   onValidityChange?: (isValid: boolean) => void;
+  hasCityRates?: boolean;
 };
 
 export default function ShippingForm({
@@ -124,6 +125,7 @@ export default function ShippingForm({
   selectedPaymentMethod = "",
   onPaymentMethodChange,
   onValidityChange,
+  hasCityRates,
 }: Props) {
   const [errors, setErrors] = useState<ValidationErrors>({
     customerName: "",
@@ -565,7 +567,7 @@ export default function ShippingForm({
           <div className="flex justify-between">
             <span className="text-gray-600 font-medium">{t.shipping}</span>
             <span className="font-bold text-gray-900">
-              {!city ? (
+              {hasCityRates && !city ? (
                 <span className="text-xs text-gray-400">
                   {isArabic ? "يتغير حسب المحافظة" : "Depends on city"}
                 </span>

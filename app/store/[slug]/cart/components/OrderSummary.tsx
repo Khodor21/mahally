@@ -28,6 +28,9 @@ type Props = {
   onRemoveCoupon: () => void;
   city?: string;
   hasCityRates?: boolean;
+  minRate?: number;
+  maxRate?: number;
+  isArabic?: boolean;
 };
 
 export default function OrderSummary({
@@ -46,6 +49,9 @@ export default function OrderSummary({
   onRemoveCoupon,
   city,
   hasCityRates,
+  minRate,
+  maxRate,
+  isArabic,
 }: Props) {
   return (
     // Reduced base padding to p-4 for mobile, scaled back to p-6 for sm+
@@ -75,7 +81,9 @@ export default function OrderSummary({
           <span className="font-bold text-gray-900">
             {hasCityRates && !city ? (
               <span className="text-xs text-gray-400 font-medium">
-                التكلفة حسب المدينة
+                {isArabic
+                  ? `${minRate}–${maxRate}${currencySymbol} حسب المنطقة`
+                  : `${currencySymbol}${minRate}–${maxRate} by region`}
               </span>
             ) : shipping === 0 ? (
               "Free"

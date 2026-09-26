@@ -502,12 +502,6 @@ function CategoriesContent() {
               placeholder={t.searchPlaceholder}
               dir={dir}
             />
-            <FilterPanel
-              sortOption={sortOption}
-              setSortOption={setSortOption}
-              t={t}
-              dir={dir}
-            />
           </div>
         )}
 
