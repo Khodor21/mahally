@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import * as LucideIcons from "lucide-react";
 import {
   ChevronDown,
@@ -13,6 +13,8 @@ import {
   Layout,
   MessageSquare,
   Loader2,
+  MapPin,
+  Save,
 } from "lucide-react";
 import FeatureForm from "./FeatureForm";
 import Testimonials from "./Testimonials";
@@ -213,7 +215,10 @@ export default function AppearanceTab(props: AppearanceTabProps) {
   const [deletingFeature, setDeletingFeature] = useState<
     string | number | null
   >(null);
-
+  const [showCityRates, setShowCityRates] = useState(false);
+  const [cityRates, setCityRates] = useState<
+    { governorate: string; delivery_cost: number }[]
+  >([]);
   const { setActiveNav } = useDashboard();
   const [isDeletingFeature, setIsDeletingFeature] = useState(false);
   const [editingFeature, setEditingFeature] = useState<any>(null);
@@ -224,6 +229,57 @@ export default function AppearanceTab(props: AppearanceTabProps) {
         ? prev.filter((id) => id !== sectionId)
         : [...prev, sectionId],
     );
+  };
+
+  // State
+
+  const [loadingRates, setLoadingRates] = useState(false);
+  const [isSavingRates, setIsSavingRates] = useState(false);
+
+  // Fetch لما يفتح الـ toggle
+  useEffect(() => {
+    if (!showCityRates || !storeId) return;
+    setLoadingRates(true);
+    fetch(`/api/delivery-rates?storeId=${storeId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        // لو ما في data، seed المحافظات بـ 0
+        if (data.rates?.length > 0) {
+          setCityRates(data.rates);
+        } else {
+          setCityRates([
+            { governorate: "بيروت", delivery_cost: 0 },
+            { governorate: "لبنان الشمالي", delivery_cost: 0 },
+            { governorate: "جبل لبنان", delivery_cost: 0 },
+            { governorate: "البقاع", delivery_cost: 0 },
+            { governorate: "عكار", delivery_cost: 0 },
+            { governorate: "بعلبك-الهرمل", delivery_cost: 0 },
+            { governorate: "لبنان الجنوبي", delivery_cost: 0 },
+            { governorate: "النبطية", delivery_cost: 0 },
+            { governorate: "كسروان-جبيل", delivery_cost: 0 },
+          ]);
+        }
+      })
+      .finally(() => setLoadingRates(false));
+  }, [showCityRates, storeId]);
+
+  const saveCityRates = async () => {
+    setIsSavingRates(true);
+    try {
+      await fetch("/api/delivery-rates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storeId, rates: cityRates }),
+      });
+      showToast(
+        lang === "ar" ? "تم حفظ الأسعار بنجاح!" : "Rates saved!",
+        "success",
+      );
+    } catch {
+      showToast(lang === "ar" ? "فشل الحفظ" : "Save failed", "error");
+    } finally {
+      setIsSavingRates(false);
+    }
   };
 
   const handleColorChange = (color: string) => {
@@ -396,10 +452,25 @@ export default function AppearanceTab(props: AppearanceTabProps) {
           </div>
           {/* Delivery Fees */}
           <div>
-            <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-3">
-              {lang === "ar" ? "رسوم التسليم" : "Delivery Fee"}
-            </label>
-            <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-xs font-semibold text-[rgb(60_28_84)]/50">
+                {lang === "ar" ? "رسوم التسليم" : "Delivery Fee"}
+              </label>
+              <button
+                onClick={() => setShowCityRates(!showCityRates)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                  showCityRates
+                    ? "bg-[rgb(60_28_84)] text-white"
+                    : "bg-[rgb(244_242_245)] text-[rgb(60_28_84)] hover:bg-[rgb(207_195_223)]"
+                }`}
+              >
+                <MapPin className="w-3 h-3" />
+                {lang === "ar" ? "حسب المحافظة" : "By Governorate"}
+              </button>
+            </div>
+
+            {/* Default delivery cost - يختفي لما تفعّل الـ city rates */}
+            {!showCityRates && (
               <input
                 type="number"
                 value={formData.delivery_cost ?? 0}
@@ -414,11 +485,78 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                 step="0.01"
                 className="w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
               />
-            </div>
+            )}
+
+            {/* City Rates Table */}
+            {showCityRates && (
+              <div className="space-y-2 animate-fade-down">
+                {loadingRates ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-[rgb(60_28_84)]/50" />
+                  </div>
+                ) : (
+                  <>
+                    {cityRates.map((rate) => (
+                      <div
+                        key={rate.governorate}
+                        className="flex items-center gap-3"
+                      >
+                        <span className="text-sm text-[rgb(60_28_84)] w-36 flex-shrink-0">
+                          {rate.governorate}
+                        </span>
+                        <input
+                          type="number"
+                          value={rate.delivery_cost}
+                          onChange={(e) =>
+                            setCityRates((prev) =>
+                              prev.map((r) =>
+                                r.governorate === rate.governorate
+                                  ? {
+                                      ...r,
+                                      delivery_cost:
+                                        parseFloat(e.target.value) || 0,
+                                    }
+                                  : r,
+                              ),
+                            )
+                          }
+                          min="0"
+                          step="0.5"
+                          className="flex-1 bg-[rgb(244_242_245)] rounded-sm px-3 py-2 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
+                        />
+                        <span className="text-xs text-[rgb(60_28_84)]/40">
+                          $
+                        </span>
+                      </div>
+                    ))}
+
+                    <button
+                      onClick={saveCityRates}
+                      disabled={isSavingRates}
+                      className="w-full flex items-center justify-center gap-2 mt-3 px-4 py-2.5 rounded-sm text-sm font-semibold bg-[rgb(60_28_84)] text-white hover:bg-[rgb(60_28_84)]/90 disabled:opacity-50 transition-all"
+                    >
+                      {isSavingRates ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      {lang === "ar"
+                        ? "حفظ أسعار المحافظات"
+                        : "Save City Rates"}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
             <p className="text-xs text-[rgb(60_28_84)]/40 mt-2">
-              {lang === "ar"
-                ? "تكلفة التسليم المحسوبة في سلة المشتريات"
-                : "Shipping cost applied to all orders"}
+              {showCityRates
+                ? lang === "ar"
+                  ? "كل محافظة لها سعر توصيل مختلف"
+                  : "Each governorate has its own delivery rate"
+                : lang === "ar"
+                  ? "تكلفة التسليم المحسوبة في سلة المشتريات"
+                  : "Shipping cost applied to all orders"}
             </p>
           </div>
           {/* Save Button */}
@@ -696,8 +834,7 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                 {features.map((feature: any, index: number) => {
                   // Safely extract the component dynamically based on the DB string
                   const DynamicIcon =
-                    feature.icon_name &&
-                    (LucideIcons as any)[feature.icon_name]
+                    feature.icon_name && (LucideIcons as any)[feature.icon_name]
                       ? (LucideIcons as any)[feature.icon_name]
                       : null;
 
@@ -787,9 +924,7 @@ export default function AppearanceTab(props: AppearanceTabProps) {
             ) : (
               <div className="text-center py-8">
                 <p className="text-sm text-[rgb(60_28_84)]/50">
-                  {lang === "ar"
-                    ? "لا توجد ميزات حتى الآن"
-                    : "No features yet"}
+                  {lang === "ar" ? "لا توجد ميزات حتى الآن" : "No features yet"}
                 </p>
               </div>
             )}

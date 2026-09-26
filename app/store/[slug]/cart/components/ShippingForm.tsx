@@ -12,6 +12,7 @@ const LEBANON_GOVERNORATES_EN = [
   "Baalbek-Hermel",
   "South",
   "Nabatieh",
+  "Keserwan-Jbeil",
 ];
 
 const LEBANON_GOVERNORATES_AR = [
@@ -23,6 +24,7 @@ const LEBANON_GOVERNORATES_AR = [
   "بعلبك-الهرمل",
   "الجنوب",
   "النبطية",
+  "كسروان-جبيل",
 ];
 
 const LEBANON_GOVERNORATES = LEBANON_GOVERNORATES_EN.map((en, i) => ({
@@ -95,6 +97,7 @@ type Props = {
   selectedPaymentMethod?: string;
   onPaymentMethodChange?: (method: string) => void;
   onValidityChange?: (isValid: boolean) => void;
+  hasCityRates?: boolean;
 };
 
 export default function ShippingForm({
@@ -122,6 +125,7 @@ export default function ShippingForm({
   selectedPaymentMethod = "",
   onPaymentMethodChange,
   onValidityChange,
+  hasCityRates,
 }: Props) {
   const [errors, setErrors] = useState<ValidationErrors>({
     customerName: "",
@@ -136,7 +140,6 @@ export default function ShippingForm({
     city: false,
     address: false,
   });
-
   // Set default phone prefix on mount if empty
   useEffect(() => {
     if (!customerPhone) {
@@ -560,10 +563,15 @@ export default function ShippingForm({
               </span>
             </div>
           )}
+          {/* في ShippingForm.tsx - Quick Order Review section */}
           <div className="flex justify-between">
             <span className="text-gray-600 font-medium">{t.shipping}</span>
             <span className="font-bold text-gray-900">
-              {shipping === 0 ? (
+              {hasCityRates && !city ? (
+                <span className="text-xs text-gray-400">
+                  {isArabic ? "يتغير حسب المحافظة" : "Depends on city"}
+                </span>
+              ) : shipping === 0 ? (
                 isArabic ? (
                   "مجاني"
                 ) : (

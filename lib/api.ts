@@ -69,6 +69,12 @@ export async function createProduct(form: ProductFormData): Promise<Product> {
       category_id: form.category_id,
       variantGroups: form.variantGroups,
       pin: form.pin ?? false,
+      cost_price:
+        form.cost_price && form.cost_price !== ""
+          ? parseFloat(form.cost_price)
+          : null,
+      preorder_enabled: form.preorder_enabled ?? false, // ← NEW
+      preorder_label: form.preorder_label || null,
     }),
   });
 
@@ -107,6 +113,12 @@ export async function updateProduct(
       category_id: form.category_id,
       variantGroups: form.variantGroups, // ← CHANGED from variants
       pin: form.pin ?? false,
+      cost_price:
+        form.cost_price && form.cost_price !== ""
+          ? parseFloat(form.cost_price)
+          : null,
+      preorder_enabled: form.preorder_enabled ?? false, // ← NEW
+      preorder_label: form.preorder_label || null,
     }),
   });
   return handleApiResponse(res);

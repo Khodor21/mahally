@@ -49,7 +49,6 @@ export default function CartClientPage({ store }: Props) {
   // Pull cart management from Context
   const { cartItems, cartTotal, updateCartQty, removeFromCart, clearCart } =
     useShop();
-
   const currencySymbol = store?.currency_symbol || "$";
   const storeDeliveryCost = parseFloat(store?.delivery_cost as string) || 0;
   const paymentMethods = store?.payment_methods
@@ -76,6 +75,7 @@ export default function CartClientPage({ store }: Props) {
     code: string;
     discountAmount: number;
   } | null>(null);
+
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponMessage, setCouponMessage] = useState<{
     type: "success" | "error";
@@ -91,6 +91,9 @@ export default function CartClientPage({ store }: Props) {
     message: string;
   }>({ show: false, type: "success", message: "" });
   const [toastProgress, setToastProgress] = useState(0);
+
+  // New state for dynamic city delivery rates
+  const [cityRates, setCityRates] = useState<Record<string, number>>({});
 
   const showCustomToast = (type: "success" | "error", message: string) => {
     setToastState({ show: true, type, message });
@@ -127,6 +130,58 @@ export default function CartClientPage({ store }: Props) {
       }
     }
   }, []);
+
+  // Fetch delivery rates based on governorates
+  useEffect(() => {
+    if (!store?.id) return;
+    console.log("Fetching rates for store:", store.id);
+    fetch(`/api/delivery-rates?storeId=${store.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        console.log("Rates response:", data);
+
+        const map: Record<string, number> = {};
+
+        const normalizeMap: Record<string, string> = {
+          بيروت: "Beirut",
+          "جبل لبنان": "Mount Lebanon",
+          "لبنان الشمالي": "North",
+          عكار: "Akkar",
+          البقاع: "Bekaa",
+          "بعلبك-الهرمل": "Baalbek-Hermel",
+          "لبنان الجنوبي": "South",
+          النبطية: "Nabatieh",
+          "كسروان-جبيل": "Keserwan-Jbeil",
+        };
+
+        const ratesArray = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.rates)
+            ? data.rates
+            : Array.isArray(data?.data)
+              ? data.data
+              : [];
+
+        ratesArray.forEach((r: any) => {
+          if (!r.governorate) return;
+
+          // Trim whitespace from DB string (fixes "النبطية " bug)
+          const rawGov = String(r.governorate).trim();
+
+          // Translate to English, or fallback to the cleaned string
+          const normalizedKey = normalizeMap[rawGov] || rawGov;
+          const cost = Number(r.delivery_cost);
+
+          // Map BOTH the English translation AND the exact Arabic string
+          // This guarantees it will be found no matter what string `city` is holding
+          map[normalizedKey] = cost;
+          map[rawGov] = cost;
+        });
+
+        setCityRates(map);
+      })
+      .catch((err) => console.error("Failed to load delivery rates:", err));
+  }, [store?.id]);
 
   const activeItems = useMemo(() => {
     return isBuyNow && buyNowItem ? [buyNowItem] : cartItems;
@@ -185,7 +240,15 @@ export default function CartClientPage({ store }: Props) {
   }, [customer]);
 
   const subtotal = useMemo(() => activeSubtotal, [activeSubtotal]);
-  const shipping = subtotal > 0 ? storeDeliveryCost : 0;
+
+  const hasCityRates = Object.values(cityRates).some((cost) => cost > 0);
+  const shipping =
+    subtotal > 0
+      ? hasCityRates
+        ? (cityRates[city] ?? storeDeliveryCost)
+        : storeDeliveryCost
+      : 0;
+
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const total = Math.max(0, subtotal - discountAmount) + shipping;
 
@@ -299,13 +362,9 @@ export default function CartClientPage({ store }: Props) {
           );
 
           if (outOfStockItem) {
-            const productName = isArabic
-              ? outOfStockItem.product.name_ar || outOfStockItem.product.name
-              : outOfStockItem.product.name;
-
             errorMsg = isArabic
-              ? `عذراً، المنتج "${productName}" غير متوفر بالكمية المطلوبة`
-              : `Sorry, the product "${productName}" is out of stock.`;
+              ? `عذراً، المنتج "${outOfStockItem.product.title}" غير متوفر بالكمية المطلوبة`
+              : `Sorry, "${outOfStockItem.product.title}" is out of stock.`;
           }
         }
 
@@ -365,7 +424,10 @@ export default function CartClientPage({ store }: Props) {
 
   const ProceedIcon = isArabic ? ArrowLeft : ArrowRight;
   const BackIcon = isArabic ? ArrowRight : ArrowLeft;
-
+  const minRate = hasCityRates
+    ? Math.min(...Object.values(cityRates).filter((c) => c > 0))
+    : 0;
+  const maxRate = hasCityRates ? Math.max(...Object.values(cityRates)) : 0;
   return (
     <div
       className={`w-full bg-white py-8 px-4 sm:px-6 md:px-8 pb-40 ${isArabic ? "rtl" : "ltr"}`}
@@ -374,7 +436,7 @@ export default function CartClientPage({ store }: Props) {
         <div
           className={`fixed top-4 ${
             isArabic ? "right-4" : "left-4"
-          } z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300`}
+          } z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-sm shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300`}
           dir={isArabic ? "rtl" : "ltr"}
         >
           <div
@@ -454,7 +516,7 @@ export default function CartClientPage({ store }: Props) {
           <div className="mb-6 flex flex-col sm:flex-row gap-3">
             <button
               onClick={switchToBuyNowView}
-              className="flex-1 py-3.5 rounded-xl bg-brand-primary/5 border-2 border-brand-primary/40 font-semibold text-sm text-brand-primary flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 py-3.5 rounded-sm bg-brand-primary/5 border-2 border-brand-primary/40 font-semibold text-sm text-brand-primary flex items-center justify-center gap-2 transition-colors"
             >
               <Zap className="w-4 h-4" />
               {isArabic
@@ -463,7 +525,7 @@ export default function CartClientPage({ store }: Props) {
             </button>
             <button
               onClick={switchToCartView}
-              className="flex-1 py-3.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-sm text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 py-3.5 rounded-sm bg-gray-50 border border-gray-200 font-medium text-sm text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-2 transition-colors"
             >
               <ShoppingCart className="w-4 h-4" />
               {isArabic
@@ -477,7 +539,7 @@ export default function CartClientPage({ store }: Props) {
           <div className="mb-6 flex flex-col sm:flex-row gap-3">
             <button
               onClick={switchToBuyNowView}
-              className="flex-1 py-3.5 rounded-xl bg-gray-50 border border-gray-200 font-medium text-sm text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 py-3.5 rounded-sm bg-gray-50 border border-gray-200 font-medium text-sm text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-2 transition-colors"
             >
               <Zap className="w-4 h-4" />
               {isArabic
@@ -486,7 +548,7 @@ export default function CartClientPage({ store }: Props) {
             </button>
             <button
               onClick={switchToCartView}
-              className="flex-1 py-3.5 rounded-xl bg-brand-primary/5 border-2 border-brand-primary/40 font-semibold text-sm text-brand-primary flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 py-3.5 rounded-sm bg-brand-primary/5 border-2 border-brand-primary/40 font-semibold text-sm text-brand-primary flex items-center justify-center gap-2 transition-colors"
             >
               <ShoppingCart className="w-4 h-4" />
               {isArabic
@@ -543,13 +605,18 @@ export default function CartClientPage({ store }: Props) {
               onCouponInputChange={setCouponInput}
               onApplyCoupon={handleApplyCoupon}
               onRemoveCoupon={handleRemoveCoupon}
+              city={city}
+              hasCityRates={hasCityRates}
+              minRate={minRate}
+              maxRate={maxRate}
+              isArabic={isArabic}
             />
 
             <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-200 p-4 z-[100] pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
               <div className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => setStep("shipping")}
-                  className="w-full sm:flex-[2] py-3 px-4 rounded-xl bg-brand-primary text-white font-medium text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
+                  className="w-full sm:flex-[2] py-3 px-4 rounded-sm bg-brand-primary text-white font-medium text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
                 >
                   {isArabic ? "المتابعة للتوصيل" : "Proceed to Delivery"}
                   <ProceedIcon className="w-4 h-4" />
@@ -559,7 +626,7 @@ export default function CartClientPage({ store }: Props) {
                     clearBuyNowSession();
                     router.back();
                   }}
-                  className="w-full sm:flex-1 py-2 px-2 rounded-xl border border-gray-200 text-gray-700 bg-white font-medium text-xs hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm order-2 sm:order-1"
+                  className="w-full sm:flex-1 py-2 px-2 rounded-sm border border-gray-200 text-gray-700 bg-white font-medium text-xs hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm order-2 sm:order-1"
                 >
                   <BackIcon className="w-3 h-3" />
                   {isBuyNow
@@ -601,10 +668,11 @@ export default function CartClientPage({ store }: Props) {
               selectedPaymentMethod={selectedPaymentMethod}
               onPaymentMethodChange={setSelectedPaymentMethod}
               setAddress={setAddress}
+              hasCityRates={hasCityRates}
             />
 
             {error && (
-              <div className="bg-red-50 text-red-600 text-sm font-semibold rounded-xl px-4 py-4 border border-red-100 flex items-center justify-center shadow-sm">
+              <div className="bg-red-50 text-red-600 text-sm font-semibold rounded-sm px-4 py-4 border border-red-100 flex items-center justify-center shadow-sm">
                 <AlertCircle className="w-4 h-4 mr-2" />
                 {error}
               </div>
@@ -615,7 +683,7 @@ export default function CartClientPage({ store }: Props) {
                 <button
                   onClick={handleCheckout}
                   disabled={!canCheckout || loading}
-                  className="w-full sm:flex-[2] py-3 px-4 rounded-xl bg-brand-primary text-white font-medium text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
+                  className="w-full sm:flex-[2] py-3 px-4 rounded-sm bg-brand-primary text-white font-medium text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
                 >
                   {loading ? (
                     <>
@@ -631,7 +699,7 @@ export default function CartClientPage({ store }: Props) {
                 </button>
                 <button
                   onClick={() => setStep("cart")}
-                  className="w-full sm:flex-1 py-2 px-2 rounded-xl border border-brand-primary/20 text-brand-primary bg-brand-primary/5 font-medium text-xs hover:bg-brand-primary/10 transition-all flex items-center justify-center gap-2 order-2 sm:order-1"
+                  className="w-full sm:flex-1 py-2 px-2 rounded-sm border border-brand-primary/20 text-brand-primary bg-brand-primary/5 font-medium text-xs hover:bg-brand-primary/10 transition-all flex items-center justify-center gap-2 order-2 sm:order-1"
                 >
                   <BackIcon className="w-3 h-3" />
                   {isArabic ? "تعديل السلة" : "Back to Cart"}

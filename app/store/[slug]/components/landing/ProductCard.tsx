@@ -25,6 +25,8 @@ type Product = {
   rating?: number;
   badge?: keyof typeof BADGE_STYLES;
   variantGroups?: string | any[];
+  preorder_enabled?: boolean; // ← NEW
+  preorder_label?: string | null;
 };
 
 type ProductCardProps = {
@@ -107,6 +109,7 @@ export default function ProductCard({
 
   // Check if out of stock
   const isOutOfStock = (product.stock ?? 1) === 0;
+  const canPreorder = isOutOfStock && product.preorder_enabled === true; // ← NEW
   const hasDiscount =
     product.discount_price &&
     product.discount_price > 0 &&
@@ -126,6 +129,7 @@ export default function ProductCard({
       addedToFav: "Added to favorites",
       removedFromFav: "Removed from favorites",
       maxStockReached: "Max available stock reached for this product",
+      preorder: product.preorder_label || "Pre-order",
     },
     ar: {
       addToCart: "إضافـة إلـى السلّـة",
@@ -139,6 +143,7 @@ export default function ProductCard({
       addedToFav: "تمت الإضافة إلى المفضلة",
       removedFromFav: "تمت الإزالة من المفضلة",
       maxStockReached: "تم الوصول للحد الأقصى للمخزون  المتوفر لهذا المنتج",
+      preorder: product.preorder_label || "طلب مسبق",
     },
   };
 
@@ -154,13 +159,13 @@ export default function ProductCard({
   };
 
   const handleAddToCart = () => {
-    if (isOutOfStock) return;
+    if (isOutOfStock && !canPreorder) return; // ← بدل if (isOutOfStock)
 
     const existingCartItem = cartItems.find(
       (item: any) => String(item.product.id) === productId,
     );
     const currentCartQty = existingCartItem ? existingCartItem.qty : 0;
-    const maxStock = product.stock ?? Infinity;
+    const maxStock = canPreorder ? Infinity : (product.stock ?? Infinity); // ← pre-order ما عنده stock limit
 
     if (currentCartQty >= maxStock) {
       setStockWarning(true);
@@ -276,19 +281,27 @@ export default function ProductCard({
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className={`object-contain p-2 mix-blend-multiply transition-transform duration-500 group-hover:scale-110 ${
-                isOutOfStock ? "grayscale" : ""
+                isOutOfStock && !canPreorder ? "grayscale" : ""
               }`}
             />
           </div>
 
           {/* OUT OF STOCK OVERLAY TEXT */}
-          {isOutOfStock && (
-            <div className="absolute inset-0 z-25 flex items-center justify-center ">
+          {isOutOfStock && !canPreorder && (
+            <div className="absolute inset-0 z-25 flex items-center justify-center">
               <div className="text-white px-4 py-2 rounded-sm text-center">
                 <p className="text-xs md:text-sm font-bold text-white bg-red-700 rounded-xs px-3 py-1 drop-shadow-md">
                   {t.outOfStock}
                 </p>
               </div>
+            </div>
+          )}
+
+          {canPreorder && (
+            <div className="absolute inset-0 z-25 flex items-center justify-center">
+              <p className="text-xs md:text-sm font-bold text-white bg-amber-500 rounded-xs px-3 py-1 drop-shadow-md">
+                {t.preorder}
+              </p>
             </div>
           )}
         </div>
@@ -328,15 +341,21 @@ export default function ProductCard({
                   e.stopPropagation();
                   handleAddToCart();
                 }}
-                disabled={isOutOfStock}
+                disabled={isOutOfStock && !canPreorder}
                 className={`relative z-20 w-full mt-4 flex items-center justify-center gap-1 py-2 rounded-sm text-xs md:text-sm font-medium border transition-all duration-300 ${
-                  isOutOfStock
+                  isOutOfStock && !canPreorder
                     ? "border-gray-300 text-gray-400 bg-gray-50 cursor-not-allowed"
-                    : "border-[rgb(var(--color-brand-primary))] text-[rgb(var(--color-brand-primary))] bg-white hover:bg-[rgb(var(--color-brand-primary))] hover:text-white"
+                    : canPreorder
+                      ? "border-amber-500 text-amber-600 bg-white hover:bg-amber-500 hover:text-white"
+                      : "border-[rgb(var(--color-brand-primary))] text-[rgb(var(--color-brand-primary))] bg-white hover:bg-[rgb(var(--color-brand-primary))] hover:text-white"
                 }`}
               >
                 <ShoppingBag size={16} />
-                {isOutOfStock ? t.outOfStock : t.addToCart}
+                {isOutOfStock && !canPreorder
+                  ? t.outOfStock
+                  : canPreorder
+                    ? t.preorder
+                    : t.addToCart}
               </button>
             )}
           </div>

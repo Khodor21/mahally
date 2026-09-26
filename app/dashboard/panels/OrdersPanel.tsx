@@ -446,7 +446,11 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                     <tr
                       key={order.id}
                       onClick={() => openOrderModal(order)}
-                      className="border-b border-gray-50 last:border-0 hover:bg-gray-50/80 transition-colors cursor-pointer group"
+                      className={`border-b border-gray-50 last:border-0 transition-colors cursor-pointer group ${
+                        order.has_preorder
+                          ? "bg-amber-50/60 hover:bg-amber-100/60"
+                          : "hover:bg-gray-50/80"
+                      }`}
                     >
                       <td className="px-4 md:px-6 py-4 hidden md:table-cell">
                         <span className="font-mono text-xs font-bold text-[rgb(60_28_84)] bg-[rgb(60_28_84)]/5 px-2 py-1 rounded">
@@ -492,12 +496,19 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                         </span>
                       </td>
                       <td className="px-4 md:px-6 py-4 hidden md:table-cell">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${st.bg} ${st.text} border ${st.border}`}
-                        >
-                          {st.icon}
-                          {statusLabel[order.status]}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${st.bg} ${st.text} border ${st.border}`}
+                          >
+                            {st.icon}
+                            {statusLabel[order.status]}
+                          </span>
+                          {/* {(order as any).has_preorder && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              🟡 {lang === "ar" ? "مسبق" : "Pre-order"}
+                            </span>
+                          )} */}
+                        </div>
                       </td>
                       <td className="px-4 md:px-6 py-4 text-gray-500 text-xs whitespace-nowrap hidden md:table-cell font-medium">
                         {new Date(order.created_at).toLocaleDateString(
@@ -608,6 +619,14 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                       </span>
                     );
                   })()}
+                  {(selectedOrder as any).has_preorder && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border bg-amber-50 text-amber-700 border-amber-200">
+                      🟡{" "}
+                      {lang === "ar"
+                        ? "يحتوي على طلب مسبق"
+                        : "Contains Pre-order"}
+                    </span>
+                  )}
                   {/* Date */}
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-100 bg-gray-50 text-gray-500 ms-auto">
                     <Calendar className="w-3.5 h-3.5" />
@@ -795,29 +814,38 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                           <p className="text-sm font-semibold text-gray-900 truncate">
                             {item.title || `منتج #${item.id.slice(0, 8)}`}
                           </p>
-                          {item.variant_json && (() => {
-  try {
-    const variants = typeof item.variant_json === "string"
-      ? JSON.parse(item.variant_json)
-      : item.variant_json;
-    const entries = Object.values(variants) as Array<{ value: string }>;
-    if (!entries.length) return null;
-    return (
-      <div className="flex flex-wrap gap-1 mt-1">
-        {entries.map((v, i) => (
-          <span
-            key={i}
-            className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[rgb(60_28_84)]/8 text-[rgb(60_28_84)] border border-[rgb(60_28_84)]/15"
-          >
-            {v.value}
-          </span>
-        ))}
-      </div>
-    );
-  } catch {
-    return null;
-  }
-})()}
+                          {(item as any).is_preorder && (
+                            <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              🟡 {lang === "ar" ? "طلب مسبق" : "Pre-order"}
+                            </span>
+                          )}
+                          {item.variant_json &&
+                            (() => {
+                              try {
+                                const variants =
+                                  typeof item.variant_json === "string"
+                                    ? JSON.parse(item.variant_json)
+                                    : item.variant_json;
+                                const entries = Object.values(
+                                  variants,
+                                ) as Array<{ value: string }>;
+                                if (!entries.length) return null;
+                                return (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {entries.map((v, i) => (
+                                      <span
+                                        key={i}
+                                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[rgb(60_28_84)]/8 text-[rgb(60_28_84)] border border-[rgb(60_28_84)]/15"
+                                      >
+                                        {v.value}
+                                      </span>
+                                    ))}
+                                  </div>
+                                );
+                              } catch {
+                                return null;
+                              }
+                            })()}
                           <p className="text-xs text-gray-400 mt-0.5">
                             {tr.quantity || "الكمية"}:{" "}
                             <span className="font-bold text-gray-600">
