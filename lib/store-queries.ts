@@ -69,7 +69,6 @@ export const getCachedStoreData = (slug: string) =>
 export const getCachedSectionsAndProducts = (storeId: string) =>
   unstable_cache(
     async () => {
-      // 1. جلب الأقسام
       const { data: sections, error: sectionsError } = await supabaseAdmin
         .from("storefront_sections")
         .select("*")
@@ -81,19 +80,14 @@ export const getCachedSectionsAndProducts = (storeId: string) =>
         return { sections: [], products: [] };
       }
 
-      const categoryIds = sections.map((section) => section.category_id);
+      const categoryIds = sections.map((s) => s.category_id);
 
-      // 2. جلب بيانات الفئات (للحصول على أسماء الفئات)
-      const { data: categories, error: categoriesError } = await supabaseAdmin
+      // Categories
+      const { data: categories } = await supabaseAdmin
         .from("categories")
         .select("id, title")
         .in("id", categoryIds);
 
-      if (categoriesError) {
-        console.error("Failed to fetch categories:", categoriesError);
-      }
-
-      // 3. دمج أسماء الفئات مع الأقسام
       const categoryMap = new Map(
         categories?.map((cat) => [cat.id, cat.title]) || [],
       );
@@ -102,21 +96,43 @@ export const getCachedSectionsAndProducts = (storeId: string) =>
         category_title: categoryMap.get(section.category_id) || section.title,
       }));
 
-      // 4. جلب المنتجات
-      const { data: products, error: productsError } = await supabaseAdmin
-        .from("products")
-        .select("*")
-        .eq("store_id", storeId)
-        .in("category_id", categoryIds);
+      // 👇 جيب النوعين بشكل منفصل وادمجهم
+      const specificProductIds = sections
+        .flatMap((s) => s.product_ids ?? [])
+        .filter(Boolean);
 
-      if (productsError) {
-        console.error("Failed to fetch section products:", productsError);
-        return { sections: sectionsWithCategoryNames, products: [] };
-      }
+      const sectionsWithoutSpecific = sections.filter(
+        (s) => !s.product_ids?.length,
+      );
+      const fallbackCategoryIds = sectionsWithoutSpecific.map(
+        (s) => s.category_id,
+      );
+
+      const [specificResult, fallbackResult] = await Promise.all([
+        specificProductIds.length
+          ? supabaseAdmin
+              .from("products")
+              .select("*")
+              .in("id", specificProductIds)
+          : Promise.resolve({ data: [] }),
+
+        fallbackCategoryIds.length
+          ? supabaseAdmin
+              .from("products")
+              .select("*")
+              .eq("store_id", storeId)
+              .in("category_id", fallbackCategoryIds)
+              .eq("pin", true)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const products = [
+        ...(specificResult.data ?? []),
+        ...(fallbackResult.data ?? []),
+      ];
 
       return { sections: sectionsWithCategoryNames, products };
     },
-    // storeId is in scope here via the outer function closure
     ["store-sections-products", storeId],
     {
       revalidate: 60,
