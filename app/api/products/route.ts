@@ -37,25 +37,22 @@ function isValidVariantGroups(variantGroups: any): boolean {
 // ============================================
 // ROUTES
 // ============================================
-
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     let store_id = searchParams.get("store_id");
+    const category_id = searchParams.get("category_id");
 
-    // 1. If no explicit store_id, attempt to resolve via Subdomain (Host header)
     if (!store_id) {
       const host = req.headers.get("host") || "";
       const subdomain = host.split(".")[0];
 
-      // Prevent querying for invalid subdomains like 'localhost', 'www', or IP addresses
       if (
         subdomain &&
         subdomain !== "localhost" &&
         subdomain !== "www" &&
         !subdomain.includes(":")
       ) {
-        // Try subdomain column first
         const { data: store } = await supabaseAdmin
           .from("stores")
           .select("id")
@@ -65,7 +62,6 @@ export async function GET(req: Request) {
         if (store) {
           store_id = store.id;
         } else {
-          // Fallback: try slug column (common alternative in e-commerce schemas)
           try {
             const { data: storeBySlug } = await supabaseAdmin
               .from("stores")
@@ -83,7 +79,6 @@ export async function GET(req: Request) {
       }
     }
 
-    // 2. If STILL no store_id (e.g., accessed from the main admin dashboard), fallback to session
     if (!store_id) {
       try {
         const user = await requireStoreSession();
@@ -99,13 +94,20 @@ export async function GET(req: Request) {
       }
     }
 
-    const { data, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("products")
       .select(
-        "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variantGroups, sales_count , cost_price, preorder_enabled, preorder_label",
+        "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variantGroups, sales_count, cost_price, preorder_enabled, preorder_label",
       )
-      .eq("store_id", store_id)
-      .order("created_at", { ascending: false });
+      .eq("store_id", store_id);
+
+    if (category_id) {
+      query = query.eq("category_id", category_id);
+    }
+
+    const { data, error } = await query.order("created_at", {
+      ascending: false,
+    });
 
     if (error) {
       return NextResponse.json(
@@ -114,10 +116,7 @@ export async function GET(req: Request) {
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: data,
-    });
+    return NextResponse.json({ success: true, data });
   } catch (err: any) {
     const isAuth = err.message === "Unauthorized";
     return NextResponse.json(

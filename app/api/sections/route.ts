@@ -10,6 +10,7 @@ const SectionSchema = z.object({
   status: z.enum(["active", "draft"]),
   store_id: z.string().uuid(),
   section_order: z.number().default(0),
+  product_ids: z.array(z.string().uuid()).nullable().optional(),
 });
 
 export async function POST(req: Request) {
@@ -30,6 +31,7 @@ export async function POST(req: Request) {
         status,
         store_id,
         section_order,
+        product_ids: body.product_ids ?? null,
       })
       .select()
       .single();

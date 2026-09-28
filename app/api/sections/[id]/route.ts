@@ -10,6 +10,7 @@ const SectionUpdateSchema = z.object({
   status: z.enum(["active", "draft"]),
   store_id: z.string().uuid(),
   section_order: z.number().optional(),
+  product_ids: z.array(z.string().uuid()).nullable().optional(),
 });
 
 export async function PUT(
@@ -29,6 +30,7 @@ export async function PUT(
       banner_url,
       category_id,
       status,
+      product_ids: body.product_ids ?? null,
     };
     if (section_order !== undefined)
       updatePayload.section_order = section_order;

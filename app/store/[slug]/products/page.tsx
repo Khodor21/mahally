@@ -29,6 +29,8 @@ interface BackendProduct {
   discount_price?: number | null;
   images: string[];
   stock: number;
+  preorder_enabled?: boolean;
+  preorder_label?: string;
 }
 
 type SortOption = "default" | "price-asc" | "price-desc";
@@ -584,6 +586,8 @@ function ProductsContent() {
                   stock: product.stock ?? 1,
                   rating: 5,
                   badge,
+                  preorder_enabled: Boolean(product.preorder_enabled),
+                  preorder_label: product.preorder_label?.trim() || null,
                 };
 
                 return (

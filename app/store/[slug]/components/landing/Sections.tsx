@@ -12,7 +12,6 @@ export default async function StorefrontSections({
   storeSlug,
   lang,
 }: StorefrontSectionsProps) {
-  // استدعاء البيانات من الكاش (يستغرق 1-2 ملي ثانية فقط!)
   const { sections, products } = await getCachedSectionsAndProducts(storeId);
 
   if (!sections || sections.length === 0) {
@@ -22,12 +21,11 @@ export default async function StorefrontSections({
   return (
     <div className="flex flex-col gap-12 md:gap-16 w-full">
       {sections.map((section) => {
-        const sectionProducts =
-          products?.filter(
-            (product) =>
-              product.category_id === section.category_id &&
-              product.pin === true,
-          ) || [];
+        const sectionProducts = section.product_ids?.length
+          ? products?.filter((p) => section.product_ids.includes(p.id)) || []
+          : products?.filter(
+              (p) => p.category_id === section.category_id && p.pin === true,
+            ) || [];
 
         const hasBanner =
           section.banner_url && section.banner_url.trim() !== "";
@@ -42,6 +40,7 @@ export default async function StorefrontSections({
             products={sectionProducts}
             storeSlug={storeSlug}
             lang={lang}
+            sectionId={section.id}
           />
         );
       })}

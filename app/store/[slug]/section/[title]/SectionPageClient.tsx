@@ -2,18 +2,12 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Search,
-  ChevronDown,
-  Loader2,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, ChevronDown } from "lucide-react";
 import ProductCard from "../../components/landing/ProductCard";
 import { Emoji } from "emoji-picker-react";
 
 // --- Types ---
-interface BackendProduct {
+export interface BackendProduct {
   id: string;
   title: string;
   price: string | number;
@@ -24,7 +18,7 @@ interface BackendProduct {
   preorder_label?: string;
 }
 
-interface CategoryData {
+export interface SectionData {
   id: string;
   title: string;
   banner_url: string | null;
@@ -176,18 +170,19 @@ function Pagination({
 }
 
 // --- Main Client Component ---
-export default function CategoryPageClient({
+export default function SectionPageClient({
   initialData,
   slug,
+  title,
   lang,
 }: {
-  initialData: CategoryData;
+  initialData: SectionData;
   slug: string;
   title: string;
   lang: "ar" | "en";
 }) {
   const dir = lang === "ar" ? "rtl" : "ltr";
-  const [categoryData] = useState<CategoryData>(initialData);
+  const [sectionData] = useState<SectionData>(initialData);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("default");
   const [inStockOnly, setInStockOnly] = useState(false);
@@ -196,6 +191,7 @@ export default function CategoryPageClient({
   const translations = {
     ar: {
       home: "الرئيسية",
+      sections: "الأقسام",
       back: "العودة للرئيسية",
       emptyState: "لا توجد منتجات في هذا القسم حالياً.",
       searchPlaceholder: "ابحث عن منتج في هذا القسم...",
@@ -209,8 +205,9 @@ export default function CategoryPageClient({
     en: {
       home: "Home",
       back: "Back to Home",
-      emptyState: "No products available in this category yet.",
-      searchPlaceholder: "Search products in this category...",
+      sections: "Sections",
+      emptyState: "No products available in this section yet.",
+      searchPlaceholder: "Search products in this section...",
       sortDefault: "Filter & Sort",
       sortPriceAsc: "Price: Low to High",
       sortPriceDesc: "Price: High to Low",
@@ -222,8 +219,8 @@ export default function CategoryPageClient({
   const t = translations[lang];
 
   const filteredProducts = useMemo(() => {
-    if (!categoryData?.products) return [];
-    let products = [...categoryData.products];
+    if (!sectionData?.products) return [];
+    let products = [...sectionData.products];
 
     if (searchQuery.trim() !== "") {
       const query = searchQuery.toLowerCase();
@@ -238,7 +235,7 @@ export default function CategoryPageClient({
       products.sort((a, b) => Number(b.price) - Number(a.price));
     }
     return products;
-  }, [categoryData, searchQuery, inStockOnly, sortOption]);
+  }, [sectionData, searchQuery, inStockOnly, sortOption]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const paginatedProducts = useMemo(() => {
@@ -264,13 +261,23 @@ export default function CategoryPageClient({
               {t.home}
             </Link>
             <BreadcrumbIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <span className="text-brand-black">{categoryData.title}</span>
+            <Link
+              href={`/?lang=${lang}`}
+              className="hover:text-brand-black transition-colors"
+            >
+              {t.sections}
+            </Link>
+            <BreadcrumbIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+
+            <span className="text-brand-black">
+              {title || sectionData.title}
+            </span>
           </p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 mt-1">
-        {categoryData.products.length > 0 && (
+        {sectionData.products.length > 0 && (
           <div className="w-full flex flex-col gap-4 mb-8">
             <SearchBar
               searchQuery={searchQuery}
@@ -289,7 +296,7 @@ export default function CategoryPageClient({
           </div>
         )}
 
-        {categoryData.products.length === 0 ? (
+        {sectionData.products.length === 0 ? (
           <div className="flex items-center gap-1 justify-center pt-32 text-black">
             <Emoji unified="1f4e6" size={24} />
             <p className="text font-medium">{t.emptyState}</p>

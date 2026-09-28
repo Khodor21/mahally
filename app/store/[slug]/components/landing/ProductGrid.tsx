@@ -19,12 +19,13 @@ type Product = {
   variantGroups?: string | any[];
   preorder_enabled?: boolean;
   preorder_label?: string;
+  sectionId: string;
 };
 
 type ProductGridProps = {
   title: string;
   categoryName?: string;
-
+  sectionId: string;
   products: Product[];
   bannerSrc?: string;
   bannerType?: "wide" | "mono";
@@ -49,12 +50,12 @@ type MappedProduct = {
 export default function ProductGrid({
   title,
   categoryName,
-
   products,
   storeSlug,
   bannerSrc,
   bannerType = "wide",
   lang,
+  sectionId,
 }: ProductGridProps) {
   const scrollRefMono = useRef<HTMLDivElement | null>(null);
   const scrollRefWide = useRef<HTMLDivElement | null>(null);
@@ -62,8 +63,8 @@ export default function ProductGrid({
   const isRtl = lang === "ar";
 
   const viewAllText = isRtl ? "عرض الكل" : "View All";
-  // Create URL-safe category link based on section title
-  const categoryLink = `/category/${encodeURIComponent(title)}?lang=${lang}`;
+  // 👉 UPDATED: Use encodeURIComponent on the title to match the new /section/[title] architecture
+  const categoryLink = `/section/${encodeURIComponent(title)}?lang=${lang}`;
 
   const mappedProducts: MappedProduct[] = useMemo(() => {
     return (products || []).map((product) => ({
@@ -187,7 +188,7 @@ export default function ProductGrid({
                 {title}
               </p>
               <Link
-                href={`/category/${encodeURIComponent(categoryName || title)}`}
+                href={categoryLink}
                 className="flex items-center underline text-xs font-medium text-brand-black/80 hover:text-[#111827] transition-colors duration-200"
               >
                 {viewAllText}
@@ -254,7 +255,7 @@ export default function ProductGrid({
               {title}
             </p>
             <Link
-              href={`/category/${encodeURIComponent(categoryName || title)}`}
+              href={categoryLink}
               className="flex items-center underline text-xs font-medium text-brand-black/80 hover:text-[#111827] transition-colors duration-200"
             >
               {viewAllText}
