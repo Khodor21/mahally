@@ -97,7 +97,7 @@ export async function GET(req: Request) {
     let query = supabaseAdmin
       .from("products")
       .select(
-        "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variantGroups, sales_count, cost_price, preorder_enabled, preorder_label",
+        "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variantGroups, sales_count, cost_price, preorder_enabled, preorder_label, gift, review",
       )
       .eq("store_id", store_id);
 
@@ -154,6 +154,8 @@ export async function POST(req: Request) {
       cost_price,
       preorder_enabled,
       preorder_label,
+      gift,
+      review,
     } = body;
 
     // ============================================
@@ -217,10 +219,11 @@ export async function POST(req: Request) {
     }
 
     const isPinned = pin !== undefined ? Boolean(pin) : false;
+    const isGift = gift !== undefined ? Boolean(gift) : false;
 
     const imageArray = Array.isArray(images) ? images : [];
 
-    // NEW: Validate variantGroups if provided
+    // Validate variantGroups if provided
     let variantGroupsArray: any[] = [];
     if (variantGroups !== undefined) {
       if (!isValidVariantGroups(variantGroups)) {
@@ -234,6 +237,48 @@ export async function POST(req: Request) {
         );
       }
       variantGroupsArray = variantGroups;
+    }
+
+    // Validate review if provided
+    let parsedReview = null;
+    if (review !== undefined && review !== null) {
+      if (typeof review !== "object" || Array.isArray(review)) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Invalid review format, expected an object.",
+          },
+          { status: 400 },
+        );
+      }
+      if (Object.keys(review).length > 0) {
+        const startVal = Number(review.start);
+        if (
+          !review.name ||
+          typeof review.name !== "string" ||
+          !review.gender ||
+          typeof review.gender !== "string" ||
+          isNaN(startVal) ||
+          startVal < 0 ||
+          startVal > 5 ||
+          typeof review.comment !== "string"
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              message:
+                "Review must contain string name, string gender, number start (0-5), and string comment.",
+            },
+            { status: 400 },
+          );
+        }
+        parsedReview = {
+          name: review.name,
+          gender: review.gender,
+          start: startVal,
+          comment: review.comment,
+        };
+      }
     }
 
     // ============================================
@@ -257,9 +302,11 @@ export async function POST(req: Request) {
         cost_price: parsedCostPrice,
         preorder_enabled: preorder_enabled === true,
         preorder_label: preorder_label || null,
+        gift: isGift,
+        review: parsedReview,
       })
       .select(
-        "id, title, description, price, discount_price, stock, images, category_id, variantGroups, pin, sales_count, cost_price, preorder_enabled, preorder_label",
+        "id, title, description, price, discount_price, stock, images, category_id, variantGroups, pin, sales_count, cost_price, preorder_enabled, preorder_label, gift, review",
       )
       .single();
 
@@ -311,6 +358,8 @@ export async function PATCH(req: Request) {
       cost_price,
       preorder_enabled,
       preorder_label,
+      gift,
+      review,
     } = body;
 
     if (!id) {
@@ -398,7 +447,11 @@ export async function PATCH(req: Request) {
       updates.pin = Boolean(pin);
     }
 
-    // NEW: Validate variantGroups if provided
+    if (gift !== undefined) {
+      updates.gift = Boolean(gift);
+    }
+
+    // Validate variantGroups if provided
     if (variantGroups !== undefined) {
       if (!isValidVariantGroups(variantGroups)) {
         return NextResponse.json(
@@ -413,8 +466,58 @@ export async function PATCH(req: Request) {
       updates.variantGroups = variantGroups;
     }
 
+    // Validate review if provided
+    if (review !== undefined) {
+      if (review === null || Object.keys(review).length === 0) {
+        updates.review = null;
+      } else {
+        if (typeof review !== "object" || Array.isArray(review)) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: "Invalid review format, expected an object.",
+            },
+            { status: 400 },
+          );
+        }
+        const startVal = Number(review.start);
+        if (
+          !review.name ||
+          typeof review.name !== "string" ||
+          !review.gender ||
+          typeof review.gender !== "string" ||
+          isNaN(startVal) ||
+          startVal < 0 ||
+          startVal > 5 ||
+          typeof review.comment !== "string"
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              message:
+                "Review must contain string name, string gender, number start (0-5), and string comment.",
+            },
+            { status: 400 },
+          );
+        }
+        updates.review = {
+          name: review.name,
+          gender: review.gender,
+          start: startVal,
+          comment: review.comment,
+        };
+      }
+    }
+
     if (category_id !== undefined) {
       updates.category_id = category_id === "" ? null : category_id;
+    }
+
+    if (preorder_enabled !== undefined) {
+      updates.preorder_enabled = Boolean(preorder_enabled);
+    }
+    if (preorder_label !== undefined) {
+      updates.preorder_label = preorder_label || null;
     }
 
     if (Object.keys(updates).length === 0) {
@@ -423,12 +526,7 @@ export async function PATCH(req: Request) {
         { status: 400 },
       );
     }
-    if (preorder_enabled !== undefined) {
-      updates.preorder_enabled = Boolean(preorder_enabled);
-    }
-    if (preorder_label !== undefined) {
-      updates.preorder_label = preorder_label || null;
-    }
+
     // ============================================
     // UPDATE
     // ============================================
@@ -439,7 +537,7 @@ export async function PATCH(req: Request) {
       .eq("id", id)
       .eq("store_id", user.id)
       .select(
-        "id, title, description, price, discount_price, stock, images, category_id, variantGroups, pin, sales_count, cost_price, preorder_enabled, preorder_label",
+        "id, title, description, price, discount_price, stock, images, category_id, variantGroups, pin, sales_count, cost_price, preorder_enabled, preorder_label, gift, review",
       )
       .single();
 
@@ -496,7 +594,6 @@ export async function DELETE(req: Request) {
         { status: 500 },
       );
     }
-
     return NextResponse.json({
       success: true,
       message: "Product deleted successfully",

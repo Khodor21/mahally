@@ -204,8 +204,12 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
     });
   }, [orders, search, filter]);
 
+  // CHANGED: Exclude shipping from total revenue
   const totalRevenue = useMemo(() => {
-    return orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+    return orders.reduce((sum, order) => {
+      const netAmount = Number(order.total || 0) - Number(order.shipping || 0);
+      return sum + netAmount;
+    }, 0);
   }, [orders]);
 
   const copyOrderId = (orderId: string) => {
@@ -442,14 +446,20 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                     order.payment_method || "",
                   );
                   const st = statusStyles[order.status];
+                  // CHANGED: Calculate row net amount (Total - Shipping)
+                  const netAmount =
+                    Number(order.total || 0) - Number(order.shipping || 0);
+
                   return (
                     <tr
                       key={order.id}
                       onClick={() => openOrderModal(order)}
                       className={`border-b border-gray-50 last:border-0 transition-colors cursor-pointer group ${
-                        order.has_preorder
-                          ? "bg-amber-50/60 hover:bg-amber-100/60"
-                          : "hover:bg-gray-50/80"
+                        (order as any).is_gift
+                          ? "bg-pink-50/60 hover:bg-pink-100/60"
+                          : order.has_preorder
+                            ? "bg-amber-50/60 hover:bg-amber-100/60"
+                            : "hover:bg-gray-50/80"
                       }`}
                     >
                       <td className="px-4 md:px-6 py-4 hidden md:table-cell">
@@ -458,10 +468,19 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                         </span>
                       </td>
                       <td className="px-4 md:px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold">
-                            {order.customer_name}
-                          </span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold">
+                              {(order as any).is_gift
+                                ? `🎁 ${order.customer_name}`
+                                : order.customer_name}
+                            </span>
+                            {(order as any).is_gift && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 border border-pink-200">
+                                {lang === "ar" ? "هدية" : "Gift"}
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] text-gray-400 font-mono mt-0.5 md:hidden">
                             #{order.id.slice(0, 8).toUpperCase()}
                           </span>
@@ -477,9 +496,10 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                           <span className="text-[10px] text-gray-400 font-medium md:hidden uppercase tracking-wider mb-0.5">
                             {tr.amount || "المبلغ"}
                           </span>
+                          {/* CHANGED: Render net amount instead of order.total */}
                           <span className="font-bold text-[rgb(60_28_84)] text-sm md:text-base">
                             ${" "}
-                            {Number(order.total).toLocaleString("en-US", {
+                            {netAmount.toLocaleString("en-US", {
                               maximumFractionDigits: 2,
                             })}
                           </span>
@@ -503,16 +523,11 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                             {st.icon}
                             {statusLabel[order.status]}
                           </span>
-                          {/* {(order as any).has_preorder && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                              🟡 {lang === "ar" ? "مسبق" : "Pre-order"}
-                            </span>
-                          )} */}
                         </div>
                       </td>
                       <td className="px-4 md:px-6 py-4 text-gray-500 text-xs whitespace-nowrap hidden md:table-cell font-medium">
                         {new Date(order.created_at).toLocaleDateString(
-                          dir === "rtl" ? "ar-SA" : "en-US",
+                          dir === "rtl" ? "en-US" : "en-US",
                           { year: "numeric", month: "short", day: "numeric" },
                         )}
                       </td>
@@ -627,11 +642,16 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                         : "Contains Pre-order"}
                     </span>
                   )}
+                  {(selectedOrder as any).is_gift && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border bg-pink-50 text-pink-700 border-pink-200">
+                      🎁 {lang === "ar" ? "هدية" : "Gift Order"}
+                    </span>
+                  )}
                   {/* Date */}
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-100 bg-gray-50 text-gray-500 ms-auto">
                     <Calendar className="w-3.5 h-3.5" />
                     {new Date(selectedOrder.created_at).toLocaleDateString(
-                      dir === "rtl" ? "ar-SA" : "en-US",
+                      dir === "rtl" ? "en-US" : "en-US",
                       { year: "numeric", month: "short", day: "numeric" },
                     )}
                   </span>
@@ -660,7 +680,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                           disabled={updatingStatus || isActive}
                           className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all border ${
                             isActive
-                              ? `${st.bg} ${st.border} ${st.text} ring-2 ${st.ring}/30`
+                              ? `${st.bg}${st.border} ${st.text} ring-2${st.ring}/30`
                               : "bg-white border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-40"
                           }`}
                         >
@@ -750,7 +770,186 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                     )}
                   </div>
                 </div>
+                {/* Gift Details - show only if is_gift */}
+                {(selectedOrder as any).is_gift && (
+                  <div className="rounded-xl border border-pink-100 overflow-hidden">
+                    <div className="px-4 py-3 bg-pink-50/60 border-b border-pink-100">
+                      <h3 className="text-xs font-bold text-pink-600 uppercase tracking-wider flex items-center gap-2">
+                        🎁 {lang === "ar" ? "تفاصيل الهدية" : "Gift Details"}
+                      </h3>
+                    </div>
+                    <div className="divide-y divide-pink-50">
+                      {/* Sender */}
+                      <div className="flex items-center gap-3 px-4 py-3">
+                        <User className="w-4 h-4 text-pink-300 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] text-pink-400 mb-0.5">
+                            {lang === "ar" ? "المُرسل" : "Sender"}
+                          </p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {(selectedOrder as any).sender_name}
+                          </p>
+                        </div>
+                      </div>
 
+                      {/* Sender Phone */}
+                      {(selectedOrder as any).sender_phone && (
+                        <div className="flex items-center gap-3 px-4 py-3">
+                          <Phone className="w-4 h-4 text-pink-300 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-pink-400 mb-0.5">
+                              {lang === "ar" ? "هاتف المُرسل" : "Sender Phone"}
+                            </p>
+                            <a
+                              href={`tel:${(selectedOrder as any).sender_phone}`}
+                              className="text-sm font-medium text-pink-600 hover:underline font-mono"
+                              dir="ltr"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {(selectedOrder as any).sender_phone}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Recipient */}
+                      <div className="flex items-center gap-3 px-4 py-3">
+                        <User className="w-4 h-4 text-pink-300 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] text-pink-400 mb-0.5">
+                            {lang === "ar" ? "المستقبل" : "Recipient"}
+                          </p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {(selectedOrder as any).recipient_name}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Recipient Phone */}
+                      {(selectedOrder as any).recipient_phone && (
+                        <div className="flex items-center gap-3 px-4 py-3">
+                          <Phone className="w-4 h-4 text-pink-300 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-pink-400 mb-0.5">
+                              {lang === "ar"
+                                ? "هاتف المستقبل"
+                                : "Recipient Phone"}
+                            </p>
+                            <a
+                              href={`tel:${(selectedOrder as any).recipient_phone}`}
+                              className="text-sm font-medium text-pink-600 hover:underline font-mono"
+                              dir="ltr"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {(selectedOrder as any).recipient_phone}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Recipient Address */}
+                      {(selectedOrder as any).recipient_address && (
+                        <div className="flex items-center gap-3 px-4 py-3">
+                          <MapPin className="w-4 h-4 text-pink-300 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-pink-400 mb-0.5">
+                              {lang === "ar"
+                                ? "عنوان التسليم"
+                                : "Delivery Address"}
+                            </p>
+                            <p className="text-sm font-medium text-gray-900">
+                              {(selectedOrder as any).recipient_address}
+                              {(selectedOrder as any).recipient_city && ", "}
+                              {(selectedOrder as any).recipient_city}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Occasion */}
+                      {(selectedOrder as any).gift_occasion && (
+                        <div className="flex items-center gap-3 px-4 py-3">
+                          <Tag className="w-4 h-4 text-pink-300 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-pink-400 mb-0.5">
+                              {lang === "ar" ? "مناسبة الهدية" : "Occasion"}
+                            </p>
+                            <p className="text-sm font-medium text-gray-900">
+                              {(() => {
+                                const occasionMap: Record<
+                                  string,
+                                  Record<string, string>
+                                > = {
+                                  thank_you: {
+                                    ar: "شكر وتقدير",
+                                    en: "Thank You",
+                                  },
+                                  birthday: { ar: "عيد ميلاد", en: "Birthday" },
+                                  anniversary: {
+                                    ar: "ذكرى سنوية",
+                                    en: "Anniversary",
+                                  },
+                                  congratulation: {
+                                    ar: "تهاني",
+                                    en: "Congratulation",
+                                  },
+                                  apology: { ar: "اعتذار", en: "Apology" },
+                                  love: { ar: "حب", en: "Love" },
+                                  other: { ar: "أخرى", en: "Other" },
+                                };
+                                const occ = (selectedOrder as any)
+                                  .gift_occasion;
+                                return (
+                                  occasionMap[occ]?.[
+                                    lang === "ar" ? "ar" : "en"
+                                  ] || occ
+                                );
+                              })()}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Gift Message */}
+                      {(selectedOrder as any).gift_message && (
+                        <div className="px-4 py-3">
+                          <p className="text-[10px] text-pink-400 mb-1.5">
+                            {lang === "ar" ? "رسالة الهدية" : "Gift Message"}
+                          </p>
+                          <p className="text-sm text-gray-700 leading-relaxed italic px-3 py-2 bg-pink-50 rounded-lg border border-pink-100">
+                            "{(selectedOrder as any).gift_message}"
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Delivery Date */}
+                      {(selectedOrder as any).delivery_date && (
+                        <div className="flex items-center gap-3 px-4 py-3">
+                          <Calendar className="w-4 h-4 text-pink-300 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-pink-400 mb-0.5">
+                              {lang === "ar"
+                                ? "تاريخ التسليم"
+                                : "Delivery Date"}
+                            </p>
+                            <p className="text-sm font-medium text-gray-900">
+                              {new Date(
+                                (selectedOrder as any).delivery_date,
+                              ).toLocaleDateString(
+                                lang === "ar" ? "en-US" : "en-US",
+                                {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                },
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {/* Notes */}
                 {selectedOrder.notes && selectedOrder.notes.trim() !== "" && (
                   <div className="rounded-xl border border-amber-100 overflow-hidden">

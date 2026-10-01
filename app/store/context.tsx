@@ -17,6 +17,8 @@ export interface Product {
   rating?: number;
   badge?: string;
   variantDescription?: string;
+  gift?: boolean;
+  review?: any;
   [key: string]: any;
 }
 
@@ -29,7 +31,21 @@ export interface VariantSelection {
 export interface CartItem {
   product: Product;
   qty: number;
-  variantSelections?: Record<string, VariantSelection>; // {groupId: {id, value, stock}}
+  variantSelections?: Record<string, VariantSelection>;
+}
+
+// NEW: Gift Order Type
+export interface GiftOrder {
+  items: CartItem[];
+  senderName: string;
+  senderPhone: string;
+  recipientName: string;
+  recipientPhone: string;
+  recipientAddress: string;
+  recipientCity: string;
+  giftMessage: string;
+  giftOccasion: string;
+  deliveryDate?: string;
 }
 
 interface ShopContextType {
@@ -54,6 +70,12 @@ interface ShopContextType {
   clearBuyNowItem: () => void;
   checkoutItems: CartItem[];
   isBuyNowMode: boolean;
+
+  // NEW: Gift Order
+  giftOrder: GiftOrder | null;
+  setGiftOrder: (giftOrder: GiftOrder) => void;
+  clearGiftOrder: () => void;
+
   favorites: Product[];
   favCount: number;
   toggleFavorite: (product: Product) => void;
@@ -64,7 +86,7 @@ interface ShopContextType {
   currencySymbol: string;
   deliveryCost: number;
   paymentMethods: string[];
-  orderTotal: number; // Cart Total + Delivery Cost
+  orderTotal: number;
   isConfigLoading: boolean;
 }
 
@@ -72,12 +94,14 @@ const ShopContext = createContext<ShopContextType | null>(null);
 const CART_STORAGE_KEY = "shop_cart";
 const FAV_STORAGE_KEY = "shop_favorites";
 const BUY_NOW_STORAGE_KEY = "shop_buy_now";
+const GIFT_ORDER_STORAGE_KEY = "shop_gift_order"; // NEW
 
 export function ShopProvider({ children }: { children: React.ReactNode }) {
   // ── State ────────────────────────────────────────────────
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [favorites, setFavorites] = useState<Product[]>([]);
   const [buyNowItem, setBuyNowItemState] = useState<CartItem | null>(null);
+  const [giftOrder, setGiftOrderState] = useState<GiftOrder | null>(null); // NEW
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Store Config State
@@ -120,6 +144,10 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
       if (savedFavs) setFavorites(JSON.parse(savedFavs));
       const savedBuyNow = sessionStorage.getItem(BUY_NOW_STORAGE_KEY);
       if (savedBuyNow) setBuyNowItemState(JSON.parse(savedBuyNow));
+
+      // NEW: Load gift order
+      const savedGiftOrder = sessionStorage.getItem(GIFT_ORDER_STORAGE_KEY);
+      if (savedGiftOrder) setGiftOrderState(JSON.parse(savedGiftOrder));
     } catch (error) {
       console.error("Failed to load from localStorage:", error);
     } finally {
@@ -161,6 +189,23 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     }
   }, [buyNowItem, isHydrated]);
 
+  // NEW: Persist gift order
+  useEffect(() => {
+    if (!isHydrated) return;
+    try {
+      if (giftOrder) {
+        sessionStorage.setItem(
+          GIFT_ORDER_STORAGE_KEY,
+          JSON.stringify(giftOrder),
+        );
+      } else {
+        sessionStorage.removeItem(GIFT_ORDER_STORAGE_KEY);
+      }
+    } catch (error) {
+      console.error("Failed to save gift order:", error);
+    }
+  }, [giftOrder, isHydrated]);
+
   // ── Cart Actions ──────────────────────────────────────────
   const addToCart = useCallback(
     (
@@ -172,7 +217,6 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         const existing = prev.find((i) => {
           if (i.product.id !== product.id) return false;
 
-          // If no variants, just match by product ID
           if (
             !variantSelections ||
             Object.keys(variantSelections).length === 0
@@ -183,7 +227,6 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
             );
           }
 
-          // If variants, must match exactly
           return (
             JSON.stringify(i.variantSelections) ===
             JSON.stringify(variantSelections)
@@ -239,7 +282,16 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     setBuyNowItemState(null);
   }, []);
 
-  // ── Derived Cart Math (UPDATED TO RESPECT DISCOUNT) ───────
+  // NEW: Gift Order Actions
+  const setGiftOrder = useCallback((giftOrder: GiftOrder) => {
+    setGiftOrderState(giftOrder);
+  }, []);
+
+  const clearGiftOrder = useCallback(() => {
+    setGiftOrderState(null);
+  }, []);
+
+  // ── Derived Cart Math ───────
   const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
 
   const cartTotal = cartItems.reduce((sum, i) => {
@@ -298,6 +350,10 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         clearBuyNowItem,
         checkoutItems,
         isBuyNowMode,
+        // NEW: Gift Order
+        giftOrder,
+        setGiftOrder,
+        clearGiftOrder,
         // Favorites
         favorites,
         favCount,

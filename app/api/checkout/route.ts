@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
-// UPDATED: Add variantSelections to schema for variant-specific stock tracking
+// UPDATED: Add gift fields to schema
 const CheckoutSchema = z.object({
   storeId: z.string().uuid(),
 
@@ -18,12 +18,23 @@ const CheckoutSchema = z.object({
   couponCode: z.string().optional().or(z.literal("")),
   paymentMethod: z.string().min(1, "Payment method is required"),
 
+  // GIFT FIELDS
+  isGift: z.boolean().optional(),
+  senderName: z.string().min(2).max(100).optional(),
+  senderPhone: z.string().min(6).max(20).optional(),
+  recipientName: z.string().min(2).max(100).optional(),
+  recipientPhone: z.string().min(6).max(20).optional(),
+  recipientAddress: z.string().max(500).optional(),
+  recipientCity: z.string().max(100).optional(),
+  giftMessage: z.string().max(1000).optional().or(z.literal("")),
+  giftOccasion: z.string().max(50).optional(),
+  deliveryDate: z.string().nullable().optional().or(z.literal("")),
+
   items: z
     .array(
       z.object({
         productId: z.string().uuid(),
         qty: z.number().min(1),
-        // NEW: Variant selections {groupId: {id, value, stock}}
         variantSelections: z
           .record(
             z.string(),
@@ -80,7 +91,45 @@ export async function POST(request: NextRequest) {
       couponCode,
       paymentMethod,
       items,
+      isGift,
+      senderName,
+      senderPhone,
+      recipientName,
+      recipientPhone,
+      recipientAddress,
+      recipientCity,
+      giftMessage,
+      giftOccasion,
+      deliveryDate,
     } = parsed.data;
+
+    // GIFT VALIDATION
+    if (isGift) {
+      if (!senderName?.trim() || !senderPhone?.trim()) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Sender name and phone are required for gifts",
+          },
+          { status: 422 },
+        );
+      }
+      if (
+        !recipientName?.trim() ||
+        !recipientPhone?.trim() ||
+        !recipientAddress?.trim() ||
+        !recipientCity?.trim() ||
+        !giftOccasion?.trim()
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Recipient info and occasion are required for gifts",
+          },
+          { status: 422 },
+        );
+      }
+    }
 
     // Validate payment method against store's allowed methods
     const { data: storeData, error: storeError } = await supabaseAdmin
@@ -127,7 +176,7 @@ export async function POST(request: NextRequest) {
     const { data: products, error: productsError } = await supabaseAdmin
       .from("products")
       .select(
-        "id, title, price,discount_price, images, stock, store_id, preorder_enabled",
+        "id, title, price, discount_price, images, stock, store_id, preorder_enabled",
       )
       .in("id", productIds);
 
@@ -147,7 +196,6 @@ export async function POST(request: NextRequest) {
     }
 
     let subtotal = 0;
-    // UPDATED: Include variantSelections and variant_json in order_items
     const orderItems = items.map((item) => {
       const product = products.find((p) => p.id === item.productId);
       if (!product) throw new Error("Product not found");
@@ -169,7 +217,7 @@ export async function POST(request: NextRequest) {
         original_price: Number(product.price),
         qty: item.qty,
         total: itemTotal,
-        is_preorder: isPreorder, // ← NEW
+        is_preorder: isPreorder,
         variant_json: item.variantSelections
           ? JSON.stringify(item.variantSelections)
           : null,
@@ -212,25 +260,50 @@ export async function POST(request: NextRequest) {
       const product = products.find((p) => p.id === item.productId);
       return product && product.stock === 0 && product.preorder_enabled;
     });
+
+    // INSERT ORDER WITH GIFT FIELDS
+
+    // 1. تجهيز البيانات في متغير أولاً لتنظيفها وفحصها
+    const orderPayload = {
+      store_id: storeId,
+      customer_name: customerName,
+      customer_email: customerEmail || null,
+      customer_phone: customerPhone,
+      city: isGift ? null : city?.trim() || null,
+      address: isGift ? null : address?.trim() || null,
+      notes: notes?.trim() || null,
+      subtotal,
+      discount_amount: discountAmount,
+      coupon_code: appliedCouponCode,
+      shipping,
+      total,
+      payment_method: paymentMethod,
+      status: "pending",
+      has_preorder: hasPreorder,
+      // GIFT FIELDS
+      is_gift: isGift || false,
+      sender_name: isGift ? senderName?.trim() || null : null,
+      sender_phone: isGift ? senderPhone?.trim() || null : null,
+      recipient_name: isGift ? recipientName?.trim() || null : null,
+      recipient_phone: isGift ? recipientPhone?.trim() || null : null,
+      recipient_address: isGift ? recipientAddress?.trim() || null : null,
+      recipient_city: isGift ? recipientCity?.trim() || null : null,
+      gift_message: isGift ? giftMessage?.trim() || null : null,
+      gift_occasion: isGift ? giftOccasion?.trim() || null : null,
+      // تأكدنا هنا من استخدام trim() لحذف أي مسافات فارغة قد تسبب Invalid Input
+      delivery_date:
+        isGift && deliveryDate && deliveryDate.trim()
+          ? deliveryDate.trim()
+          : null,
+    };
+
+    // 2. طباعة البيانات في الـ Terminal الخاص بالـ Server لمعرفة ما الذي يتم إرساله بالضبط
+    console.log("=== DATA SENT TO SUPABASE ===", orderPayload);
+
+    // 3. إرسال البيانات إلى قاعدة البيانات
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .insert({
-        store_id: storeId,
-        customer_name: customerName,
-        customer_email: customerEmail || null,
-        customer_phone: customerPhone,
-        city: city || null,
-        address: address || null,
-        notes: notes || null,
-        subtotal,
-        discount_amount: discountAmount,
-        coupon_code: appliedCouponCode,
-        shipping,
-        total,
-        payment_method: paymentMethod,
-        status: "pending",
-        has_preorder: hasPreorder,
-      })
+      .insert(orderPayload)
       .select()
       .single();
 
@@ -249,7 +322,6 @@ export async function POST(request: NextRequest) {
       throw new Error(itemsError?.message || "Failed to create order items");
     }
 
-    // افصل pre-order items عن العادية
     const regularItems = items.filter((item) => {
       const product = products.find((p) => p.id === item.productId);
       return product && (product.stock > 0 || !product.preorder_enabled);
@@ -283,12 +355,8 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-    // pre-order items → ما نخفض stock، بس نحفظ الطلب عادي
 
-    // ============================================
-    // SALES COUNT INCREMENT - Lightweight approach
-    // ============================================
-    // Update sales_count for each product sold (no await, fire-and-forget)
+    // Sales count increment (fire-and-forget)
     items.forEach(async (item) => {
       try {
         const { error: incrementError } = await supabaseAdmin.rpc(
@@ -303,7 +371,6 @@ export async function POST(request: NextRequest) {
           console.warn("Failed to increment sales count:", incrementError);
         }
       } catch (err) {
-        // Log but don't fail the checkout if this fails
         console.warn("Failed to increment sales count:", err);
       }
     });
@@ -341,13 +408,12 @@ export async function GET(req: NextRequest) {
         { status: 400 },
       );
 
-    // FIXED: Reduced limit and added batched fetching to prevent timeout
     const { data: orders, error: ordersError } = await supabaseAdmin
       .from("orders")
       .select("*")
       .eq("store_id", storeId)
       .order("created_at", { ascending: false })
-      .limit(50); // Reduced from 100 to 50
+      .limit(50);
 
     if (ordersError) throw ordersError;
 
@@ -355,7 +421,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: [] });
     }
 
-    // Fetch order items in batches to avoid timeout
     const batchSize = 10;
     const orderIds = orders.map((o: any) => o.id);
     let allOrderItems: any[] = [];
@@ -373,7 +438,6 @@ export async function GET(req: NextRequest) {
           "Failed to fetch batch items, continuing without items:",
           itemsError,
         );
-        // Continue without items instead of failing
         continue;
       }
 
@@ -382,7 +446,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Map order_items to their respective orders
     const ordersWithItems = orders.map((order: any) => ({
       ...order,
       order_items: allOrderItems.filter(

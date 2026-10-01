@@ -17,6 +17,13 @@ export interface VariantGroup {
   options: VariantOption[];
 }
 
+export interface ProductReview {
+  name: string;
+  gender: string;
+  start: number;
+  comment: string;
+}
+
 export interface Product {
   id: string;
   store_id: string;
@@ -34,6 +41,8 @@ export interface Product {
   preorder_enabled?: boolean;
   preorder_label?: string | null;
   created_at: string;
+  gift: boolean;
+  review?: ProductReview | null;
 }
 
 export interface ProductFormData {
@@ -49,6 +58,8 @@ export interface ProductFormData {
   pin?: boolean;
   preorder_enabled?: boolean;
   preorder_label?: string;
+  gift?: boolean;
+  review?: ProductReview | null;
 }
 
 // ============================================

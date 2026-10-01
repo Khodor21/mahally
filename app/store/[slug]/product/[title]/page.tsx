@@ -37,8 +37,10 @@ export default async function ProductPage({
       images, 
       categories(title),
       variantGroups,
-    preorder_enabled,
-    preorder_label
+      preorder_enabled,
+      preorder_label,
+      gift,
+      review
     `,
     )
     .eq("store_id", store.id)

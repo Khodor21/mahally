@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { User, Lock, Check, AlertTriangle, Loader2 } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  User,
+  Lock,
+  Check,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 
 interface AccountTabProps {
   lang: string;
@@ -32,7 +40,9 @@ export default function AccountTab({
     text: string;
     type: "success" | "error";
   } | null>(null);
-
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   // ✅ Guard: Don't render if store is still loading
   if (!store) {
     return (
@@ -232,23 +242,35 @@ export default function AccountTab({
             <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
               {lang === "ar" ? "كلمة المرور الحالية" : "Current Password"}
             </label>
-            <input
-              type="password"
-              value={passwordForm.oldPassword}
-              onChange={(e) =>
-                setPasswordForm((prev) => ({
-                  ...prev,
-                  oldPassword: e.target.value,
-                }))
-              }
-              placeholder={
-                lang === "ar"
-                  ? "أدخل كلمة المرور الحالية"
-                  : "Enter current password"
-              }
-              className="w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
-              dir={dir}
-            />
+            <div className="relative" dir={dir}>
+              <input
+                type={showOldPassword ? "text" : "password"}
+                value={passwordForm.oldPassword}
+                onChange={(e) =>
+                  setPasswordForm((prev) => ({
+                    ...prev,
+                    oldPassword: e.target.value,
+                  }))
+                }
+                placeholder={
+                  lang === "ar"
+                    ? "أدخل كلمة المرور الحالية"
+                    : "Enter current password"
+                }
+                className="w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all pe-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowOldPassword(!showOldPassword)}
+                className="absolute top-1/2 -translate-y-1/2 end-3 text-[rgb(60_28_84)]/50 hover:text-[rgb(60_28_84)] transition-colors"
+              >
+                {showOldPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-5">
@@ -256,42 +278,68 @@ export default function AccountTab({
               <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
                 {lang === "ar" ? "كلمة المرور الجديدة" : "New Password"}
               </label>
-              <input
-                type="password"
-                value={passwordForm.newPassword}
-                onChange={(e) =>
-                  setPasswordForm((prev) => ({
-                    ...prev,
-                    newPassword: e.target.value,
-                  }))
-                }
-                placeholder={
-                  lang === "ar" ? "أدخل كلمة مرور جديدة" : "Enter new password"
-                }
-                className="w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
-                dir={dir}
-              />
+              <div className="relative" dir={dir}>
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  value={passwordForm.newPassword}
+                  onChange={(e) =>
+                    setPasswordForm((prev) => ({
+                      ...prev,
+                      newPassword: e.target.value,
+                    }))
+                  }
+                  placeholder={
+                    lang === "ar"
+                      ? "أدخل كلمة مرور جديدة"
+                      : "Enter new password"
+                  }
+                  className="w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all pe-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute top-1/2 -translate-y-1/2 end-3 text-[rgb(60_28_84)]/50 hover:text-[rgb(60_28_84)] transition-colors"
+                >
+                  {showNewPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-2">
                 {lang === "ar" ? "تأكيد كلمة المرور" : "Confirm Password"}
               </label>
-              <input
-                type="password"
-                value={passwordForm.confirmPassword}
-                onChange={(e) =>
-                  setPasswordForm((prev) => ({
-                    ...prev,
-                    confirmPassword: e.target.value,
-                  }))
-                }
-                placeholder={
-                  lang === "ar" ? "أعد كتابة كلمة المرور" : "Confirm password"
-                }
-                className="w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
-                dir={dir}
-              />
+              <div className="relative" dir={dir}>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) =>
+                    setPasswordForm((prev) => ({
+                      ...prev,
+                      confirmPassword: e.target.value,
+                    }))
+                  }
+                  placeholder={
+                    lang === "ar" ? "أعد كتابة كلمة المرور" : "Confirm password"
+                  }
+                  className="w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all pe-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute top-1/2 -translate-y-1/2 end-3 text-[rgb(60_28_84)]/50 hover:text-[rgb(60_28_84)] transition-colors"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 

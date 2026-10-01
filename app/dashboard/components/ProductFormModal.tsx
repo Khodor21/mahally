@@ -49,6 +49,8 @@ const EMPTY_FORM: any = {
   category_id: "",
   variantGroups: [],
   pin: false,
+  gift: false,
+  review: null,
 };
 
 // ============================================
@@ -112,7 +114,11 @@ export default function ProductFormModal({
   const [errors, setErrors] = useState<
     Partial<
       Record<
-        keyof ProductFormData | "discount_price" | "variants" | "cost_price",
+        | keyof ProductFormData
+        | "discount_price"
+        | "variants"
+        | "cost_price"
+        | "review",
         string
       >
     >
@@ -180,6 +186,8 @@ export default function ProductFormModal({
         pin: Boolean((product as any).pin),
         preorder_enabled: Boolean((product as any).preorder_enabled),
         preorder_label: (product as any).preorder_label ?? "",
+        gift: Boolean((product as any).gift),
+        review: (product as any).review ?? null,
       });
 
       if (parsedVariantGroups.length > 0 && parsedVariantGroups[0]?.id) {
@@ -202,7 +210,11 @@ export default function ProductFormModal({
   function validate(): boolean {
     const errs: Partial<
       Record<
-        keyof ProductFormData | "discount_price" | "variants" | "cost_price",
+        | keyof ProductFormData
+        | "discount_price"
+        | "variants"
+        | "cost_price"
+        | "review",
         string
       >
     > = {};
@@ -242,6 +254,28 @@ export default function ProductFormModal({
 
     if (!isMainStockEmpty && (isNaN(s) || s < 0)) {
       errs.stock = tr.stockInvalid || "Invalid stock";
+    }
+
+    // Review Validation
+    if (form.review !== null) {
+      if (!form.review.name?.trim()) {
+        errs.review =
+          dir === "rtl"
+            ? "اسم صاحب المراجعة مطلوب"
+            : "Reviewer name is required";
+      } else if (!form.review.comment?.trim()) {
+        errs.review =
+          dir === "rtl" ? "تعليق المراجعة مطلوب" : "Review comment is required";
+      } else if (
+        isNaN(form.review.start) ||
+        form.review.start < 0 ||
+        form.review.start > 5
+      ) {
+        errs.review =
+          dir === "rtl"
+            ? "التقييم يجب أن يكون بين 0 و 5"
+            : "Rating must be between 0 and 5";
+      }
     }
 
     if (form.variantGroups && form.variantGroups.length > 0) {
@@ -338,6 +372,30 @@ export default function ProductFormModal({
       setErrors((e) => ({ ...e, [key]: undefined }));
     }
   }
+
+  // ============================================
+  // REVIEW FUNCTIONS
+  // ============================================
+  const toggleReview = () => {
+    setForm((f: any) => {
+      const newReview = f.review
+        ? null
+        : { name: "", gender: "Male", start: 5, comment: "" };
+      return { ...f, review: newReview };
+    });
+    if (errors.review) setErrors((e) => ({ ...e, review: undefined }));
+  };
+
+  const updateReview = (key: string, value: any) => {
+    setForm((f: any) => ({
+      ...f,
+      review: {
+        ...(f.review || { name: "", gender: "Male", start: 5, comment: "" }),
+        [key]: value,
+      },
+    }));
+    if (errors.review) setErrors((e) => ({ ...e, review: undefined }));
+  };
 
   // ============================================
   // VARIANT GROUP FUNCTIONS
@@ -669,23 +727,153 @@ export default function ProductFormModal({
               )}
             </div>
 
-            {/* Pin */}
-            <div className="flex items-center gap-3 p-3 bg-[rgb(244_242_245)] rounded-xl">
-              <input
-                type="checkbox"
-                id="pin-checkbox"
-                checked={form.pin}
-                onChange={(e) => field("pin", e.target.checked)}
-                className="w-5 h-5 rounded cursor-pointer"
-              />
-              <label
-                htmlFor="pin-checkbox"
-                className="text-sm font-medium text-[rgb(60_28_84)] cursor-pointer flex-1"
-              >
-                {dir === "rtl"
-                  ? "تثبيت هذا المنتج في المتجر"
-                  : "Pin this product to storefront"}
-              </label>
+            {/* Pin & Gift Toggles */}
+            <div className="space-y-3">
+              {/* Pin */}
+              <div className="flex items-center gap-3 p-3 bg-[rgb(244_242_245)] rounded-xl">
+                <input
+                  type="checkbox"
+                  id="pin-checkbox"
+                  checked={form.pin}
+                  onChange={(e) => field("pin", e.target.checked)}
+                  className="w-5 h-5 rounded cursor-pointer"
+                />
+                <label
+                  htmlFor="pin-checkbox"
+                  className="text-sm font-medium text-[rgb(60_28_84)] cursor-pointer flex-1"
+                >
+                  {dir === "rtl"
+                    ? "تثبيت هذا المنتج في المتجر"
+                    : "Pin this product to storefront"}
+                </label>
+              </div>
+
+              {/* Gift */}
+              <div className="flex items-center gap-3 p-3 bg-[rgb(244_242_245)] rounded-xl">
+                <input
+                  type="checkbox"
+                  id="gift-checkbox"
+                  checked={form.gift}
+                  onChange={(e) => field("gift", e.target.checked)}
+                  className="w-5 h-5 rounded cursor-pointer"
+                />
+                <label
+                  htmlFor="gift-checkbox"
+                  className="text-sm font-medium text-[rgb(60_28_84)] cursor-pointer flex-1"
+                >
+                  {dir === "rtl"
+                    ? "تحديد هذا المنتج كهدية"
+                    : "Mark this product as a gift"}
+                </label>
+              </div>
+            </div>
+
+            {/* ============================================ */}
+            {/* REVIEW SECTION                               */}
+            {/* ============================================ */}
+            <div className="pt-4 border-t border-[rgb(244_242_245)]">
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide">
+                  {dir === "rtl" ? "مراجعة مميزة" : "Featured Review"}
+                </label>
+                <button
+                  type="button"
+                  onClick={toggleReview}
+                  className="flex items-center gap-1.5 text-xs font-bold text-[rgb(60_28_84)] bg-[rgb(244_242_245)] px-3.5 py-2 rounded-xl hover:bg-[rgb(207_195_223)] transition-colors border border-[rgb(207_195_223)]/50"
+                >
+                  {form.review ? (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      {dir === "rtl" ? "إزالة" : "Remove"}
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-3.5 h-3.5" />
+                      {dir === "rtl" ? "إضافة مراجعة" : "Add Review"}
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {form.review && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-[rgb(244_242_245)]/40 rounded-xl border border-[rgb(207_195_223)]/50">
+                  {/* Name */}
+                  <div>
+                    <label className="block text-xs text-[rgb(60_28_84)]/60 mb-1.5">
+                      {dir === "rtl" ? "الاسم" : "Name"}
+                    </label>
+                    <input
+                      type="text"
+                      value={form.review.name}
+                      onChange={(e) => updateReview("name", e.target.value)}
+                      placeholder={
+                        dir === "rtl" ? "اسم صاحب المراجعة" : "Reviewer name"
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl border border-[rgb(207_195_223)] bg-white text-sm text-[rgb(60_28_84)] outline-none focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10 transition-all"
+                    />
+                  </div>
+                  {/* Gender */}
+                  <div>
+                    <label className="block text-xs text-[rgb(60_28_84)]/60 mb-1.5">
+                      {dir === "rtl" ? "الجنس" : "Gender"}
+                    </label>
+                    <select
+                      value={form.review.gender}
+                      onChange={(e) => updateReview("gender", e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-[rgb(207_195_223)] bg-white text-sm text-[rgb(60_28_84)] outline-none focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10 transition-all"
+                    >
+                      <option value="Male">
+                        {dir === "rtl" ? "ذكر" : "Male"}
+                      </option>
+                      <option value="Female">
+                        {dir === "rtl" ? "أنثى" : "Female"}
+                      </option>
+                    </select>
+                  </div>
+                  {/* Start (Stars) */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs text-[rgb(60_28_84)]/60 mb-1.5">
+                      {dir === "rtl" ? "التقييم (0-5)" : "Rating (0-5)"}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="5"
+                      step="1"
+                      value={form.review.start}
+                      onChange={(e) =>
+                        updateReview(
+                          "start",
+                          e.target.value ? parseInt(e.target.value) : 0,
+                        )
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl border border-[rgb(207_195_223)] bg-white text-sm text-[rgb(60_28_84)] outline-none focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10 transition-all"
+                    />
+                  </div>
+                  {/* Comment */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs text-[rgb(60_28_84)]/60 mb-1.5">
+                      {dir === "rtl" ? "التعليق" : "Comment"}
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={form.review.comment}
+                      onChange={(e) => updateReview("comment", e.target.value)}
+                      placeholder={
+                        dir === "rtl"
+                          ? "اكتب المراجعة هنا..."
+                          : "Write the review here..."
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl border border-[rgb(207_195_223)] bg-white text-sm text-[rgb(60_28_84)] outline-none focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10 transition-all resize-none"
+                    />
+                  </div>
+                  {errors.review && (
+                    <p className="text-xs text-red-600 mt-1 md:col-span-2">
+                      {errors.review}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* ============================================ */}

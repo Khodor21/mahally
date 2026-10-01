@@ -22,6 +22,30 @@ const DEFAULT_SECTION_BANNER =
   "https://placehold.co/1200x400/f4f2f5/3c1c54?text=Section";
 
 // ==========================================
+// Message Normalization
+// ==========================================
+/** يحول صيغ طلبات مختلفة للمعنى الواحد */
+function normalizeMessage(message: string): string {
+  const couponKeywords = [
+    "كوبون",
+    "كود خصم",
+    "كود ترويج",
+    "كود عرض",
+    "قسيمة خصم",
+    "بروموشن",
+    "عرض ترويجي",
+  ];
+
+  // التحقق من وجود كلمة مفتاحية للكوبون
+  const hasCouponKeyword = couponKeywords.some((kw) => message.includes(kw));
+  if (hasCouponKeyword) {
+    message += "\n[السياق: الطلب يتعلق بإنشاء كوبون أو كود خصم]";
+  }
+
+  return message;
+}
+
+// ==========================================
 // Retry helper — handles 429 from Gemini
 // ==========================================
 async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
@@ -38,10 +62,8 @@ async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
         String(err?.message).toLowerCase().includes("quota") ||
         String(err?.message).toLowerCase().includes("rate");
 
-      // 💡 التعديل هنا: إذا كان الخطأ 429، ارمِ الخطأ فوراً ولا تحاول مرة أخرى
       if (is429) throw err;
 
-      // إذا كان خطأ آخر (مثل مشكلة مؤقتة في سيرفرات جوجل)، استمر في المحاولة
       if (attempt === maxAttempts - 1) throw err;
       const waitMs = Math.pow(2, attempt) * 2000;
       console.warn(
@@ -52,6 +74,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
   }
   throw lastError;
 }
+
 // ==========================================
 // Tool Declarations
 // ==========================================
@@ -97,6 +120,39 @@ const createProductTool: FunctionDeclaration = {
       },
     },
     required: ["title", "price"],
+  },
+};
+
+// ✨ جديد: دالة إنشاء منتجات متعددة
+const createMultipleProductsTool: FunctionDeclaration = {
+  name: "create_multiple_products",
+  description: "إضافة عدة منتجات دفعة واحدة. مثال: 3 منتجات بأسعار مختلفة",
+  parameters: {
+    type: SchemaType.OBJECT,
+    properties: {
+      products: {
+        type: SchemaType.ARRAY,
+        description: "قائمة المنتجات المراد إضافتها",
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            title: { type: SchemaType.STRING, description: "اسم المنتج" },
+            price: { type: SchemaType.NUMBER, description: "السعر" },
+            description: {
+              type: SchemaType.STRING,
+              description: "الوصف (اختياري)",
+            },
+            stock: { type: SchemaType.NUMBER, description: "الكمية" },
+            discount_price: {
+              type: SchemaType.NUMBER,
+              description: "سعر الخصم (اختياري)",
+            },
+          },
+          required: ["title", "price"],
+        },
+      },
+    },
+    required: ["products"],
   },
 };
 
@@ -186,8 +242,6 @@ const deleteCategoryTool: FunctionDeclaration = {
     required: ["category_name"],
   },
 };
-
-// ── Section Tools ──────────────────────────────────────────────────────────
 
 const createSectionTool: FunctionDeclaration = {
   name: "create_section",
@@ -382,21 +436,31 @@ export async function POST(req: Request) {
       );
     }
 
+    // ✨ تطبيع الرسالة لفهم صيغ مختلفة
+    const normalizedMessage = normalizeMessage(message);
+
     const model = genAI.getGenerativeModel({
       model: "gemini-3.6-flash",
       systemInstruction: `أنت 'مساعد محلي'، ذكاء اصطناعي متخصص حصرياً في إدارة المتجر الإلكتروني على منصة 'محلي'.
 مهمتك مساعدة التاجر في إدارة منتجاته وأقسامه وأقسام الواجهة (Storefront Sections) وكوبونات الخصم وتقارير التحليلات.
 
-قواعد المنتج: title وprice مطلوبان. اسأل عن الناقص قبل الإنشاء.
-قواعد القسم (category): title مطلوب فقط.
-قواعد قسم الواجهة (section): title واسم التصنيف المرتبط به مطلوبان. اسأل عن الناقص.
-لا تسأل عن الصور أبداً — تُستخدم صور افتراضية تلقائياً.
-إذا سألك المستخدم عن مواضيع خارج المتجر، ارفض بلباقة.`,
+🎯 **المرادفات التي تفهمها:**
+- "كوبون" = "كود خصم" = "كود ترويج" = "كود عرض" = "قسيمة خصم"
+- عند سؤالك عن أي من هذه، استدعِ دالة create_coupon
+
+📋 **القواعد:**
+- قاعدة المنتج: title وprice مطلوبان. اسأل عن الناقص قبل الإنشاء.
+- قاعدة القسم (category): title مطلوب فقط.
+- قاعدة قسم الواجهة (section): title واسم التصنيف المرتبط به مطلوبان.
+- عند طلب منتجات متعددة في أمر واحد، استخدم دالة create_multiple_products
+- لا تسأ عن الصور أبداً — تُستخدم صور افتراضية تلقائياً.
+- إذا سألك المستخدم عن مواضيع خارج المتجر، ارفض بلباقة.`,
       tools: [
         {
           functionDeclarations: [
             createCouponTool,
             createProductTool,
+            createMultipleProductsTool, // ✨ جديد
             updateProductTool,
             deleteProductTool,
             createCategoryTool,
@@ -413,7 +477,7 @@ export async function POST(req: Request) {
 
     const response = await withRetry(async () => {
       const chat = model.startChat();
-      const result = await chat.sendMessage(message);
+      const result = await chat.sendMessage(normalizedMessage); // ✨ استخدم normalizedMessage
       return result.response;
     });
 
@@ -480,6 +544,87 @@ export async function POST(req: Request) {
         return NextResponse.json({
           success: true,
           reply: `✅ تم إضافة المنتج **${title}** بسعر **${price}$** بنجاح!\n\n> 💡 يمكنك تعديل صورة المنتج من لوحة المنتجات.`,
+        });
+      }
+
+      // ── Create Multiple Products ✨ جديد ────────────────────────────────
+      else if (call.name === "create_multiple_products") {
+        const { products } = call.args as any;
+
+        if (!Array.isArray(products) || products.length === 0) {
+          return NextResponse.json({
+            success: true,
+            reply: "لم أفهم قائمة المنتجات. يرجى تحديدها بوضوح.",
+          });
+        }
+
+        const results: any[] = [];
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const product of products) {
+          // التحقق من البيانات المطلوبة
+          if (
+            !product.title?.trim() ||
+            !product.price ||
+            Number(product.price) <= 0
+          ) {
+            results.push({
+              title: product.title || "بدون اسم",
+              status: "❌",
+              reason: "اسم أو سعر ناقص",
+            });
+            failCount++;
+            continue;
+          }
+
+          const result = await callAPI(cookieHeader, "/api/products", "POST", {
+            title: product.title.trim(),
+            description: product.description?.trim() || "",
+            price: Number(product.price),
+            discount_price: product.discount_price
+              ? Number(product.discount_price)
+              : null,
+            stock: product.stock !== undefined ? Number(product.stock) : 0,
+            images: [DEFAULT_PRODUCT_IMAGE],
+            variantGroups: [],
+            pin: false,
+          });
+
+          if (result.ok) {
+            results.push({
+              title: product.title,
+              status: "✅",
+              price: `$${product.price}`,
+              stock: product.stock || 0,
+            });
+            successCount++;
+          } else {
+            results.push({
+              title: product.title,
+              status: "❌",
+              reason: result.message,
+            });
+            failCount++;
+          }
+        }
+
+        const summary = results
+          .map((r) => {
+            let line = `${r.status} **${r.title}**`;
+            if (r.price) line += ` - ${r.price}`;
+            if (r.stock) line += ` (الكمية: ${r.stock})`;
+            if (r.reason) line += ` - ⚠️ ${r.reason}`;
+            return line;
+          })
+          .join("\n");
+
+        return NextResponse.json({
+          success: true,
+          reply:
+            `📦 **تم معالجة ${products.length} منتج:**\n\n${summary}\n\n` +
+            `✅ نجح: ${successCount} | ❌ فشل: ${failCount}\n\n` +
+            `> 💡 يمكنك تعديل الصور من لوحة المنتجات.`,
         });
       }
 
@@ -651,7 +796,6 @@ export async function POST(req: Request) {
             reply: `بأي تصنيف تريد ربط قسم "${title}"؟`,
           });
 
-        // Resolve category ID from name
         const category = await findCategoryByName(storeId, category_name);
         if (!category) {
           return NextResponse.json({
@@ -695,7 +839,6 @@ export async function POST(req: Request) {
             reply: `❌ لم أجد قسم واجهة باسم "${section_name}".`,
           });
 
-        // Resolve new category if provided
         let categoryId = section.category_id;
         let categoryTitle: string | undefined;
         if (category_name?.trim()) {
@@ -758,7 +901,6 @@ export async function POST(req: Request) {
             reply: `❌ لم أجد قسم واجهة باسم "${section_name}".`,
           });
 
-        // DELETE /api/sections/[id]?store_id=...
         const result = await callAPI(
           cookieHeader,
           `/api/sections/${section.id}`,

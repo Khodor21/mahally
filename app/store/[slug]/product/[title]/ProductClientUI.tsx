@@ -15,6 +15,9 @@ import {
   CheckCircle,
   AlertTriangle,
   ArrowRight,
+  BookText,
+  Star,
+  Gift,
 } from "lucide-react";
 import { useShop } from "@/app/store/context";
 import ShareIcons from "./components/ShareIcons";
@@ -41,6 +44,13 @@ export interface SelectedVariants {
   [groupId: string]: VariantOption;
 }
 
+export interface ProductReview {
+  name: string;
+  gender: string;
+  start: number;
+  comment: string;
+}
+
 export interface Product {
   id: string | number;
   title: string;
@@ -53,6 +63,8 @@ export interface Product {
   variantGroups?: string | VariantGroup[];
   preorder_enabled?: boolean;
   preorder_label?: string | null;
+  gift?: boolean;
+  review?: ProductReview | null;
 }
 
 export type ProductClientUIProps = {
@@ -117,8 +129,8 @@ export default function ProductClientUI({
     cartItems,
     updateCartQty,
     removeFromCart,
+    setGiftOrder,
   } = useShop();
-
   const dir = lang === "ar" ? "rtl" : "ltr";
 
   const t = {
@@ -400,7 +412,34 @@ export default function ProductClientUI({
         ? `وصلت للحد الأقصى — ${activeStock} قطع فقط متوفرة`
         : `That's all we have — only ${activeStock} in stock`
     : null;
+  // في ProductClientUI.tsx، في الـ gift button handler:
 
+  const handleSendAsGift = () => {
+    if (isActionDisabled) {
+      setStockWarning(true);
+      return;
+    }
+
+    setGiftOrder({
+      items: [
+        {
+          product: normalizedProduct,
+          qty: quantity,
+          variantSelections: variantSelectionsForCart,
+        },
+      ],
+      senderName: "",
+      senderPhone: "",
+      recipientName: "",
+      recipientPhone: "",
+      recipientAddress: "",
+      recipientCity: "",
+      giftMessage: "",
+      giftOccasion: "",
+    });
+
+    router.push("/gift-checkout");
+  };
   const handleAddToCart = () => {
     if (isActionDisabled) {
       setStockWarning(true);
@@ -786,7 +825,26 @@ export default function ProductClientUI({
                 lang={lang}
               />
             </div>
-
+            {/* GIFT SECTION - MOBILE */}
+            {product.gift && (
+              <div className="md:hidden mt-6 pt-6 border-t border-gray-100">
+                <span className="text-sm font-semibold text-gray-800 shrink-0">
+                  {lang === "ar" ? "أهدِ هذا المنتج" : "Send as a Gift"}
+                </span>
+                <p className="text-xs text-gray-600 mb-4 leading-relaxed">
+                  {lang === "ar"
+                    ? "يمكن الآن إرسال الهدايا لمن تحب عن طريق متجرنا بكل سهولة"
+                    : "You can now send gifts to your loved ones through our store with ease"}
+                </p>
+                <button
+                  onClick={handleSendAsGift}
+                  className="w-full py-2 px-4 bg-white border-2 border-black/30 text-black/60 rounded-sm text-sm font-medium hover:bg-purple-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Gift strokeWidth={0.75} />{" "}
+                  {lang === "ar" ? "أرسل كهدية" : "Send as Gift"}
+                </button>
+              </div>
+            )}
             {/* Action Buttons (DESKTOP ONLY) */}
             <div className="hidden md:block">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -811,6 +869,26 @@ export default function ProductClientUI({
                   {t.buyNow}
                 </button>
               </div>
+              {/* GIFT SECTION - DESKTOP */}
+              {product.gift && (
+                <div className="hidden md:block mt-6 pt-6 border-t border-gray-100">
+                  <span className="text-sm font-medium text-gray-900 mb-3 uppercase tracking-wide">
+                    {lang === "ar" ? "أهدِ هذا المنتج" : "Send as a Gift"}
+                  </span>
+                  <p className="text-xs text-gray-600 font-regular mb-4 leading-relaxed">
+                    {lang === "ar"
+                      ? "يمكن الآن إرسال الهدايا لمن تحب عن طريق متجرنا بكل سهولة"
+                      : "You can now send gifts to your loved ones through our store with ease"}
+                  </p>
+                  <button
+                    onClick={handleSendAsGift}
+                    className="w-full py-2 px-4 bg-white border-2 border-black/30 text-black/60 rounded-sm text-sm font-bold hover:bg-purple-50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Gift strokeWidth={0.75} />
+                    {lang === "ar" ? "أرسل كهدية" : "Send as Gift"}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -821,22 +899,24 @@ export default function ProductClientUI({
             <div className="w-full md:w-64 flex flex-row md:flex-col gap-2 shrink-0">
               <button
                 onClick={() => setActiveTab("details")}
-                className={`text-center md:text-start text-sm py-2 px-4 rounded-lg font-regular transition-colors ${
+                className={`text-center md:text-start text-sm py-2 px-4 rounded-lg font-regular transition-colors flex items-center gap-1  ${
                   activeTab === "details"
                     ? "text-brand-primary bg-[rgb(244_242_245)]"
                     : "text-gray-500"
                 }`}
               >
+                <BookText strokeWidth={0.75} />
                 {t.details}
               </button>
               <button
                 onClick={() => setActiveTab("reviews")}
-                className={`text-center md:text-start text-sm py-2 px-4 rounded-lg font-regular transition-colors ${
+                className={`text-center md:text-start text-sm py-2 px-4 rounded-lg font-regular transition-colors flex items-center gap-1 ${
                   activeTab === "reviews"
                     ? "text-brand-primary bg-[rgb(244_242_245)]"
                     : "text-gray-500"
                 }`}
               >
+                <Star strokeWidth={0.75} />
                 {t.reviews}
               </button>
             </div>
@@ -848,8 +928,84 @@ export default function ProductClientUI({
                   </p>
                 </div>
               ) : (
-                <div className="text-black/90 py-10 text-center">
-                  {t.noReviews}
+                <div>
+                  {product.review ? (
+                    <div className="space-y-4">
+                      {/* Featured Review Card */}
+                      <div className="bg-[#fafafa] border border-purple-100 rounded p-6 md:p-8">
+                        {/* Header with name and badge */}
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-4">
+                              {/* Avatar */}
+                              <img
+                                src={
+                                  product.review.gender === "Male"
+                                    ? "/avatars/avatar-mahally-male.jpg"
+                                    : "/avatars/avatar-mahally-female.jpg"
+                                }
+                                alt={product.review.name}
+                                className="w-10 h-10 md:w-12 md:h-12 rounded-full flex-shrink-0 object-cover"
+                              />
+
+                              {/* Name and verified badge */}
+                              <div className="flex flex-col">
+                                <h3 className="font-bold text-gray-900 text-base md:text-lg">
+                                  {product.review.name}
+                                </h3>
+                                <div className="flex items-center gap-1 mt-1">
+                                  <CheckCircle className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+                                  <span className="text-xs text-emerald-600 font-medium">
+                                    {lang === "ar"
+                                      ? "مشترٍ موثق"
+                                      : "Verified Buyer"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Star rating */}
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <span
+                                key={i}
+                                className={`text-base ${
+                                  i < (product.review?.start ?? 0)
+                                    ? "text-yellow-400"
+                                    : "text-gray-200"
+                                }`}
+                              >
+                                ★
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        {/* Review comment */}
+                        <p className="text-gray-700 text-sm md:text-base leading-relaxed mb-3">
+                          {product.review.comment}
+                        </p>
+
+                        {/* Date */}
+                        <span className="text-[13px] text-black/80 font-regular">
+                          {lang === "ar"
+                            ? `تقييم من ${new Date().toLocaleDateString("en-US")}`
+                            : `Reviewed on ${new Date().toLocaleDateString("en-US")}`}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center">
+                      <div className="flex items-center justify-center mx-auto mb-2">
+                        <Star className="w-6 h-6 text-gray-500" />
+                      </div>
+                      <p className="text-gray-500 text-sm font-medium">
+                        {lang === "ar"
+                          ? "لا توجد تقييمات بعد!"
+                          : "No reviews yet!"}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
