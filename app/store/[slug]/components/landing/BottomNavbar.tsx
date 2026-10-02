@@ -143,8 +143,7 @@ export default function BottomNavbar({
                     : "text-gray-800 group-hover:text-gray-600"
                 }`}
               >
-                {/* ARCHITECTURE FIX: Changed item.icon to item.activeIcon when active is true */}
-                {active ? item.activeIcon : item.icon}
+                {active ? item.icon : item.icon}
               </div>
 
               <span

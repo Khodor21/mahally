@@ -6,6 +6,94 @@ import { useRouter } from "next/navigation";
 import { Search, Heart, ShoppingBag, X, User } from "lucide-react";
 import { useShop } from "@/app/store/context";
 
+// --- Arabic Search Utilities (Embedded & Upgraded) ---
+
+function normalizeArabicSearch(text: string): string {
+  if (!text) return "";
+
+  let normalized = text;
+  // تحويل الآلف المختلفة إلى ألف موحدة
+  normalized = normalized.replace(/أ|إ|آ/g, "ا");
+  // تحويل التاء المربوطة إلى هاء
+  normalized = normalized.replace(/ة/g, "ه");
+  // تحويل اليـــاء والألف الممدودة
+  normalized = normalized.replace(/ى/g, "ي");
+  // إزالة التشكيل
+  normalized = normalized.replace(/[\u064B-\u065F]/g, "");
+  // إزالة المسافات الزائدة
+  normalized = normalized.trim().replace(/\s+/g, " ");
+
+  return normalized.toLowerCase();
+}
+
+function fuzzySearchArabic(text: string, query: string): boolean {
+  return normalizeArabicSearch(text).includes(normalizeArabicSearch(query));
+}
+
+function filterItemsArabic<T>(
+  items: T[],
+  query: string,
+  searchField: (item: T) => string,
+): T[] {
+  if (!query.trim()) return items;
+  return items.filter((item) => fuzzySearchArabic(searchField(item), query));
+}
+
+function highlightArabicMatch(text: string, query: string): string {
+  const normalizedText = normalizeArabicSearch(text);
+  const normalizedQuery = normalizeArabicSearch(query);
+
+  if (!normalizedText.includes(normalizedQuery)) return text;
+
+  const startIdx = normalizedText.indexOf(normalizedQuery);
+  const endIdx = startIdx + normalizedQuery.length;
+
+  return `${text.slice(0, startIdx)}<mark>${text.slice(
+    startIdx,
+    endIdx,
+  )}</mark>${text.slice(endIdx)}`;
+}
+
+/**
+ * Aggressively generates permutations for common Arabic spelling mistakes.
+ * Guarantees that typing "ازر" generates "آزر", "أزر", "إزر".
+ */
+function getAlternativeSpellings(text: string): string[] {
+  const alternatives: Set<string> = new Set();
+
+  // 1. Fully Normalized Base
+  const fullyNormalized = normalizeArabicSearch(text);
+  alternatives.add(fullyNormalized);
+
+  // 2. Word-Initial Alef Variations (Catches: ازر -> آزر, ابابيل -> أبابيل)
+  const replaceInitial = (str: string, char: string) =>
+    str.replace(/(^|\s)[اأإآ]/g, `$1${char}`);
+  alternatives.add(replaceInitial(text, "ا"));
+  alternatives.add(replaceInitial(text, "أ"));
+  alternatives.add(replaceInitial(text, "إ"));
+  alternatives.add(replaceInitial(text, "آ"));
+
+  // 3. Global Alef Variations (Catches middle-word mistakes: قرأن -> قرآن)
+  alternatives.add(text.replace(/[اأإآ]/g, "ا"));
+  alternatives.add(text.replace(/[اأإآ]/g, "أ"));
+  alternatives.add(text.replace(/[اأإآ]/g, "إ"));
+  alternatives.add(text.replace(/[اأإآ]/g, "آ"));
+
+  // 4. Word-Final Haa / Taa Marbuta
+  const replaceFinal = (str: string, from: string, to: string) =>
+    str.replace(new RegExp(`${from}(?=\\s|$)`, "g"), to);
+  alternatives.add(replaceFinal(text, "ه", "ة"));
+  alternatives.add(replaceFinal(text, "ة", "ه"));
+
+  // 5. Word-Final Yaa / Alif Maqsura
+  alternatives.add(replaceFinal(text, "ي", "ى"));
+  alternatives.add(replaceFinal(text, "ى", "ي"));
+
+  return Array.from(alternatives);
+}
+
+// --- End Arabic Search Utilities ---
+
 interface Category {
   id: string;
   title: string;
@@ -60,8 +148,6 @@ export default function Navbar({
   const [searchLoading, setSearchLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
-
-  // New state to track scroll position for premium sticky effect
   const [isScrolled, setIsScrolled] = useState(false);
 
   const { cartCount, favCount } = useShop();
@@ -72,18 +158,13 @@ export default function Navbar({
 
   // Track scroll position
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-
-    // Check initial position on mount
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
     handleScroll();
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Listen for the custom event emitted by BottomNavbar to open the search modal
+  // Listen for modal
   useEffect(() => {
     const handleOpenSearch = () => setSearchOpen(true);
     window.addEventListener("open-search-modal", handleOpenSearch);
@@ -102,9 +183,7 @@ export default function Navbar({
         const res = await fetch(
           `/api/categories?store_id=${storeId}&lang=${lang}`,
         );
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
         const list = data?.data || data?.categories || data || [];
         setCategories(Array.isArray(list) ? list : []);
@@ -119,7 +198,7 @@ export default function Navbar({
     fetchNavbarCategories();
   }, [storeId, lang, isMini]);
 
-  // Debounced product search
+  // Debounced product search with Concurrent Silent Arabic Fallback
   useEffect(() => {
     if (!searchOpen) return;
 
@@ -138,12 +217,48 @@ export default function Navbar({
     setSearchLoading(true);
     const timer = setTimeout(async () => {
       try {
+        const searchTrimmed = searchQuery.trim();
         const res = await fetch(
-          `/api/search?q=${encodeURIComponent(searchQuery.trim())}&store_id=${storeId}`,
+          `/api/search?q=${encodeURIComponent(searchTrimmed)}&store_id=${storeId}`,
         );
+
         if (res.ok) {
-          const json = await res.json();
-          setSearchResults(json.data || []);
+          let json = await res.json();
+          let results = json.data || [];
+
+          // SILENT FALLBACK: If exactly 0 results found, race all Arabic permutations concurrently
+          if (results.length === 0 && isRTL) {
+            const alternatives = getAlternativeSpellings(searchTrimmed);
+            // Get unique variations excluding the original query
+            const uniqueVariations = Array.from(new Set(alternatives)).filter(
+              (alt) => alt && alt !== searchTrimmed,
+            );
+
+            if (uniqueVariations.length > 0) {
+              // Create an array of fetch promises for all spelling variations
+              const fetchPromises = uniqueVariations.map(async (variation) => {
+                const resAlt = await fetch(
+                  `/api/search?q=${encodeURIComponent(variation)}&store_id=${storeId}`,
+                );
+                if (!resAlt.ok) throw new Error("Failed");
+                const jsonAlt = await resAlt.json();
+                if (jsonAlt.data && jsonAlt.data.length > 0) {
+                  return jsonAlt.data; // Resolve immediately if results exist
+                }
+                throw new Error("No results");
+              });
+
+              try {
+                // Promise.any resolves instantly when the FIRST successful variation returns data
+                const firstSuccessfulResult = await Promise.any(fetchPromises);
+                results = firstSuccessfulResult;
+              } catch (e) {
+                // All variations returned 0 results. It will remain empty.
+              }
+            }
+          }
+
+          setSearchResults(results);
         } else {
           setSearchResults([]);
         }
@@ -155,7 +270,7 @@ export default function Navbar({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, searchOpen, storeId]);
+  }, [searchQuery, searchOpen, storeId, isRTL]);
 
   // Prevent scroll when modals open
   useEffect(() => {
@@ -174,6 +289,9 @@ export default function Navbar({
     profile: isRTL ? "الحساب" : "Profile",
     popularSearches: isRTL ? "عمليات بحث شائعة" : "Popular Searches",
     recommended: isRTL ? "مقترحات لك" : "Recommended",
+    tryAnother: isRTL
+      ? "لم نجد نتائج مطابقة لبحثك. جرب كلمات مختلفة."
+      : "No results found. Try a different search.",
   };
 
   const hasPopularSearches = popularSearches.length > 0;
@@ -444,8 +562,11 @@ export default function Navbar({
                   })}
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-[120px] text-sm text-gray-500">
-                  {t.noResults}
+                <div className="space-y-4 flex flex-col items-center justify-center h-[160px]">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-2">{t.noResults}</p>
+                    <p className="text-xs text-gray-500">{t.tryAnother}</p>
+                  </div>
                 </div>
               )}
             </div>
