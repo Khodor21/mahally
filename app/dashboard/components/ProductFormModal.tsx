@@ -23,7 +23,7 @@ import type {
 
 import type { Translations } from "../i18n";
 import { uploadImages } from "@/lib/image-upload";
-import { useCategories } from "@/hooks/useApi";
+import { useCategories, useProducts } from "@/hooks/useApi";
 
 interface Props {
   mode: "create" | "edit";
@@ -137,6 +137,11 @@ export default function ProductFormModal({
       (rawCategoriesData as any)?.categories ||
       [];
 
+  const { data: allProducts } = useProducts();
+  const existingTitles = (allProducts ?? [])
+    .filter((p: Product) => mode === "edit" && p.id !== product?.id ? true : mode === "create")
+    .map((p: Product) => p.title.toLowerCase());
+
   useEffect(() => {
     if (mode === "edit" && product) {
       let parsedVariantGroups: any[] = [];
@@ -219,7 +224,16 @@ export default function ProductFormModal({
       >
     > = {};
 
-    if (!form.title.trim()) errs.title = tr.titleRequired;
+    const title = form.title.trim();
+    if (!title) {
+      errs.title = tr.titleRequired;
+    } else if (existingTitles.includes(title.toLowerCase())) {
+      errs.title = dir === "rtl" ? "هذا العنوان موجود بالفعل" : "This title already exists";
+    }
+
+    if (!form.category_id) {
+      errs.category_id = dir === "rtl" ? "الفئة مطلوبة" : "Category is required";
+    }
 
     const p = parseFloat(form.price);
     if (isNaN(p) || p < 0)
@@ -316,7 +330,22 @@ export default function ProductFormModal({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!validate() || uploading) return;
+    if (!validate() || uploading) {
+      // Scroll to first error field
+      setTimeout(() => {
+        const errorElement = document.querySelector('[data-error="true"]');
+        const formContainer = document.querySelector('form#product-form')?.parentElement;
+        if (errorElement && formContainer) {
+          const elementRect = errorElement.getBoundingClientRect();
+          const containerRect = formContainer.getBoundingClientRect();
+          const scrollTop = formContainer.scrollTop;
+          const targetScroll = scrollTop + (elementRect.top - containerRect.top) - 100;
+          
+          formContainer.scrollTo({ top: targetScroll, behavior: 'smooth' });
+        }
+      }, 0);
+      return;
+    }
 
     const cleanedVariantGroups = form.variantGroups
       .map((group: any) => ({
@@ -525,7 +554,7 @@ export default function ProductFormModal({
         >
           <div className="px-6 py-6 space-y-8">
             {/* Title */}
-            <div>
+            <div data-error={errors.title ? "true" : "false"}>
               <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-2.5">
                 {tr.title || "Product Title"}
               </label>
@@ -563,14 +592,18 @@ export default function ProductFormModal({
             </div>
 
             {/* Category */}
-            <div>
+            <div data-error={errors.category_id ? "true" : "false"}>
               <label className="block text-xs font-bold text-[rgb(60_28_84)] uppercase tracking-wide mb-2.5">
-                {tr.category || "Category"}
+                {tr.category || "Category"} *
               </label>
               <select
                 value={form.category_id}
                 onChange={(e) => field("category_id", e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-[rgb(207_195_223)] bg-white text-sm text-[rgb(60_28_84)] outline-none focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10 transition-all"
+                className={`w-full px-4 py-3 rounded-xl border bg-white text-sm text-[rgb(60_28_84)] outline-none transition-all ${
+                  errors.category_id
+                    ? "border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                    : "border-[rgb(207_195_223)] focus:border-[rgb(60_28_84)] focus:ring-2 focus:ring-[rgb(60_28_84)]/10"
+                }`}
               >
                 <option value="">
                   {dir === "rtl" ? "اختر فئة" : "Select a category"}
@@ -581,6 +614,9 @@ export default function ProductFormModal({
                   </option>
                 ))}
               </select>
+              {errors.category_id && (
+                <p className="text-xs text-red-600 mt-1">{errors.category_id}</p>
+              )}
             </div>
 
             {/* Pricing */}

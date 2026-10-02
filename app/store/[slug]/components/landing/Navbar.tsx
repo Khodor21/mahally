@@ -30,34 +30,6 @@ function fuzzySearchArabic(text: string, query: string): boolean {
   return normalizeArabicSearch(text).includes(normalizeArabicSearch(query));
 }
 
-function filterItemsArabic<T>(
-  items: T[],
-  query: string,
-  searchField: (item: T) => string,
-): T[] {
-  if (!query.trim()) return items;
-  return items.filter((item) => fuzzySearchArabic(searchField(item), query));
-}
-
-function highlightArabicMatch(text: string, query: string): string {
-  const normalizedText = normalizeArabicSearch(text);
-  const normalizedQuery = normalizeArabicSearch(query);
-
-  if (!normalizedText.includes(normalizedQuery)) return text;
-
-  const startIdx = normalizedText.indexOf(normalizedQuery);
-  const endIdx = startIdx + normalizedQuery.length;
-
-  return `${text.slice(0, startIdx)}<mark>${text.slice(
-    startIdx,
-    endIdx,
-  )}</mark>${text.slice(endIdx)}`;
-}
-
-/**
- * Aggressively generates permutations for common Arabic spelling mistakes.
- * Guarantees that typing "ازر" generates "آزر", "أزر", "إزر".
- */
 function getAlternativeSpellings(text: string): string[] {
   const alternatives: Set<string> = new Set();
 
@@ -65,7 +37,7 @@ function getAlternativeSpellings(text: string): string[] {
   const fullyNormalized = normalizeArabicSearch(text);
   alternatives.add(fullyNormalized);
 
-  // 2. Word-Initial Alef Variations (Catches: ازر -> آزر, ابابيل -> أبابيل)
+  // 2. Word-Initial Alef Variations
   const replaceInitial = (str: string, char: string) =>
     str.replace(/(^|\s)[اأإآ]/g, `$1${char}`);
   alternatives.add(replaceInitial(text, "ا"));
@@ -73,7 +45,7 @@ function getAlternativeSpellings(text: string): string[] {
   alternatives.add(replaceInitial(text, "إ"));
   alternatives.add(replaceInitial(text, "آ"));
 
-  // 3. Global Alef Variations (Catches middle-word mistakes: قرأن -> قرآن)
+  // 3. Global Alef Variations
   alternatives.add(text.replace(/[اأإآ]/g, "ا"));
   alternatives.add(text.replace(/[اأإآ]/g, "أ"));
   alternatives.add(text.replace(/[اأإآ]/g, "إ"));
@@ -94,6 +66,22 @@ function getAlternativeSpellings(text: string): string[] {
 
 // --- End Arabic Search Utilities ---
 
+interface VariantOption {
+  id: string;
+  value: string;
+  price?: number;
+  stock?: number;
+}
+
+interface VariantGroup {
+  id: string;
+  title: string;
+  type: "select" | "text";
+  options: VariantOption[];
+  allowPrice: boolean;
+  allowStock: boolean;
+}
+
 interface Category {
   id: string;
   title: string;
@@ -106,6 +94,7 @@ interface SearchResult {
   price: number;
   discount_price: number | null;
   images: string[] | null;
+  variantGroups?: VariantGroup[];
 }
 
 type NavbarProps = {
@@ -128,6 +117,39 @@ function formatPrice(value: number) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+/**
+ * Build searchable subtitle from variant groups with type="text"
+ * Example: "سلسلة متلازمة فريجولي: الجزء الثاني"
+ */
+function getVariantSubtitle(variantGroups: VariantGroup[] | undefined): string {
+  if (!variantGroups || variantGroups.length === 0) return "";
+
+  const textVariants = variantGroups.filter((g) => g.type === "text");
+  if (textVariants.length === 0) return "";
+
+  const parts: string[] = [];
+
+  for (const group of textVariants) {
+    const groupTitle = group.title ? group.title.trim() : "";
+
+    if (group.options) {
+      for (const option of group.options) {
+        if (option.value) {
+          const optValue = option.value.trim();
+          // إذا كان هناك اسم للمجموعة والقيمة، ادمجهما بشكل جميل
+          if (groupTitle) {
+            parts.push(`${groupTitle}: ${optValue}`);
+          } else {
+            parts.push(optValue);
+          }
+        }
+      }
+    }
+  }
+
+  return parts.join(" • ");
 }
 
 export default function Navbar({
@@ -528,6 +550,10 @@ export default function Navbar({
                       ? formatPrice(product.discount_price ?? product.price)
                       : formatPrice(product.price);
 
+                    const variantSubtitle = getVariantSubtitle(
+                      product.variantGroups,
+                    );
+
                     return (
                       <Link
                         key={product.id}
@@ -546,6 +572,11 @@ export default function Navbar({
                           <p className="text-sm md:text-base font-medium text-gray-900 truncate">
                             {product.title}
                           </p>
+                          {variantSubtitle && (
+                            <p className="text-xs text-gray-500 truncate mt-0.5">
+                              {variantSubtitle}
+                            </p>
+                          )}
                           <div className="flex items-center gap-2 mt-0.5">
                             <p className="text-sm md:text-base font-medium text-[rgb(var(--color-brand-primary))]">
                               {displayPrice}
