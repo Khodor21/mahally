@@ -5,66 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, Heart, ShoppingBag, X, User } from "lucide-react";
 import { useShop } from "@/app/store/context";
-
-// --- Arabic Search Utilities (Embedded & Upgraded) ---
-
-function normalizeArabicSearch(text: string): string {
-  if (!text) return "";
-
-  let normalized = text;
-  // تحويل الآلف المختلفة إلى ألف موحدة
-  normalized = normalized.replace(/أ|إ|آ/g, "ا");
-  // تحويل التاء المربوطة إلى هاء
-  normalized = normalized.replace(/ة/g, "ه");
-  // تحويل اليـــاء والألف الممدودة
-  normalized = normalized.replace(/ى/g, "ي");
-  // إزالة التشكيل
-  normalized = normalized.replace(/[\u064B-\u065F]/g, "");
-  // إزالة المسافات الزائدة
-  normalized = normalized.trim().replace(/\s+/g, " ");
-
-  return normalized.toLowerCase();
-}
-
-function fuzzySearchArabic(text: string, query: string): boolean {
-  return normalizeArabicSearch(text).includes(normalizeArabicSearch(query));
-}
-
-function getAlternativeSpellings(text: string): string[] {
-  const alternatives: Set<string> = new Set();
-
-  // 1. Fully Normalized Base
-  const fullyNormalized = normalizeArabicSearch(text);
-  alternatives.add(fullyNormalized);
-
-  // 2. Word-Initial Alef Variations
-  const replaceInitial = (str: string, char: string) =>
-    str.replace(/(^|\s)[اأإآ]/g, `$1${char}`);
-  alternatives.add(replaceInitial(text, "ا"));
-  alternatives.add(replaceInitial(text, "أ"));
-  alternatives.add(replaceInitial(text, "إ"));
-  alternatives.add(replaceInitial(text, "آ"));
-
-  // 3. Global Alef Variations
-  alternatives.add(text.replace(/[اأإآ]/g, "ا"));
-  alternatives.add(text.replace(/[اأإآ]/g, "أ"));
-  alternatives.add(text.replace(/[اأإآ]/g, "إ"));
-  alternatives.add(text.replace(/[اأإآ]/g, "آ"));
-
-  // 4. Word-Final Haa / Taa Marbuta
-  const replaceFinal = (str: string, from: string, to: string) =>
-    str.replace(new RegExp(`${from}(?=\\s|$)`, "g"), to);
-  alternatives.add(replaceFinal(text, "ه", "ة"));
-  alternatives.add(replaceFinal(text, "ة", "ه"));
-
-  // 5. Word-Final Yaa / Alif Maqsura
-  alternatives.add(replaceFinal(text, "ي", "ى"));
-  alternatives.add(replaceFinal(text, "ى", "ي"));
-
-  return Array.from(alternatives);
-}
-
-// --- End Arabic Search Utilities ---
+import {
+  normalizeArabicText,
+  extractVariantSearchTexts,
+  parseVariantGroups,
+  highlightMatch,
+} from "@/lib/arabicSearchEngine";
 
 interface VariantOption {
   id: string;
@@ -78,8 +24,8 @@ interface VariantGroup {
   title: string;
   type: "select" | "text";
   options: VariantOption[];
-  allowPrice: boolean;
-  allowStock: boolean;
+  allowPrice?: boolean;
+  allowStock?: boolean;
 }
 
 interface Category {
@@ -120,36 +66,31 @@ function formatPrice(value: number) {
 }
 
 /**
- * Build searchable subtitle from variant groups with type="text"
- * Example: "سلسلة متلازمة فريجولي: الجزء الثاني"
+ * Get variant display text from parsed variant groups
+ * Shows variant titles and text option values
  */
-function getVariantSubtitle(variantGroups: VariantGroup[] | undefined): string {
+function getVariantDisplayText(
+  variantGroups: VariantGroup[] | undefined,
+): string {
   if (!variantGroups || variantGroups.length === 0) return "";
 
-  const textVariants = variantGroups.filter((g) => g.type === "text");
-  if (textVariants.length === 0) return "";
+  const texts: string[] = [];
 
-  const parts: string[] = [];
-
-  for (const group of textVariants) {
-    const groupTitle = group.title ? group.title.trim() : "";
-
-    if (group.options) {
-      for (const option of group.options) {
-        if (option.value) {
-          const optValue = option.value.trim();
-          // إذا كان هناك اسم للمجموعة والقيمة، ادمجهما بشكل جميل
-          if (groupTitle) {
-            parts.push(`${groupTitle}: ${optValue}`);
-          } else {
-            parts.push(optValue);
+  for (const group of variantGroups) {
+    // Only include text type variants
+    if (group.type === "text") {
+      if (group.options && group.options.length > 0) {
+        // Add option values (e.g., "الجزء الثالث")
+        for (const option of group.options) {
+          if (option.value) {
+            texts.push(option.value);
           }
         }
       }
     }
   }
 
-  return parts.join(" • ");
+  return texts.join(" • ");
 }
 
 export default function Navbar({
@@ -186,7 +127,7 @@ export default function Navbar({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Listen for modal
+  // Listen for modal event from BottomNavbar
   useEffect(() => {
     const handleOpenSearch = () => setSearchOpen(true);
     window.addEventListener("open-search-modal", handleOpenSearch);
@@ -210,7 +151,7 @@ export default function Navbar({
         const list = data?.data || data?.categories || data || [];
         setCategories(Array.isArray(list) ? list : []);
       } catch (error) {
-        console.error("Failed to fetch categories for navbar:", error);
+        console.error("Failed to fetch categories:", error);
         setCategories([]);
       } finally {
         setLoadingCategories(false);
@@ -220,7 +161,7 @@ export default function Navbar({
     fetchNavbarCategories();
   }, [storeId, lang, isMini]);
 
-  // Debounced product search with Concurrent Silent Arabic Fallback
+  // Debounced product search
   useEffect(() => {
     if (!searchOpen) return;
 
@@ -232,69 +173,42 @@ export default function Navbar({
 
     if (!storeId) {
       setSearchResults([]);
-      setSearchLoading(false);
       return;
     }
 
     setSearchLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const searchTrimmed = searchQuery.trim();
         const res = await fetch(
-          `/api/search?q=${encodeURIComponent(searchTrimmed)}&store_id=${storeId}`,
+          `/api/search?q=${encodeURIComponent(searchQuery.trim())}&store_id=${storeId}`,
         );
 
         if (res.ok) {
-          let json = await res.json();
-          let results = json.data || [];
+          const json = await res.json();
+          const results = json.data || [];
 
-          // SILENT FALLBACK: If exactly 0 results found, race all Arabic permutations concurrently
-          if (results.length === 0 && isRTL) {
-            const alternatives = getAlternativeSpellings(searchTrimmed);
-            // Get unique variations excluding the original query
-            const uniqueVariations = Array.from(new Set(alternatives)).filter(
-              (alt) => alt && alt !== searchTrimmed,
-            );
+          // Parse variant groups for frontend display
+          const processedResults = results.map((product: any) => ({
+            ...product,
+            variantGroups: parseVariantGroups(product.variantGroups),
+          }));
 
-            if (uniqueVariations.length > 0) {
-              // Create an array of fetch promises for all spelling variations
-              const fetchPromises = uniqueVariations.map(async (variation) => {
-                const resAlt = await fetch(
-                  `/api/search?q=${encodeURIComponent(variation)}&store_id=${storeId}`,
-                );
-                if (!resAlt.ok) throw new Error("Failed");
-                const jsonAlt = await resAlt.json();
-                if (jsonAlt.data && jsonAlt.data.length > 0) {
-                  return jsonAlt.data; // Resolve immediately if results exist
-                }
-                throw new Error("No results");
-              });
-
-              try {
-                // Promise.any resolves instantly when the FIRST successful variation returns data
-                const firstSuccessfulResult = await Promise.any(fetchPromises);
-                results = firstSuccessfulResult;
-              } catch (e) {
-                // All variations returned 0 results. It will remain empty.
-              }
-            }
-          }
-
-          setSearchResults(results);
+          setSearchResults(processedResults);
         } else {
           setSearchResults([]);
         }
-      } catch {
+      } catch (error) {
+        console.error("Search error:", error);
         setSearchResults([]);
       } finally {
         setSearchLoading(false);
       }
-    }, 300);
+    }, 300); // 300ms debounce
 
     return () => clearTimeout(timer);
-  }, [searchQuery, searchOpen, storeId, isRTL]);
+  }, [searchQuery, searchOpen, storeId]);
 
-  // Prevent scroll when modals open
+  // Prevent scroll when modal is open
   useEffect(() => {
     document.body.style.overflow = searchOpen ? "hidden" : "";
     return () => {
@@ -312,8 +226,8 @@ export default function Navbar({
     popularSearches: isRTL ? "عمليات بحث شائعة" : "Popular Searches",
     recommended: isRTL ? "مقترحات لك" : "Recommended",
     tryAnother: isRTL
-      ? "لم نجد نتائج مطابقة لبحثك. جرب كلمات مختلفة."
-      : "No results found. Try a different search.",
+      ? "لم نجد نتائج مطابقة. جرب بحث آخر أو تحقق من الكلمات المفتاحية."
+      : "No results found. Try another search.",
   };
 
   const hasPopularSearches = popularSearches.length > 0;
@@ -332,7 +246,7 @@ export default function Navbar({
         </div>
       )}
 
-      {/* HEADER - Dynamically styled for premium smooth scrolling */}
+      {/* HEADER */}
       <header
         dir={dir}
         className={`z-50 w-full transition-all duration-300 ease-in-out ${
@@ -343,9 +257,9 @@ export default function Navbar({
             : "bg-white/95 backdrop-blur-sm border-b border-gray-100"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-auto">
-          <div className="flex items-center justify-between h-14 md:h-14 my-auto gap-3 md:gap-8">
-            {/* 1. START (Logo) */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14 gap-3 md:gap-8">
+            {/* Logo */}
             <Link
               href={"/"}
               className="flex items-center gap-2 group transition-opacity hover:opacity-90 flex-shrink-0"
@@ -366,7 +280,7 @@ export default function Navbar({
               )}
             </Link>
 
-            {/* 2. DESKTOP CENTER (Categories) - Hidden on Mini Plan */}
+            {/* Categories Nav */}
             {!isMini && (
               <nav className="hidden md:flex items-center justify-center gap-6 lg:gap-8 flex-1 px-4">
                 {loadingCategories ? (
@@ -387,7 +301,6 @@ export default function Navbar({
                         {cat.title}
                       </Link>
                     ))}
-
                     {categories.length > 6 && (
                       <Link
                         href={"/categories"}
@@ -401,18 +314,18 @@ export default function Navbar({
               </nav>
             )}
 
-            {/* 3. END (Icons) */}
+            {/* Action Icons */}
             <div className="flex items-center justify-end gap-3 sm:gap-4 flex-shrink-0">
-              {/* Search Icon (Mobile & Desktop) */}
+              {/* Search */}
               <button
                 onClick={() => setSearchOpen(true)}
-                className={`hidden md:flex transition-all duration-200 text-gray-700 hover:text-brand-primary hover:scale-110 active:scale-95`}
+                className="hidden md:flex transition-all duration-200 text-gray-700 hover:text-brand-primary hover:scale-110 active:scale-95"
                 aria-label={t.search}
               >
                 <Search className="w-[22px] h-[22px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
               </button>
 
-              {/* Profile (Desktop Only) - Hidden on Mini Plan */}
+              {/* Profile */}
               {!isMini && (
                 <Link
                   href={"/profile"}
@@ -423,7 +336,7 @@ export default function Navbar({
                 </Link>
               )}
 
-              {/* Favorites (Mobile & Desktop) */}
+              {/* Favorites */}
               <Link
                 href={"/favorites"}
                 className="relative flex items-center justify-center transition-all duration-200 text-gray-700 hover:text-brand-primary hover:scale-110 active:scale-95"
@@ -431,13 +344,13 @@ export default function Navbar({
               >
                 <Heart className="w-[21px] h-[21px] md:w-[26px] md:h-[26px] stroke-[1.5]" />
                 {favCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2 min-w-[19px] h-[19px] flex items-center justify-center px-1 text-[10px] font-bold bg-[#F45151] text-white rounded-full ring-2 ring-white shadow-sm animate-in zoom-in duration-200">
+                  <span className="absolute -top-1.5 -right-2 min-w-[19px] h-[19px] flex items-center justify-center px-1 text-[10px] font-bold bg-[#F45151] text-white rounded-full ring-2 ring-white shadow-sm">
                     {favCount > 99 ? "99+" : favCount}
                   </span>
                 )}
               </Link>
 
-              {/* Cart (Mobile And Desktop) */}
+              {/* Cart */}
               <Link
                 href={"/cart"}
                 className="relative flex items-center justify-center transition-all duration-200 text-gray-700 hover:text-brand-primary hover:scale-110 active:scale-95"
@@ -445,7 +358,7 @@ export default function Navbar({
               >
                 <ShoppingBag className="w-[20px] h-[20px] md:w-[25px] md:h-[25px] stroke-[1.5]" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2 min-w-[19px] h-[19px] flex items-center justify-center px-1 text-[10px] font-bold bg-[#F45151] text-white rounded-full ring-2 ring-white shadow-sm animate-in zoom-in duration-200">
+                  <span className="absolute -top-1.5 -right-2 min-w-[19px] h-[19px] flex items-center justify-center px-1 text-[10px] font-bold bg-[#F45151] text-white rounded-full ring-2 ring-white shadow-sm">
                     {cartCount > 99 ? "99+" : cartCount}
                   </span>
                 )}
@@ -455,18 +368,18 @@ export default function Navbar({
         </div>
       </header>
 
-      {/* SEARCH MODAL (Command Palette Style) */}
+      {/* SEARCH MODAL */}
       {searchOpen && (
         <div
           dir={dir}
-          className="fixed inset-0 z-[100] flex items-start justify-center pt-[5vh] md:pt-[10vh] px-4 bg-zinc-900/60 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 z-[100] flex items-start justify-center pt-[5vh] md:pt-[10vh] px-4 bg-zinc-900/60 backdrop-blur-sm"
+          onClick={() => setSearchOpen(false)}
         >
-          {/* Overlay click to close */}
           <div
-            className="absolute inset-0"
-            onClick={() => setSearchOpen(false)}
-          />
-          <div className="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            className="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Search Input */}
             <div className="flex items-center px-4 py-3 border-b border-gray-100">
               <Search className="w-5 h-5 text-gray-400 stroke-[2]" />
               <input
@@ -484,8 +397,8 @@ export default function Navbar({
               </button>
             </div>
 
-            {/* Quick Links / Empty State Area */}
-            <div className="p-4 bg-gray-50/50 min-h-[200px]">
+            {/* Results Area */}
+            <div className="p-4 bg-gray-50/50 min-h-[200px] max-h-[500px] overflow-y-auto">
               {searchQuery.trim() === "" ? (
                 hasEmptyStateContent ? (
                   <div className="space-y-4">
@@ -532,7 +445,7 @@ export default function Navbar({
                 ) : (
                   <div className="flex flex-col items-center justify-center h-[120px] gap-2 opacity-60">
                     <Search className="w-8 h-8 text-gray-300 stroke-[1.5]" />
-                    <span>{t.search}</span>
+                    <span className="text-sm text-gray-500">{t.search}</span>
                   </div>
                 )
               ) : searchLoading ? (
@@ -540,7 +453,7 @@ export default function Navbar({
                   <div className="w-5 h-5 border-2 border-gray-200 border-t-brand-primary rounded-full animate-spin" />
                 </div>
               ) : searchResults.length > 0 ? (
-                <div className="space-y-0.5 max-h-[400px] overflow-y-auto">
+                <div className="space-y-0.5">
                   {searchResults.map((product) => {
                     const hasDiscount =
                       product.discount_price != null &&
@@ -550,7 +463,7 @@ export default function Navbar({
                       ? formatPrice(product.discount_price ?? product.price)
                       : formatPrice(product.price);
 
-                    const variantSubtitle = getVariantSubtitle(
+                    const variantText = getVariantDisplayText(
                       product.variantGroups,
                     );
 
@@ -572,9 +485,9 @@ export default function Navbar({
                           <p className="text-sm md:text-base font-medium text-gray-900 truncate">
                             {product.title}
                           </p>
-                          {variantSubtitle && (
+                          {variantText && (
                             <p className="text-xs text-gray-500 truncate mt-0.5">
-                              {variantSubtitle}
+                              {variantText}
                             </p>
                           )}
                           <div className="flex items-center gap-2 mt-0.5">
@@ -593,11 +506,9 @@ export default function Navbar({
                   })}
                 </div>
               ) : (
-                <div className="space-y-4 flex flex-col items-center justify-center h-[160px]">
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600 mb-2">{t.noResults}</p>
-                    <p className="text-xs text-gray-500">{t.tryAnother}</p>
-                  </div>
+                <div className="flex flex-col items-center justify-center h-[160px] text-center">
+                  <p className="text-sm text-gray-600 mb-1">{t.noResults}</p>
+                  <p className="text-xs text-gray-500">{t.tryAnother}</p>
                 </div>
               )}
             </div>

@@ -1,95 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import {
+  normalizeArabicText,
+  searchProduct,
+  parseVariantGroups,
+  isValidSearchQuery,
+  generateAlternativeSpellings,
+} from "@/lib/arabicSearchEngine";
 
-/**
- * Parse variantGroups JSON string safely
- */
-function parseVariantGroups(data: any): any[] {
-  if (!data) return [];
-
-  let parsed = data;
-
-  // Handle string JSON
-  if (typeof data === "string") {
-    try {
-      parsed = JSON.parse(data);
-    } catch {
-      return [];
-    }
-  }
-
-  // Ensure it's an array
-  return Array.isArray(parsed) ? parsed : [];
-}
-
-/**
- * Check if query matches title, variant group title, or any variant text field
- * Supports Arabic fuzzy matching with normalization
- */
-function matchesQueryFuzzy(
-  title: string,
-  variantGroups: any[],
-  query: string,
-): boolean {
-  const normalizeText = (text: string) => {
-    if (!text) return "";
-    let norm = text;
-    norm = norm.replace(/أ|إ|آ/g, "ا");
-    norm = norm.replace(/ة/g, "ه");
-    norm = norm.replace(/ى/g, "ي");
-    norm = norm.replace(/[\u064B-\u065F]/g, "");
-    norm = norm.trim().replace(/\s+/g, " ");
-    return norm.toLowerCase();
-  };
-
-  const normalizedQuery = normalizeText(query);
-
-  // 1. Check Product title
-  if (normalizeText(title).includes(normalizedQuery)) {
-    return true;
-  }
-
-  // 2. Check variant groups
-  for (const group of variantGroups) {
-    if (group.type === "text") {
-      // ✅ الإضافة الجديدة: البحث داخل اسم المجموعة (Group Title)
-      if (group.title && normalizeText(group.title).includes(normalizedQuery)) {
-        return true;
-      }
-
-      // البحث داخل الخيارات (Group Options Values)
-      if (group.options) {
-        for (const option of group.options) {
-          if (
-            option.value &&
-            normalizeText(option.value).includes(normalizedQuery)
-          ) {
-            return true;
-          }
-        }
-      }
-    }
-  }
-
-  return false;
-}
-/**
- * Extract variant text options for display
- */
-function getVariantTexts(variantGroups: any[]): string[] {
-  const texts: string[] = [];
-
-  for (const group of variantGroups) {
-    if (group.type === "text" && group.options) {
-      for (const option of group.options) {
-        if (option.value) {
-          texts.push(option.value);
-        }
-      }
-    }
-  }
-
-  return texts;
+interface SearchedProduct {
+  id: string;
+  title: string;
+  price: number;
+  discount_price: number | null;
+  images: string[] | null;
+  variantGroups: any[];
+  matchScore: number;
 }
 
 export async function GET(req: NextRequest) {
@@ -98,7 +24,8 @@ export async function GET(req: NextRequest) {
     const q = searchParams.get("q")?.trim() || "";
     const storeId = searchParams.get("store_id");
 
-    if (!q) {
+    // Validation
+    if (!isValidSearchQuery(q)) {
       return NextResponse.json({ success: true, data: [] });
     }
 
@@ -109,44 +36,107 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Fetch from database (includes variantGroups now)
-    const { data, error } = await supabaseAdmin
+    // Fetch all active products with required fields
+    const { data: products, error } = await supabaseAdmin
       .from("products")
       .select("id, title, price, discount_price, images, variantGroups")
       .eq("store_id", storeId)
       .eq("is_active", true)
-      .limit(100); // Fetch more, filter in code for fuzzy matching
+      .limit(500); // Increased for better filtering
 
     if (error) {
+      console.error("Database error:", error);
       return NextResponse.json(
-        { success: false, message: error.message },
+        { success: false, message: "Search failed" },
         { status: 500 },
       );
     }
 
-    if (!data) {
+    if (!products || products.length === 0) {
       return NextResponse.json({ success: true, data: [] });
     }
 
-    // Client-side fuzzy filtering with variant support
-    const filtered = data
-      .map((product) => {
-        const variantGroups = parseVariantGroups(product.variantGroups);
-        return {
-          ...product,
-          variantGroups, // Include parsed variants for frontend
-        };
-      })
-      .filter((product) =>
-        matchesQueryFuzzy(product.title, product.variantGroups, q),
-      )
-      .slice(0, 10); // Return top 10
+    // Process and score results
+    const searchResults: SearchedProduct[] = [];
 
-    return NextResponse.json({ success: true, data: filtered });
+    for (const product of products) {
+      if (!product.title) continue;
+
+      // Parse variant groups safely
+      const variantGroups = parseVariantGroups(product.variantGroups);
+
+      // Search across title and variant groups
+      const match = searchProduct(product.title, variantGroups, q);
+
+      if (match) {
+        searchResults.push({
+          id: product.id,
+          title: product.title,
+          price: product.price,
+          discount_price: product.discount_price,
+          images: product.images,
+          variantGroups, // Include parsed variants for frontend
+          matchScore: match.score,
+        });
+      }
+    }
+
+    // If no results with original query, try alternatives (fallback)
+    if (searchResults.length === 0) {
+      const alternatives = generateAlternativeSpellings(q);
+      const uniqueAlternatives = [...new Set(alternatives)].filter(
+        (alt) => alt !== q && alt.length > 0,
+      );
+
+      for (const alt of uniqueAlternatives) {
+        for (const product of products) {
+          if (!product.title) continue;
+
+          const variantGroups = parseVariantGroups(product.variantGroups);
+          const match = searchProduct(product.title, variantGroups, alt);
+
+          if (match) {
+            searchResults.push({
+              id: product.id,
+              title: product.title,
+              price: product.price,
+              discount_price: product.discount_price,
+              images: product.images,
+              variantGroups,
+              matchScore: match.score * 0.9, // Slightly lower score for fallback matches
+            });
+          }
+        }
+
+        // Stop after finding results with first alternative
+        if (searchResults.length > 0) break;
+      }
+    }
+
+    // Remove duplicates (same product might match multiple variants)
+    const uniqueResults = new Map<string, SearchedProduct>();
+    for (const result of searchResults) {
+      const existing = uniqueResults.get(result.id);
+      if (!existing || result.matchScore > existing.matchScore) {
+        uniqueResults.set(result.id, result);
+      }
+    }
+
+    // Sort by match score (descending) and limit to top 15
+    const finalResults = Array.from(uniqueResults.values())
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .slice(0, 15)
+      .map(({ matchScore, ...product }) => product); // Remove score from output
+
+    return NextResponse.json({
+      success: true,
+      data: finalResults,
+      count: finalResults.length,
+    });
   } catch (err: any) {
     console.error("Search error:", err);
     return NextResponse.json(
-      { success: false, message: err.message || "Internal server error" },
+      { success: false, message: "Search failed" },
       { status: 500 },
     );
   }

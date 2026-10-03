@@ -48,7 +48,7 @@ export default function LoginComponent() {
               style={{ fontFamily: "Lalezar, cursive" }}
             >
               أهلاً بعودتك
-              <Emoji unified="1f44b" size={38} /> {/* استخدام الإيموجي هنا */}
+              <Emoji unified="1f44b" size={38} /> 
             </h1>
 
             <p className="text-[#6B6B6B] text-center text-[15px] md:text-[16px] leading-[1.9] mb-8">
