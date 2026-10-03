@@ -84,7 +84,8 @@ export async function GET(req: NextRequest) {
     // If no results with original query, try alternatives (fallback)
     if (searchResults.length === 0) {
       const alternatives = generateAlternativeSpellings(q);
-      const uniqueAlternatives = [...new Set(alternatives)].filter(
+      const uniqueAlternativesSet = new Set(alternatives);
+      const uniqueAlternatives = Array.from(uniqueAlternativesSet).filter(
         (alt) => alt !== q && alt.length > 0,
       );
 
@@ -122,11 +123,10 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Sort by match score (descending) and limit to top 15
     const finalResults = Array.from(uniqueResults.values())
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, 15)
-      .map(({ matchScore, ...product }) => product); // Remove score from output
+      .map(({ matchScore, ...product }) => product);
 
     return NextResponse.json({
       success: true,

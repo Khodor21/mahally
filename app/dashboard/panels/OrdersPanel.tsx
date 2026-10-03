@@ -27,6 +27,8 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import { useDashboard } from "../DashboardContext";
 import { useOrders, useOrderStatusUpdate } from "@/hooks/useApi";
@@ -170,6 +172,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
   const [notesExpanded, setNotesExpanded] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [showWithShipping, setShowWithShipping] = useState(true);
 
   const statusLabel: Record<string, string> = {
     completed: tr.completed || "مكتمل",
@@ -204,13 +207,23 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
     });
   }, [orders, search, filter]);
 
-  // CHANGED: Exclude shipping from total revenue
-  const totalRevenue = useMemo(() => {
-    return orders.reduce((sum, order) => {
-      const netAmount = Number(order.total || 0) - Number(order.shipping || 0);
-      return sum + netAmount;
-    }, 0);
-  }, [orders]);
+  // Calculate total revenue with toggle logic
+  const { totalRevenue, totalWithShipping } = useMemo(() => {
+    let withShip = 0;
+    let withoutShip = 0;
+
+    orders.forEach((order) => {
+      const total = Number(order.total || 0);
+      const shipping = Number(order.shipping || 0);
+      withShip += total;
+      withoutShip += total - shipping;
+    });
+
+    return {
+      totalRevenue: showWithShipping ? withShip : withoutShip,
+      totalWithShipping: withShip,
+    };
+  }, [orders, showWithShipping]);
 
   const copyOrderId = (orderId: string) => {
     navigator.clipboard.writeText(orderId);
@@ -353,7 +366,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
           </div>
         </div>
 
-        {/* Revenue Bar */}
+        {/* Shipping Toggle + Revenue Bar */}
         {loading ? (
           <div className="px-4 md:px-6 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
             <div className="h-3 w-24 rounded bg-gray-200 animate-pulse"></div>
@@ -361,15 +374,43 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
           </div>
         ) : (
           <div className="px-4 md:px-6 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
-            <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">
-              {tr.totalRevenue || "إجمالي الإيرادات"}:
-            </span>
-            <span className="text-base md:text-lg font-bold text-[rgb(60_28_84)]">
-              ${" "}
-              {totalRevenue.toLocaleString("en-US", {
-                maximumFractionDigits: 2,
-              })}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">
+                {tr.totalRevenue || "إجمالي الإيرادات"}:
+              </span>
+              <span className="text-base md:text-lg font-bold text-[rgb(60_28_84)]">
+                ${" "}
+                {totalRevenue.toLocaleString("en-US", {
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+
+            {/* Shipping Toggle */}
+            <button
+              onClick={() => setShowWithShipping(!showWithShipping)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-200 hover:border-[rgb(60_28_84)] hover:bg-[rgb(60_28_84)]/5 transition-all duration-200 group"
+              title={
+                lang === "ar"
+                  ? "تبديل إضافة/إزالة رسوم الشحن"
+                  : "Toggle shipping costs"
+              }
+            >
+              {showWithShipping ? (
+                <ToggleRight className="w-4 h-4 text-[rgb(60_28_84)]" />
+              ) : (
+                <ToggleLeft className="w-4 h-4 text-gray-400" />
+              )}
+              <span className="text-xs font-semibold text-gray-600 group-hover:text-[rgb(60_28_84)] transition-colors whitespace-nowrap">
+                {lang === "ar"
+                  ? showWithShipping
+                    ? "مع الشحن"
+                    : "بدون شحن"
+                  : showWithShipping
+                    ? "with Shipping"
+                    : "without Shipping"}
+              </span>
+            </button>
           </div>
         )}
 
@@ -446,9 +487,10 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                     order.payment_method || "",
                   );
                   const st = statusStyles[order.status];
-                  // CHANGED: Calculate row net amount (Total - Shipping)
-                  const netAmount =
-                    Number(order.total || 0) - Number(order.shipping || 0);
+                  // Calculate row amount based on toggle
+                  const displayAmount = showWithShipping
+                    ? Number(order.total || 0)
+                    : Number(order.total || 0) - Number(order.shipping || 0);
 
                   return (
                     <tr
@@ -496,10 +538,9 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
                           <span className="text-[10px] text-gray-400 font-medium md:hidden uppercase tracking-wider mb-0.5">
                             {tr.amount || "المبلغ"}
                           </span>
-                          {/* CHANGED: Render net amount instead of order.total */}
                           <span className="font-bold text-[rgb(60_28_84)] text-sm md:text-base">
                             ${" "}
-                            {netAmount.toLocaleString("en-US", {
+                            {displayAmount.toLocaleString("en-US", {
                               maximumFractionDigits: 2,
                             })}
                           </span>
@@ -551,9 +592,7 @@ export default function OrdersPanel({ store }: OrdersPanelProps) {
         </div>
       </div>
 
-      {/* ============================================ */}
-      {/* MODAL                                        */}
-      {/* ============================================ */}
+      {/* MODAL CODE UNCHANGED - Keeping original modal */}
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center pointer-events-none">
           {/* Backdrop */}
