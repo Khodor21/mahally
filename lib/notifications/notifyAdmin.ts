@@ -24,7 +24,7 @@ export async function notifyAdminOrderSubmitted(
         tokens,
         notification: {
           title: "طلب جديد ✅",
-          body: `${customerName} • ${total} ل.س`,
+          body: `${customerName} • ${total}$`,
         },
         data: {
           orderId,
@@ -32,7 +32,7 @@ export async function notifyAdminOrderSubmitted(
         },
         webpush: {
           fcmOptions: {
-            link: `/dashboard/orders?id=${orderId}`,
+            link: `/dashboard/`,
           },
         },
       });
