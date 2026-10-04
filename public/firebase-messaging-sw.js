@@ -28,20 +28,21 @@ const messaging = firebase.messaging();
 console.log("✅ Firebase Messaging ready");
 
 // CRITICAL: Handle background messages
-// This fires when app is CLOSED/MINIMIZED
 messaging.onBackgroundMessage((payload) => {
   console.log("📬 Background message received:", payload);
 
-  // FIXED: Reading from payload.data instead of payload.notification.
-  // This pairs with a data-only payload from your backend to prevent double notifications.
   const notificationTitle = payload.data?.title || "Notification";
   const notificationOptions = {
     body: payload.data?.body || "",
     icon: payload.data?.icon || "/icon-192x192.png",
     badge: "/badge-72x72.png",
-    tag: "notification",
+    tag: "order-notification", // ✅ تغيير: tag فريد للـ orders
     requireInteraction: true,
-    data: payload.data || {},
+    data: {
+      orderId: payload.data?.orderId, // ✅ حفظ orderId
+      type: payload.data?.type || "notification",
+      ...payload.data,
+    },
   };
 
   console.log("🔔 Showing notification:", notificationTitle);
@@ -51,21 +52,29 @@ messaging.onBackgroundMessage((payload) => {
   );
 });
 
-// Handle notification click
+// ✅ Handle notification click - روح للـ order
 self.addEventListener("notificationclick", (event) => {
   console.log("🖱️ Notification clicked");
   event.notification.close();
+
+  const orderId = event.notification.data?.orderId;
+  const url = orderId
+    ? `/dashboard/orders?id=${orderId}` // ✅ روح للـ order مباشرة
+    : "/dashboard";
 
   event.waitUntil(
     clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((clientList) => {
+        // شيك إذا في tab مفتوح بالفعل
         for (let client of clientList) {
-          if (client.url === "/" && "focus" in client) {
+          if (client.url.includes("/dashboard") && "focus" in client) {
+            client.postMessage({ type: "NAVIGATE", url }); // ✅ أخبره يروح للـ page
             return client.focus();
           }
         }
-        return clients.openWindow("/");
+        // إذا ما في tab، افتح واحد جديد
+        return clients.openWindow(url);
       }),
   );
 });

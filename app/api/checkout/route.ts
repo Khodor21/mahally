@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { notifyAdminOrderSubmitted } from "@/lib/notifications/notifyAdmin";
 
 // UPDATED: Add gift fields to schema
 const CheckoutSchema = z.object({
@@ -321,6 +322,7 @@ export async function POST(request: NextRequest) {
       console.error("Order items creation error:", itemsError);
       throw new Error(itemsError?.message || "Failed to create order items");
     }
+    notifyAdminOrderSubmitted(storeId, order.id, customerName, total);
 
     const regularItems = items.filter((item) => {
       const product = products.find((p) => p.id === item.productId);

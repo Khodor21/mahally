@@ -9,12 +9,8 @@ export async function POST(req: NextRequest) {
   try {
     const { title, body } = await req.json();
 
-    console.log("\n========== 📤 SEND NOTIFICATION ==========");
-    console.log("📥 Received:", { title, body });
-
     // Validate input
     if (!title?.trim() || !body?.trim()) {
-      console.log("❌ Missing title or body");
       return NextResponse.json(
         { success: false, message: "Title and body are required" },
         { status: 400 },
@@ -25,9 +21,7 @@ export async function POST(req: NextRequest) {
     let store: any;
     try {
       store = await requireStoreSession();
-      console.log("✅ Store authenticated:", store.id);
     } catch (error) {
-      console.error("❌ Auth failed:", error);
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 },
@@ -44,7 +38,6 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (settingsError) {
-      console.warn("⚠️ Could not fetch store settings:", settingsError.message);
     }
 
     // Determine the icon to use (must be a valid absolute HTTPS URL)
@@ -58,10 +51,8 @@ export async function POST(req: NextRequest) {
       .eq("store_id", storeId)
       .eq("active", true);
 
-    console.log(`📊 Found ${subscriptions?.length || 0} subscribers`);
 
     if (fetchError) {
-      console.error("❌ Query error:", fetchError);
       return NextResponse.json(
         { success: false, message: "Failed to fetch subscriptions" },
         { status: 500 },
@@ -69,7 +60,6 @@ export async function POST(req: NextRequest) {
     }
 
     if (!subscriptions || subscriptions.length === 0) {
-      console.log("⚠️ No subscriptions found");
 
       await supabaseAdmin.from("notifications").insert({
         store_id: storeId,
@@ -89,16 +79,11 @@ export async function POST(req: NextRequest) {
 
     // Extract tokens
     const tokens: string[] = subscriptions.map((sub: any) => sub.fcm_token);
-    console.log(`🎫 Sending to ${tokens.length} tokens`);
 
-    // Log first token for debugging
-    console.log(
-      `🔍 First token (first 50 chars): ${tokens[0].substring(0, 50)}`,
-    );
+   
 
     // Get Firebase messaging instance
     const messaging = admin.messaging();
-    console.log("🔥 Calling Firebase messaging.sendEachForMulticast...");
 
     // Send notifications using sendEachForMulticast
     let response;
@@ -112,10 +97,6 @@ export async function POST(req: NextRequest) {
         tokens,
       });
 
-      console.log(`✅ Firebase response:`, {
-        successCount: response.successCount,
-        failureCount: response.failureCount,
-      });
 
       // DETAILED ERROR LOGGING - Log why tokens failed
       if (response.failureCount > 0) {
@@ -173,8 +154,7 @@ export async function POST(req: NextRequest) {
     });
 
     const messageAr = `تم ارسال الاشعار الى ${response.successCount} عميل`;
-    console.log(`✅ SUCCESS:`, messageAr);
-    console.log("========== ✅ DONE ==========\n");
+ 
 
     return NextResponse.json({
       success: true,
@@ -184,10 +164,7 @@ export async function POST(req: NextRequest) {
       failureCount: response.failureCount,
     });
   } catch (error: any) {
-    console.error("❌ ERROR:", error.message);
-    console.error("❌ Full error:", error);
-    console.log("========== ❌ FAILED ==========\n");
-
+ 
     return NextResponse.json(
       {
         success: false,

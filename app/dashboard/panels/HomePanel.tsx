@@ -105,12 +105,7 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
     },
   ];
 
-  console.log("DEBUG - Visitors Data from Hook:", visitorsData);
-  console.log(
-    "DEBUG - Current 'Today' string:",
-    new Date().toISOString().split("T")[0],
-  );
-  console.log("DEBUG - Current Store ID:", store.id);
+  
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -505,7 +500,7 @@ export default function HomePanel({ setActiveNav, store }: HomePanelProps) {
                     </td>
                     <td className="px-4 md:px-5 py-3.5 text-[rgb(60_28_84)]/60 text-[10px] md:text-xs font-medium whitespace-nowrap">
                       {new Date(order.created_at).toLocaleDateString(
-                        dir === "rtl" ? "ar-SA" : "en-US",
+                        dir === "rtl" ? "en-US" : "en-US",
                         {
                           year: "numeric",
                           month: "short",

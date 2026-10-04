@@ -1,14 +1,16 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { DashboardProvider } from "./DashboardContext";
+import { useRegisterAdminDevice } from "@/hooks/useRegisterAdminDevice";
 
-interface DashboardClientWrapperProps {
-  children: ReactNode;
-}
+export function DashboardClientWrapper({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    }
+  }, []);
 
-export function DashboardClientWrapper({
-  children,
-}: DashboardClientWrapperProps) {
+  useRegisterAdminDevice();
   return <DashboardProvider>{children}</DashboardProvider>;
 }

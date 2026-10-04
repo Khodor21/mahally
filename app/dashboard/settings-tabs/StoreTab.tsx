@@ -1,7 +1,8 @@
-import { Store, Check, CreditCard } from "lucide-react";
+import React from "react";
+import { Store, Check, Bell } from "lucide-react";
 import { ComponentType } from "react";
 import { LucideProps } from "lucide-react";
-import { StoreData } from "../types"; // Use ONE import path
+import { StoreData } from "../types";
 
 interface StoreTabProps {
   lang: string;
@@ -9,7 +10,7 @@ interface StoreTabProps {
   tr: any;
   formData: any;
   setFormData: (data: any) => void;
-  store: StoreData | undefined; // Changed from null to undefined to match useStore return type
+  store: StoreData | undefined;
   socialMediaFields: Array<{
     label: string;
     key: string;
@@ -43,6 +44,22 @@ export default function StoreTab({
   const currentMethods: string[] = formData.payment_methods
     ? JSON.parse(formData.payment_methods)
     : [];
+  const [notificationStatus, setNotificationStatus] = React.useState(
+    typeof window !== "undefined" ? Notification.permission : "default",
+  );
+  const [requestingPermission, setRequestingPermission] = React.useState(false);
+
+  const handleEnableNotifications = async () => {
+    setRequestingPermission(true);
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationStatus(permission);
+    } catch (error) {
+      console.error("Permission request failed:", error);
+    } finally {
+      setRequestingPermission(false);
+    }
+  };
 
   const togglePaymentMethod = (methodId: string) => {
     // FIX: Use the outer currentMethods, don't redeclare
@@ -66,6 +83,40 @@ export default function StoreTab({
       </div>
 
       <div className="p-6 space-y-5">
+        {notificationStatus !== "granted" && (
+          <div className="bg-amber-50 border border-amber-200 rounded-sm p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-amber-900">
+                {lang === "ar"
+                  ? "فعّل إشعارات الطلبات الجديدة"
+                  : "Enable order notifications"}
+              </p>
+              <p className="text-xs text-amber-800 mt-1">
+                {lang === "ar"
+                  ? "سيصلك إشعار فوري عند كل طلب جديد"
+                  : "Get instant alerts for new orders"}
+              </p>
+            </div>
+            <button
+              onClick={handleEnableNotifications}
+              disabled={requestingPermission}
+              className="px-4 py-2 bg-amber-600 text-white rounded-sm text-sm font-semibold hover:bg-amber-700 transition-colors disabled:opacity-50 whitespace-nowrap flex items-center gap-2"
+            >
+              <Bell className="w-4 h-4" />
+              {lang === "ar" ? "تفعيل" : "Enable"}
+            </button>
+          </div>
+        )}
+
+        {/* ✅ Success message */}
+        {notificationStatus === "granted" && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-sm p-4 flex items-center gap-2">
+            <Check className="w-5 h-5 text-emerald-600" />
+            <p className="text-sm font-semibold text-emerald-800">
+              {lang === "ar" ? "الإشعارات مفعلة" : "Notifications enabled"}
+            </p>
+          </div>
+        )}
         <div className="grid md:grid-cols-2 gap-5">
           {[
             { label: tr.storeName, key: "store_name", type: "text" },
