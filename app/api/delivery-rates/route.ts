@@ -53,30 +53,61 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
+  if (!session?.user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { storeId, rates, oldGovernorate, newGovernorate } = await req.json();
+  if (!storeId)
+    return NextResponse.json({ error: "storeId required" }, { status: 400 });
+
+  // لو في rename، احذف القديم أولاً
+  if (oldGovernorate && newGovernorate && oldGovernorate !== newGovernorate) {
+    await supabase
+      .from("delivery_city_rates")
+      .delete()
+      .eq("store_id", storeId)
+      .eq("governorate", oldGovernorate);
+  }
+
+  if (rates) {
+    const { error } = await supabase.from("delivery_city_rates").upsert(
+      rates.map((r: any) => ({
+        store_id: storeId,
+        governorate: r.governorate,
+        delivery_cost: r.delivery_cost,
+      })),
+      { onConflict: "store_id,governorate" },
+    );
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}
+
+// أضف في نهاية route.ts
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { storeId, rates } = await req.json();
-  if (!storeId || !rates) {
+  const storeId = req.nextUrl.searchParams.get("storeId");
+  const governorate = req.nextUrl.searchParams.get("governorate");
+  if (!storeId || !governorate) {
     return NextResponse.json(
-      { error: "storeId and rates required" },
+      { error: "storeId and governorate required" },
       { status: 400 },
     );
   }
 
-  const { error } = await supabase.from("delivery_city_rates").upsert(
-    rates.map((r: any) => ({
-      store_id: storeId,
-      governorate: r.governorate,
-      delivery_cost: r.delivery_cost,
-    })),
-    { onConflict: "store_id,governorate" },
-  );
+  const { error } = await supabase
+    .from("delivery_city_rates")
+    .delete()
+    .eq("store_id", storeId)
+    .eq("governorate", governorate);
 
-  if (error) {
+  if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
   return NextResponse.json({ success: true });
 }

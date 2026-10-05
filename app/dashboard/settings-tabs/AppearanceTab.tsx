@@ -222,6 +222,7 @@ export default function AppearanceTab(props: AppearanceTabProps) {
   const { setActiveNav } = useDashboard();
   const [isDeletingFeature, setIsDeletingFeature] = useState(false);
   const [editingFeature, setEditingFeature] = useState<any>(null);
+  const [originalRates, setOriginalRates] = useState<typeof cityRates>([]);
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections((prev) =>
@@ -243,26 +244,26 @@ export default function AppearanceTab(props: AppearanceTabProps) {
     fetch(`/api/delivery-rates?storeId=${storeId}`)
       .then((r) => r.json())
       .then((data) => {
-        // لو ما في data، seed المحافظات بـ 0
-        if (data.rates?.length > 0) {
-          setCityRates(data.rates);
-        } else {
-          setCityRates([
-            { governorate: "بيروت", delivery_cost: 0 },
-            { governorate: "لبنان الشمالي", delivery_cost: 0 },
-            { governorate: "جبل لبنان", delivery_cost: 0 },
-            { governorate: "البقاع", delivery_cost: 0 },
-            { governorate: "عكار", delivery_cost: 0 },
-            { governorate: "بعلبك-الهرمل", delivery_cost: 0 },
-            { governorate: "لبنان الجنوبي", delivery_cost: 0 },
-            { governorate: "النبطية", delivery_cost: 0 },
-            { governorate: "كسروان-جبيل", delivery_cost: 0 },
-          ]);
-        }
+        const rates =
+          data.rates?.length > 0
+            ? data.rates
+            : [
+                { governorate: "بيروت", delivery_cost: 0 },
+                { governorate: "لبنان الشمالي", delivery_cost: 0 },
+                { governorate: "جبل لبنان", delivery_cost: 0 },
+                { governorate: "البقاع", delivery_cost: 0 },
+                { governorate: "عكار", delivery_cost: 0 },
+                { governorate: "بعلبك-الهرمل", delivery_cost: 0 },
+                { governorate: "لبنان الجنوبي", delivery_cost: 0 },
+                { governorate: "النبطية", delivery_cost: 0 },
+                { governorate: "كسروان-جبيل", delivery_cost: 0 },
+              ];
+
+        setCityRates(rates);
+        setOriginalRates(rates); // 👈 هون بس
       })
       .finally(() => setLoadingRates(false));
   }, [showCityRates, storeId]);
-
   const saveCityRates = async () => {
     setIsSavingRates(true);
     try {
@@ -454,7 +455,7 @@ export default function AppearanceTab(props: AppearanceTabProps) {
           <div>
             <div className="flex items-center justify-between mb-3">
               <label className="text-xs font-semibold text-[rgb(60_28_84)]/50">
-                {lang === "ar" ? "رسوم التسليم" : "Delivery Fee"}
+                {lang === "ar" ? "رسوم التوصيل" : "Delivery Fees"}
               </label>
               <button
                 onClick={() => setShowCityRates(!showCityRates)}
@@ -465,11 +466,10 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                 }`}
               >
                 <MapPin className="w-3 h-3" />
-                {lang === "ar" ? "حسب المحافظة" : "By Governorate"}
+                {lang === "ar" ? "حسب المنطقة" : "By Region"}
               </button>
             </div>
 
-            {/* Default delivery cost - يختفي لما تفعّل الـ city rates */}
             {!showCityRates && (
               <input
                 type="number"
@@ -487,7 +487,6 @@ export default function AppearanceTab(props: AppearanceTabProps) {
               />
             )}
 
-            {/* City Rates Table */}
             {showCityRates && (
               <div className="space-y-2 animate-fade-down">
                 {loadingRates ? (
@@ -496,21 +495,35 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                   </div>
                 ) : (
                   <>
-                    {cityRates.map((rate) => (
-                      <div
-                        key={rate.governorate}
-                        className="flex items-center gap-3"
-                      >
-                        <span className="text-sm text-[rgb(60_28_84)] w-36 flex-shrink-0">
-                          {rate.governorate}
-                        </span>
+                    {/* Rows */}
+                    {cityRates.map((rate, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        {/* اسم المحافظة — قابل للتعديل */}
+                        <input
+                          type="text"
+                          value={rate.governorate}
+                          onChange={(e) =>
+                            setCityRates((prev) =>
+                              prev.map((r, i) =>
+                                i === idx
+                                  ? { ...r, governorate: e.target.value }
+                                  : r,
+                              ),
+                            )
+                          }
+                          className="flex-1 bg-[rgb(244_242_245)] rounded-sm px-3 py-2 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
+                          placeholder={
+                            lang === "ar" ? "اسم المنطقة" : "Region name"
+                          }
+                        />
+                        {/* التكلفة */}
                         <input
                           type="number"
                           value={rate.delivery_cost}
                           onChange={(e) =>
                             setCityRates((prev) =>
-                              prev.map((r) =>
-                                r.governorate === rate.governorate
+                              prev.map((r, i) =>
+                                i === idx
                                   ? {
                                       ...r,
                                       delivery_cost:
@@ -522,42 +535,56 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                           }
                           min="0"
                           step="0.5"
-                          className="flex-1 bg-[rgb(244_242_245)] rounded-sm px-3 py-2 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
+                          className="w-24 bg-[rgb(244_242_245)] rounded-sm px-3 py-2 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
                         />
                         <span className="text-xs text-[rgb(60_28_84)]/40">
                           $
                         </span>
+                        {/* حذف */}
+                        <button
+                          onClick={() =>
+                            setCityRates((prev) =>
+                              prev.filter((_, i) => i !== idx),
+                            )
+                          }
+                          className="p-1.5 rounded hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     ))}
 
+                    {/* إضافة منطقة جديدة */}
+                    <button
+                      onClick={() =>
+                        setCityRates((prev) => [
+                          ...prev,
+                          { governorate: "", delivery_cost: 0 },
+                        ])
+                      }
+                      className="w-full flex items-center justify-center gap-2 py-2 border-2 border-dashed border-[rgb(207_195_223)] rounded-sm text-xs font-semibold text-[rgb(60_28_84)]/60 hover:text-[rgb(60_28_84)] hover:border-[rgb(60_28_84)]/30 transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      {lang === "ar" ? "إضافة منطقة" : "Add Region"}
+                    </button>
+
+                    {/* حفظ */}
                     <button
                       onClick={saveCityRates}
                       disabled={isSavingRates}
-                      className="w-full flex items-center justify-center gap-2 mt-3 px-4 py-2.5 rounded-sm text-sm font-semibold bg-[rgb(60_28_84)] text-white hover:bg-[rgb(60_28_84)]/90 disabled:opacity-50 transition-all"
+                      className="w-full flex items-center justify-center gap-2 mt-1 px-4 py-2.5 rounded-sm text-sm font-semibold bg-[rgb(60_28_84)] text-white hover:bg-[rgb(60_28_84)]/90 disabled:opacity-50 transition-all"
                     >
                       {isSavingRates ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <Save className="w-4 h-4" />
                       )}
-                      {lang === "ar"
-                        ? "حفظ أسعار المحافظات"
-                        : "Save City Rates"}
+                      {lang === "ar" ? "حفظ" : "Save"}
                     </button>
                   </>
                 )}
               </div>
             )}
-
-            <p className="text-xs text-[rgb(60_28_84)]/40 mt-2">
-              {showCityRates
-                ? lang === "ar"
-                  ? "كل محافظة لها سعر توصيل مختلف"
-                  : "Each governorate has its own delivery rate"
-                : lang === "ar"
-                  ? "تكلفة التسليم المحسوبة في سلة المشتريات"
-                  : "Shipping cost applied to all orders"}
-            </p>
           </div>
           {/* Save Button */}
           <div className="pt-2">

@@ -93,8 +93,9 @@ export default function CartClientPage({ store }: Props) {
   const [toastProgress, setToastProgress] = useState(0);
 
   // New state for dynamic city delivery rates
-  const [cityRates, setCityRates] = useState<Record<string, number>>({});
-
+  const [cityRates, setCityRates] = useState<
+    { governorate: string; delivery_cost: number }[]
+  >([]);
   const showCustomToast = (type: "success" | "error", message: string) => {
     setToastState({ show: true, type, message });
     setToastProgress(0);
@@ -134,26 +135,9 @@ export default function CartClientPage({ store }: Props) {
   // Fetch delivery rates based on governorates
   useEffect(() => {
     if (!store?.id) return;
-    console.log("Fetching rates for store:", store.id);
     fetch(`/api/delivery-rates?storeId=${store.id}`)
       .then((r) => r.json())
       .then((data) => {
-        console.log("Rates response:", data);
-
-        const map: Record<string, number> = {};
-
-        const normalizeMap: Record<string, string> = {
-          بيروت: "Beirut",
-          "جبل لبنان": "Mount Lebanon",
-          "لبنان الشمالي": "North",
-          عكار: "Akkar",
-          البقاع: "Bekaa",
-          "بعلبك-الهرمل": "Baalbek-Hermel",
-          "لبنان الجنوبي": "South",
-          النبطية: "Nabatieh",
-          "كسروان-جبيل": "Keserwan-Jbeil",
-        };
-
         const ratesArray = Array.isArray(data)
           ? data
           : Array.isArray(data?.rates)
@@ -162,32 +146,19 @@ export default function CartClientPage({ store }: Props) {
               ? data.data
               : [];
 
-        ratesArray.forEach((r: any) => {
-          if (!r.governorate) return;
-
-          // Trim whitespace from DB string (fixes "النبطية " bug)
-          const rawGov = String(r.governorate).trim();
-
-          // Translate to English, or fallback to the cleaned string
-          const normalizedKey = normalizeMap[rawGov] || rawGov;
-          const cost = Number(r.delivery_cost);
-
-          // Map BOTH the English translation AND the exact Arabic string
-          // This guarantees it will be found no matter what string `city` is holding
-          map[normalizedKey] = cost;
-          map[rawGov] = cost;
-        });
-
-        setCityRates(map);
+        setCityRates(
+          ratesArray.map((r: any) => ({
+            governorate: String(r.governorate).trim(),
+            delivery_cost: Number(r.delivery_cost),
+          })),
+        );
       })
-      .catch((err) => console.error("Failed to load delivery rates:", err));
+      .catch(console.error);
   }, [store?.id]);
 
   const activeItems = useMemo(() => {
     return isBuyNow && buyNowItem ? [buyNowItem] : cartItems;
   }, [isBuyNow, buyNowItem, cartItems]);
-
-  // SAFE DISCOUNT CALCULATION FOR BUY NOW MODE
   const activeSubtotal = useMemo(() => {
     if (isBuyNow && buyNowItem) {
       const basePrice = Number(buyNowItem.product.price || 0);
@@ -241,13 +212,29 @@ export default function CartClientPage({ store }: Props) {
 
   const subtotal = useMemo(() => activeSubtotal, [activeSubtotal]);
 
-  const hasCityRates = Object.values(cityRates).some((cost) => cost > 0);
+  const cityRatesMap = Object.fromEntries(
+    cityRates.map((r) => [r.governorate, r.delivery_cost]),
+  );
+
+  const hasCityRates = cityRates.some((r) => r.delivery_cost > 0);
+
   const shipping =
     subtotal > 0
       ? hasCityRates
-        ? (cityRates[city] ?? storeDeliveryCost)
+        ? (cityRatesMap[city] ?? storeDeliveryCost)
         : storeDeliveryCost
       : 0;
+
+  const minRate = hasCityRates
+    ? Math.min(
+        ...cityRates
+          .filter((r) => r.delivery_cost > 0)
+          .map((r) => r.delivery_cost),
+      )
+    : 0;
+  const maxRate = hasCityRates
+    ? Math.max(...cityRates.map((r) => r.delivery_cost))
+    : 0;
 
   const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const total = Math.max(0, subtotal - discountAmount) + shipping;
@@ -424,10 +411,7 @@ export default function CartClientPage({ store }: Props) {
 
   const ProceedIcon = isArabic ? ArrowLeft : ArrowRight;
   const BackIcon = isArabic ? ArrowRight : ArrowLeft;
-  const minRate = hasCityRates
-    ? Math.min(...Object.values(cityRates).filter((c) => c > 0))
-    : 0;
-  const maxRate = hasCityRates ? Math.max(...Object.values(cityRates)) : 0;
+
   return (
     <div
       className={`w-full bg-white py-8 px-4 sm:px-6 md:px-8 pb-40 ${isArabic ? "rtl" : "ltr"}`}
@@ -668,6 +652,7 @@ export default function CartClientPage({ store }: Props) {
               selectedPaymentMethod={selectedPaymentMethod}
               onPaymentMethodChange={setSelectedPaymentMethod}
               setAddress={setAddress}
+              governorates={cityRates.map((r) => r.governorate)}
               hasCityRates={hasCityRates}
             />
 

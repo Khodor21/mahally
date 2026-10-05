@@ -98,6 +98,7 @@ type Props = {
   onPaymentMethodChange?: (method: string) => void;
   onValidityChange?: (isValid: boolean) => void;
   hasCityRates?: boolean;
+  governorates: string[];
 };
 
 export default function ShippingForm({
@@ -126,6 +127,7 @@ export default function ShippingForm({
   onPaymentMethodChange,
   onValidityChange,
   hasCityRates,
+  governorates,
 }: Props) {
   const [errors, setErrors] = useState<ValidationErrors>({
     customerName: "",
@@ -362,9 +364,9 @@ export default function ShippingForm({
                 dir={isArabic ? "rtl" : "ltr"}
               >
                 <option value="">{t.selectCity}</option>
-                {LEBANON_GOVERNORATES.map((gov) => (
-                  <option key={gov.value} value={gov.value}>
-                    {isArabic ? gov.labelAr : gov.label}
+                {governorates.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
                   </option>
                 ))}
               </select>
