@@ -1,37 +1,7 @@
 "use client";
 
-import { Loader2, CreditCard, ChevronDown } from "lucide-react";
+import { Loader2, ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
-
-const LEBANON_GOVERNORATES_EN = [
-  "Beirut",
-  "Mount Lebanon",
-  "North",
-  "Akkar",
-  "Bekaa",
-  "Baalbek-Hermel",
-  "South",
-  "Nabatieh",
-  "Keserwan-Jbeil",
-];
-
-const LEBANON_GOVERNORATES_AR = [
-  "بيروت",
-  "جبل لبنان",
-  "الشمال",
-  "عكار",
-  "البقاع",
-  "بعلبك-الهرمل",
-  "الجنوب",
-  "النبطية",
-  "كسروان-جبيل",
-];
-
-const LEBANON_GOVERNORATES = LEBANON_GOVERNORATES_EN.map((en, i) => ({
-  value: en,
-  label: en,
-  labelAr: LEBANON_GOVERNORATES_AR[i],
-}));
 
 // Payment method labels
 const PAYMENT_METHOD_LABELS = {

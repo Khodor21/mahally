@@ -5,36 +5,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useShop } from "@/app/store/context";
 
-const LEBANON_GOVERNORATES_EN = [
-  "Beirut",
-  "Mount Lebanon",
-  "North",
-  "Akkar",
-  "Bekaa",
-  "Baalbek-Hermel",
-  "South",
-  "Nabatieh",
-  "Keserwan-Jbeil",
-];
-
-const LEBANON_GOVERNORATES_AR = [
-  "بيروت",
-  "جبل لبنان",
-  "الشمال",
-  "عكار",
-  "البقاع",
-  "بعلبك-الهرمل",
-  "الجنوب",
-  "النبطية",
-  "كسروان-جبيل",
-];
-
-const LEBANON_GOVERNORATES = LEBANON_GOVERNORATES_EN.map((en, i) => ({
-  value: en,
-  label: en,
-  labelAr: LEBANON_GOVERNORATES_AR[i],
-}));
-
 const GIFT_OCCASIONS = [
   { value: "birthday", en: "Birthday", ar: "عيد ميلاد" },
   { value: "wedding", en: "Wedding", ar: "زفاف" },
@@ -420,8 +390,7 @@ export default function GiftCheckoutForm({
                     cityDisplayName ? "text-gray-900" : "text-gray-500"
                   }
                 >
-                  {cityDisplayName ||
-                    (isArabic ? "اختر المحافظة" : "Select City")}
+                  {cityDisplayName || labels.selectCity}
                 </span>
                 <ChevronDown
                   className={`w-4 h-4 text-gray-400 transition-transform ${isCityDropdownOpen ? "rotate-180" : ""}`}
@@ -429,20 +398,20 @@ export default function GiftCheckoutForm({
               </button>
 
               {isCityDropdownOpen && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg">
-                  {LEBANON_GOVERNORATES.map((gov) => (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                  {Object.keys(cityRates).map((gov) => (
                     <button
-                      key={gov.value}
+                      key={gov}
                       type="button"
                       onClick={() => {
-                        handleFieldChange("recipientCity", gov.value);
-                        setCityDisplayName(isArabic ? gov.labelAr : gov.label);
+                        handleFieldChange("recipientCity", gov);
+                        setCityDisplayName(gov);
                         setIsCityDropdownOpen(false);
                       }}
                       className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-gray-50"
                       dir={isArabic ? "rtl" : "ltr"}
                     >
-                      {isArabic ? gov.labelAr : gov.label}
+                      {gov}
                     </button>
                   ))}
                 </div>

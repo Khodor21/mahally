@@ -83,23 +83,9 @@ export default function GiftCheckoutClientPage({ store, lang }: Props) {
   // Fetch delivery rates from API
   useEffect(() => {
     if (!store?.id) return;
-
     fetch(`/api/delivery-rates?storeId=${store.id}`)
       .then((r) => r.json())
       .then((data) => {
-        const map: Record<string, number> = {};
-        const normalizeMap: Record<string, string> = {
-          بيروت: "Beirut",
-          "جبل لبنان": "Mount Lebanon",
-          "لبنان الشمالي": "North",
-          عكار: "Akkar",
-          البقاع: "Bekaa",
-          "بعلبك-الهرمل": "Baalbek-Hermel",
-          "لبنان الجنوبي": "South",
-          النبطية: "Nabatieh",
-          "كسروان-جبيل": "Keserwan-Jbeil",
-        };
-
         const ratesArray = Array.isArray(data)
           ? data
           : Array.isArray(data?.rates)
@@ -108,30 +94,22 @@ export default function GiftCheckoutClientPage({ store, lang }: Props) {
               ? data.data
               : [];
 
+        const map: Record<string, number> = {};
         let hasValidRates = false;
+
         ratesArray.forEach((r: any) => {
           if (!r.governorate) return;
-          const rawGov = String(r.governorate).trim();
-          const normalizedKey = normalizeMap[rawGov] || rawGov;
+          const gov = String(r.governorate).trim();
           const cost = Number(r.delivery_cost);
-          map[normalizedKey] = cost;
-          map[rawGov] = cost;
-          // Check if any rate is > 0
+          map[gov] = cost;
           if (cost > 0) hasValidRates = true;
         });
 
-        console.log(
-          "🎁 City Rates Loaded:",
-          map,
-          "Has Valid Rates:",
-          hasValidRates,
-        );
         setCityRates(map);
         setHasCityRates(hasValidRates);
       })
-      .catch((err) => console.error("Failed to load delivery rates:", err));
+      .catch(console.error);
   }, [store?.id]);
-
   const handleSubmitGift = async (formData: any) => {
     setIsSubmitting(true);
     setSubmitError(null);

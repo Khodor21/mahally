@@ -3,18 +3,6 @@ import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { requireStoreSession } from "@/lib/store";
 
-const LEBANON_GOVERNORATES = [
-  "Beirut",
-  "Mount Lebanon",
-  "North",
-  "Akkar",
-  "Bekaa",
-  "Baalbek-Hermel",
-  "South",
-  "Nabatieh",
-];
-
-// GET - For store admins to view all their customers in dashboard
 export async function GET() {
   try {
     const user = await requireStoreSession();
@@ -54,13 +42,6 @@ export async function POST(req: Request) {
     ) {
       return NextResponse.json(
         { success: false, message: "Missing required fields" },
-        { status: 400 },
-      );
-    }
-
-    if (!LEBANON_GOVERNORATES.includes(governorate)) {
-      return NextResponse.json(
-        { success: false, message: "Invalid governorate" },
         { status: 400 },
       );
     }

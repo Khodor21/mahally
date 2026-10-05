@@ -6,17 +6,6 @@ import Toast from "../components/Toast";
 import { authTranslations } from "../i18n";
 import { useRouter } from "next/navigation";
 
-const governorates = [
-  { en: "Beirut", ar: "بيروت" },
-  { en: "Mount Lebanon", ar: "جبل لبنان" },
-  { en: "North", ar: "الشمال" },
-  { en: "Akkar", ar: "عكار" },
-  { en: "Bekaa", ar: "البقاع" },
-  { en: "Baalbek-Hermel", ar: "بعلبك - الهرمل" },
-  { en: "South", ar: "الجنوب" },
-  { en: "Nabatieh", ar: "النبطية" },
-];
-
 const countries = [
   {
     code: "LB",
@@ -67,6 +56,7 @@ export default function CustomerAuth({ storeId, lang }: Props) {
   const router = useRouter();
   const tr = authTranslations[lang];
   const dir = lang === "ar" ? "rtl" : "ltr";
+  const [governorateList, setGovernorateList] = useState<string[]>([]);
 
   const [mode, setMode] = useState<"login" | "signup">("signup");
   const [loading, setLoading] = useState(false);
@@ -102,6 +92,19 @@ export default function CustomerAuth({ storeId, lang }: Props) {
     return () => clearTimeout(timer);
   }, [showSuccessRedirect, router]);
   // Handle language change via URL
+  useEffect(() => {
+    fetch(`/api/delivery-rates?storeId=${storeId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const arr = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.rates)
+            ? data.rates
+            : [];
+        setGovernorateList(arr.map((r: any) => String(r.governorate).trim()));
+      })
+      .catch(console.error);
+  }, [storeId]);
 
   async function handleSubmit() {
     try {
@@ -300,9 +303,9 @@ export default function CustomerAuth({ storeId, lang }: Props) {
                   }`}
                 >
                   <option value="">{tr.selectGovernorate}</option>
-                  {governorates.map((gov) => (
-                    <option key={gov.en} value={gov.en}>
-                      {gov[lang]}
+                  {governorateList.map((gov) => (
+                    <option key={gov} value={gov}>
+                      {gov}
                     </option>
                   ))}
                 </select>

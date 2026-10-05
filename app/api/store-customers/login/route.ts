@@ -16,8 +16,6 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log("📍 Login attempt:", { storeId, phone });
-
     // Fetch customer by store and phone
     const { data: customer, error } = await supabaseAdmin
       .from("store_customers")
@@ -29,7 +27,6 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     if (error || !customer) {
-      console.error("❌ Customer not found:", error);
       return NextResponse.json(
         { success: false, message: "Invalid credentials" },
         { status: 401 },
@@ -43,7 +40,6 @@ export async function POST(req: Request) {
     );
 
     if (!passwordValid) {
-      console.error("❌ Password invalid");
       return NextResponse.json(
         { success: false, message: "Invalid credentials" },
         { status: 401 },
@@ -52,11 +48,6 @@ export async function POST(req: Request) {
 
     // Isolate password_hash so it doesn't leak
     const { password_hash, ...customerData } = customer;
-
-    console.log("✅ Login successful:", {
-      customerId: customer.id,
-      storeId: customer.store_id,
-    });
 
     const response = NextResponse.json({
       success: true,
@@ -84,7 +75,6 @@ export async function POST(req: Request) {
 
     return response;
   } catch (err: any) {
-    console.error("❌ Login error:", err);
     return NextResponse.json(
       { success: false, message: err.message || "Login failed" },
       { status: 500 },
