@@ -132,7 +132,7 @@ export default function Pricing() {
     setIsMounted(true);
 
     // Using slashes (YYYY/MM/DD) prevents the NaN bug on Safari/iPhones
-    const targetDate = new Date("2026/09/26 23:59:59").getTime();
+    const targetDate = new Date("2026/10/10 23:59:59").getTime();
 
     const updateTimer = () => {
       const now = new Date().getTime();
