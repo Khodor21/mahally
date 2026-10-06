@@ -208,7 +208,7 @@ export interface StoreData {
 
   testimonials?: TestimonialsList;
   faq?: FaqList;
-  order_success_mes
+  order_success_message?: string;
   category_display_style?: "grid" | "list";
 }
 
