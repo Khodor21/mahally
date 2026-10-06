@@ -4,9 +4,6 @@ import { useRouter } from "next/navigation";
 import {
   ShoppingBag,
   Loader2,
-  StickyNote,
-  ChevronRight,
-  ChevronLeft,
   ArrowRight,
   ArrowLeft,
   X,
@@ -26,18 +23,10 @@ import EmptyCartState from "./components/EmptyCartState";
 import CartItemsList from "./components/CartItemsList";
 import OrderSummary from "./components/OrderSummary";
 import ShippingForm from "./components/ShippingForm";
+import { Emoji } from "emoji-picker-react";
 
 type Props = {
   store: Store | null;
-};
-
-const getSelectableVariants = (variantDescription?: string): string => {
-  if (!variantDescription) return "";
-  try {
-    return variantDescription;
-  } catch {
-    return variantDescription || "";
-  }
 };
 
 export default function CartClientPage({ store }: Props) {
@@ -46,7 +35,6 @@ export default function CartClientPage({ store }: Props) {
   const t = checkoutTranslations[language];
   const isArabic = language === "ar";
 
-  // Pull cart management from Context
   const { cartItems, cartTotal, updateCartQty, removeFromCart, clearCart } =
     useShop();
   const currencySymbol = store?.currency_symbol || "$";
@@ -62,6 +50,7 @@ export default function CartClientPage({ store }: Props) {
   const { customer, loading: authLoading } = useAuth(store?.id);
 
   const [step, setStep] = useState<"cart" | "shipping">("cart");
+  const [successModal, setSuccessModal] = useState(false);
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -75,7 +64,6 @@ export default function CartClientPage({ store }: Props) {
     code: string;
     discountAmount: number;
   } | null>(null);
-
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponMessage, setCouponMessage] = useState<{
     type: "success" | "error";
@@ -85,34 +73,31 @@ export default function CartClientPage({ store }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Toast (errors only now)
   const [toastState, setToastState] = useState<{
     show: boolean;
     type: "success" | "error";
     message: string;
-  }>({ show: false, type: "success", message: "" });
+  }>({ show: false, type: "error", message: "" });
   const [toastProgress, setToastProgress] = useState(0);
 
-  // New state for dynamic city delivery rates
   const [cityRates, setCityRates] = useState<
     { governorate: string; delivery_cost: number }[]
   >([]);
+
   const showCustomToast = (type: "success" | "error", message: string) => {
     setToastState({ show: true, type, message });
     setToastProgress(0);
-    setTimeout(() => {
-      setToastProgress(100);
-    }, 50);
+    setTimeout(() => setToastProgress(100), 50);
   };
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    if (toastState.show) {
-      timeoutId = setTimeout(() => {
-        setToastState((prev) => ({ ...prev, show: false }));
-        setToastProgress(0);
-      }, 3000);
-    }
-    return () => clearTimeout(timeoutId);
+    if (!toastState.show) return;
+    const id = setTimeout(() => {
+      setToastState((prev) => ({ ...prev, show: false }));
+      setToastProgress(0);
+    }, 3000);
+    return () => clearTimeout(id);
   }, [toastState.show]);
 
   const [isMounted, setIsMounted] = useState(false);
@@ -126,13 +111,12 @@ export default function CartClientPage({ store }: Props) {
       try {
         setBuyNowItem(JSON.parse(tempItem));
         setIsBuyNow(true);
-      } catch (e) {
+      } catch {
         sessionStorage.removeItem("TEMP_BUY_NOW_ITEM");
       }
     }
   }, []);
 
-  // Fetch delivery rates based on governorates
   useEffect(() => {
     if (!store?.id) return;
     fetch(`/api/delivery-rates?storeId=${store.id}`)
@@ -145,7 +129,6 @@ export default function CartClientPage({ store }: Props) {
             : Array.isArray(data?.data)
               ? data.data
               : [];
-
         setCityRates(
           ratesArray.map((r: any) => ({
             governorate: String(r.governorate).trim(),
@@ -156,20 +139,67 @@ export default function CartClientPage({ store }: Props) {
       .catch(console.error);
   }, [store?.id]);
 
-  const activeItems = useMemo(() => {
-    return isBuyNow && buyNowItem ? [buyNowItem] : cartItems;
-  }, [isBuyNow, buyNowItem, cartItems]);
+  useEffect(() => {
+    if (customer) {
+      setCustomerName(`${customer.first_name} ${customer.last_name}`.trim());
+      setCustomerPhone(customer.phone || "");
+      setCity(customer.governorate || "");
+    }
+  }, [customer]);
+
+  const activeItems = useMemo(
+    () => (isBuyNow && buyNowItem ? [buyNowItem] : cartItems),
+    [isBuyNow, buyNowItem, cartItems],
+  );
+
   const activeSubtotal = useMemo(() => {
     if (isBuyNow && buyNowItem) {
-      const basePrice = Number(buyNowItem.product.price || 0);
-      const discountPrice = Number(buyNowItem.product.discount_price || 0);
-      const hasDiscount = discountPrice > 0 && discountPrice < basePrice;
-      const activePrice = hasDiscount ? discountPrice : basePrice;
-
-      return activePrice * buyNowItem.qty;
+      const base = Number(buyNowItem.product.price || 0);
+      const disc = Number(buyNowItem.product.discount_price || 0);
+      return (disc > 0 && disc < base ? disc : base) * buyNowItem.qty;
     }
-    return cartTotal; // cartTotal from Context is now fully discount-aware
+    return cartTotal;
   }, [isBuyNow, buyNowItem, cartTotal]);
+
+  const subtotal = activeSubtotal;
+
+  const cityRatesMap = Object.fromEntries(
+    cityRates.map((r) => [r.governorate, r.delivery_cost]),
+  );
+  const hasCityRates = cityRates.some((r) => r.delivery_cost > 0);
+  const shipping =
+    subtotal > 0
+      ? hasCityRates
+        ? (cityRatesMap[city] ?? storeDeliveryCost)
+        : storeDeliveryCost
+      : 0;
+  const minRate = hasCityRates
+    ? Math.min(
+        ...cityRates
+          .filter((r) => r.delivery_cost > 0)
+          .map((r) => r.delivery_cost),
+      )
+    : 0;
+  const maxRate = hasCityRates
+    ? Math.max(...cityRates.map((r) => r.delivery_cost))
+    : 0;
+
+  const discountAmount = appliedCoupon?.discountAmount ?? 0;
+  const total = Math.max(0, subtotal - discountAmount) + shipping;
+
+  useEffect(() => {
+    if (appliedCoupon) {
+      setAppliedCoupon(null);
+      setCouponMessage({ type: "error", text: t.cartChanged });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal]);
+
+  const clearBuyNowSession = () => {
+    sessionStorage.removeItem("TEMP_BUY_NOW_ITEM");
+    setIsBuyNow(false);
+    setBuyNowItem(null);
+  };
 
   const handleUpdateActiveQty = (id: string | number, qty: number) => {
     if (isBuyNow && buyNowItem) {
@@ -183,94 +213,27 @@ export default function CartClientPage({ store }: Props) {
 
   const handleRemoveActiveItem = (id: string | number) => {
     if (isBuyNow) {
-      sessionStorage.removeItem("TEMP_BUY_NOW_ITEM");
-      setIsBuyNow(false);
-      setBuyNowItem(null);
+      clearBuyNowSession();
     } else {
       removeFromCart(String(id));
     }
   };
 
-  const clearBuyNowSession = () => {
-    if (isBuyNow) {
-      sessionStorage.removeItem("TEMP_BUY_NOW_ITEM");
-      setIsBuyNow(false);
-      setBuyNowItem(null);
-    }
-  };
-
-  const switchToCartView = () => setIsBuyNow(false);
-  const switchToBuyNowView = () => setIsBuyNow(true);
-
-  useEffect(() => {
-    if (customer) {
-      setCustomerName(`${customer.first_name} ${customer.last_name}`.trim());
-      setCustomerPhone(customer.phone || "");
-      setCity(customer.governorate || "");
-    }
-  }, [customer]);
-
-  const subtotal = useMemo(() => activeSubtotal, [activeSubtotal]);
-
-  const cityRatesMap = Object.fromEntries(
-    cityRates.map((r) => [r.governorate, r.delivery_cost]),
-  );
-
-  const hasCityRates = cityRates.some((r) => r.delivery_cost > 0);
-
-  const shipping =
-    subtotal > 0
-      ? hasCityRates
-        ? (cityRatesMap[city] ?? storeDeliveryCost)
-        : storeDeliveryCost
-      : 0;
-
-  const minRate = hasCityRates
-    ? Math.min(
-        ...cityRates
-          .filter((r) => r.delivery_cost > 0)
-          .map((r) => r.delivery_cost),
-      )
-    : 0;
-  const maxRate = hasCityRates
-    ? Math.max(...cityRates.map((r) => r.delivery_cost))
-    : 0;
-
-  const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-  const total = Math.max(0, subtotal - discountAmount) + shipping;
-
-  useEffect(() => {
-    if (appliedCoupon) {
-      setAppliedCoupon(null);
-      setCouponMessage({
-        type: "error",
-        text: t.cartChanged,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subtotal]);
-
   const handleApplyCoupon = async () => {
     if (!couponInput.trim() || !store?.id) return;
-
     setCouponLoading(true);
     setCouponMessage(null);
-
     try {
       const res = await fetch(
         `/api/coupons?action=validate&storeId=${store.id}&code=${couponInput}&cartTotal=${subtotal}`,
       );
       const data = await res.json();
-
       if (data.success) {
         setAppliedCoupon({
           code: data.data.coupon.code,
           discountAmount: data.data.discount,
         });
-        setCouponMessage({
-          type: "success",
-          text: t.couponSuccess,
-        });
+        setCouponMessage({ type: "success", text: t.couponSuccess });
         setCouponInput("");
       } else {
         setCouponMessage({
@@ -278,40 +241,29 @@ export default function CartClientPage({ store }: Props) {
           text: data.message || t.couponInvalid,
         });
       }
-    } catch (err) {
-      setCouponMessage({
-        type: "error",
-        text: t.couponValidationFailed,
-      });
+    } catch {
+      setCouponMessage({ type: "error", text: t.couponValidationFailed });
     } finally {
       setCouponLoading(false);
     }
   };
 
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponMessage(null);
-  };
-
   const handleCheckout = async () => {
+    if (!store?.id) {
+      const msg =
+        t.storeNotFound || (isArabic ? "المتجر غير موجود" : "Store not found");
+      setError(msg);
+      showCustomToast("error", msg);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
     try {
-      setLoading(true);
-      setError("");
-
-      if (!store?.id) {
-        const errorMsg =
-          t.storeNotFound ||
-          (isArabic ? "المتجر غير موجود" : "Store not found");
-        setError(errorMsg);
-        showCustomToast("error", errorMsg);
-        return;
-      }
-
       const response = await fetch("/api/checkout", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           storeId: store.id,
           customerName,
@@ -344,44 +296,34 @@ export default function CartClientPage({ store }: Props) {
           typeof data.message === "string" &&
           data.message.toLowerCase().includes("out of stock")
         ) {
-          const outOfStockItem = activeItems.find((item) =>
-            data.message.includes(String(item.product.id)),
+          const item = activeItems.find((i) =>
+            data.message.includes(String(i.product.id)),
           );
-
-          if (outOfStockItem) {
+          if (item) {
             errorMsg = isArabic
-              ? `عذراً، المنتج "${outOfStockItem.product.title}" غير متوفر بالكمية المطلوبة`
-              : `Sorry, "${outOfStockItem.product.title}" is out of stock.`;
+              ? `عذراً، المنتج "${item.product.title}" غير متوفر بالكمية المطلوبة`
+              : `Sorry, "${item.product.title}" is out of stock.`;
           }
         }
 
         setError(errorMsg);
         showCustomToast("error", errorMsg);
-        clearBuyNowSession();
+        if (isBuyNow) clearBuyNowSession();
         return;
       }
 
-      showCustomToast(
-        "success",
-        isArabic ? "تم تأكيد الطلب بنجاح!" : "Order placed successfully!",
-      );
+      // ✅ SUCCESS
+      if (isBuyNow) clearBuyNowSession();
+      else clearCart();
 
-      setTimeout(() => {
-        if (isBuyNow) {
-          clearBuyNowSession();
-        } else {
-          clearCart();
-        }
-        router.push(`/`);
-      }, 1500);
-    } catch (err) {
-      console.error(err);
-      const errorMsg =
+      setSuccessModal(true);
+    } catch {
+      const msg =
         t.somethingWentWrong ||
         (isArabic ? "حدث خطأ ما" : "Something went wrong");
-      setError(errorMsg);
-      showCustomToast("error", errorMsg);
-      clearBuyNowSession();
+      setError(msg);
+      showCustomToast("error", msg);
+      if (isBuyNow) clearBuyNowSession();
     } finally {
       setLoading(false);
     }
@@ -389,24 +331,24 @@ export default function CartClientPage({ store }: Props) {
 
   if (!isMounted) return null;
 
-  if (activeItems.length === 0) {
+  if (activeItems.length === 0 && !successModal) {
     return (
       <EmptyCartState
         title={t.emptyCartTitle}
         description={t.emptyCartDesc}
         continueShoppingLabel={t.continueShopping}
-        onContinueShopping={() => router.push(`/`)}
+        onContinueShopping={() => router.push("/")}
         isArabic={isArabic}
       />
     );
   }
 
   const canCheckout =
-    customerName.trim() &&
-    customerPhone.trim() &&
-    city &&
-    address.trim() &&
-    selectedPaymentMethod &&
+    !!customerName.trim() &&
+    !!customerPhone.trim() &&
+    !!city &&
+    !!address.trim() &&
+    !!selectedPaymentMethod &&
     activeItems.length > 0;
 
   const ProceedIcon = isArabic ? ArrowLeft : ArrowRight;
@@ -416,17 +358,14 @@ export default function CartClientPage({ store }: Props) {
     <div
       className={`w-full bg-white py-8 px-4 sm:px-6 md:px-8 pb-40 ${isArabic ? "rtl" : "ltr"}`}
     >
+      {/* Error Toast */}
       {toastState.show && (
         <div
-          className={`fixed top-4 ${
-            isArabic ? "right-4" : "left-4"
-          } z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-sm shadow-2xl overflow-hidden border border-gray-100 transition-all animate-in slide-in-from-top-4 fade-in duration-300`}
+          className={`fixed top-4 ${isArabic ? "right-4" : "left-4"} z-[100] w-[calc(100vw-2rem)] md:w-[320px] bg-white rounded-sm shadow-2xl overflow-hidden border border-gray-100 animate-in slide-in-from-top-4 fade-in duration-300`}
           dir={isArabic ? "rtl" : "ltr"}
         >
           <div
-            className={`h-1 ease-linear ${
-              toastState.type === "success" ? "bg-emerald-500" : "bg-red-500"
-            }`}
+            className={`h-1 ease-linear ${toastState.type === "success" ? "bg-emerald-500" : "bg-red-500"}`}
             style={{
               width: `${toastProgress}%`,
               transitionDuration: toastState.show ? "2950ms" : "0ms",
@@ -437,27 +376,17 @@ export default function CartClientPage({ store }: Props) {
             {isArabic ? (
               <>
                 <div className="flex items-center gap-3">
-                  {toastState.type === "success" ? (
-                    <CheckCircle2
-                      className="flex-shrink-0 text-emerald-500"
-                      size={18}
-                    />
-                  ) : (
-                    <AlertCircle
-                      className="flex-shrink-0 text-red-500"
-                      size={18}
-                    />
-                  )}
+                  <AlertCircle
+                    className="flex-shrink-0 text-red-500"
+                    size={18}
+                  />
                   <span className="text-sm font-semibold text-gray-900">
                     {toastState.message}
                   </span>
                 </div>
                 <button
-                  onClick={() =>
-                    setToastState((prev) => ({ ...prev, show: false }))
-                  }
-                  className="text-gray-400 hover:text-gray-700 transition-colors p-1 rounded-md hover:bg-gray-100"
-                  aria-label="Close"
+                  onClick={() => setToastState((p) => ({ ...p, show: false }))}
+                  className="text-gray-400 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100"
                 >
                   <X size={16} />
                 </button>
@@ -465,11 +394,8 @@ export default function CartClientPage({ store }: Props) {
             ) : (
               <>
                 <button
-                  onClick={() =>
-                    setToastState((prev) => ({ ...prev, show: false }))
-                  }
-                  className="text-gray-400 hover:text-gray-700 transition-colors p-1 rounded-md hover:bg-gray-100"
-                  aria-label="Close"
+                  onClick={() => setToastState((p) => ({ ...p, show: false }))}
+                  className="text-gray-400 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100"
                 >
                   <X size={16} />
                 </button>
@@ -477,17 +403,10 @@ export default function CartClientPage({ store }: Props) {
                   <span className="text-sm font-semibold text-gray-900">
                     {toastState.message}
                   </span>
-                  {toastState.type === "success" ? (
-                    <CheckCircle2
-                      className="flex-shrink-0 text-emerald-500"
-                      size={18}
-                    />
-                  ) : (
-                    <AlertCircle
-                      className="flex-shrink-0 text-red-500"
-                      size={18}
-                    />
-                  )}
+                  <AlertCircle
+                    className="flex-shrink-0 text-red-500"
+                    size={18}
+                  />
                 </div>
               </>
             )}
@@ -495,35 +414,49 @@ export default function CartClientPage({ store }: Props) {
         </div>
       )}
 
-      <div className="max-w-2xl mx-auto">
-        {step === "cart" && isBuyNow && cartItems.length > 0 && (
-          <div className="mb-6 flex flex-col sm:flex-row gap-3">
+      {/* Success Modal */}
+      {successModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div
+            className="bg-white rounded-xl p-8 max-w-sm w-full shadow-2xl text-center space-y-4"
+            dir={isArabic ? "rtl" : "ltr"}
+          >
+            <div className="w-16 h-16 mb-2 rounded-full bg-emerald-50 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+            </div>
+            <span className="text-lg font-bold text-gray-900 flex items-center justify-center text-center gap-1">
+              {isArabic ? "تم تأكيد طلبك!" : "Order Confirmed!"}
+              <Emoji unified="1f389" size={22} />
+            </span>
+            {store?.order_success_message && (
+              <p className="text-sm text-gray-500">
+                {store.order_success_message}
+              </p>
+            )}
             <button
-              onClick={switchToBuyNowView}
-              className="flex-1 py-3.5 rounded-sm bg-brand-primary/5 border-2 border-brand-primary/40 font-semibold text-sm text-brand-primary flex items-center justify-center gap-2 transition-colors"
+              onClick={() => {
+                setSuccessModal(false);
+                router.push("/");
+              }}
+              className="w-full py-2 rounded-sm bg-brand-primary text-white text-sm font-semibold hover:opacity-90 transition-opacity"
             >
-              <Zap className="w-4 h-4" />
-              {isArabic
-                ? `قائمة الشراء السريع (${buyNowItem?.qty || 1})`
-                : `Quick Buy List (${buyNowItem?.qty || 1})`}
-            </button>
-            <button
-              onClick={switchToCartView}
-              className="flex-1 py-3.5 rounded-sm bg-gray-50 border border-gray-200 font-medium text-sm text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-2 transition-colors"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              {isArabic
-                ? `منتجات السلة (${cartItems.length})`
-                : `Cart Items (${cartItems.length})`}
+              {isArabic ? "العودة للصغحة الرئيسية" : "Back to Home Page"}
             </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {step === "cart" && !isBuyNow && cartItems.length > 0 && buyNowItem && (
+      <div className="max-w-2xl mx-auto">
+        {/* Buy Now / Cart switcher */}
+        {step === "cart" && buyNowItem && cartItems.length > 0 && (
           <div className="mb-6 flex flex-col sm:flex-row gap-3">
             <button
-              onClick={switchToBuyNowView}
-              className="flex-1 py-3.5 rounded-sm bg-gray-50 border border-gray-200 font-medium text-sm text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-2 transition-colors"
+              onClick={() => setIsBuyNow(true)}
+              className={`flex-1 py-3.5 rounded-sm font-semibold text-sm flex items-center justify-center gap-2 transition-colors border-2 ${
+                isBuyNow
+                  ? "bg-brand-primary/5 border-brand-primary/40 text-brand-primary"
+                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+              }`}
             >
               <Zap className="w-4 h-4" />
               {isArabic
@@ -531,8 +464,12 @@ export default function CartClientPage({ store }: Props) {
                 : `Quick Buy List (${buyNowItem?.qty || 1})`}
             </button>
             <button
-              onClick={switchToCartView}
-              className="flex-1 py-3.5 rounded-sm bg-brand-primary/5 border-2 border-brand-primary/40 font-semibold text-sm text-brand-primary flex items-center justify-center gap-2 transition-colors"
+              onClick={() => setIsBuyNow(false)}
+              className={`flex-1 py-3.5 rounded-sm font-semibold text-sm flex items-center justify-center gap-2 transition-colors border-2 ${
+                !isBuyNow
+                  ? "bg-brand-primary/5 border-brand-primary/40 text-brand-primary"
+                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+              }`}
             >
               <ShoppingCart className="w-4 h-4" />
               {isArabic
@@ -543,26 +480,24 @@ export default function CartClientPage({ store }: Props) {
         )}
 
         <div className="mb-8">
-          <div>
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-              {step === "cart"
-                ? isBuyNow
-                  ? isArabic
-                    ? "قائمة الشراء السريع"
-                    : "Quick Buy List"
-                  : t.cart
-                : t.shippingInfo}
-            </h3>
-            <p className="mt-1.5 text-sm text-gray-500 font-medium">
-              {step === "cart"
-                ? isBuyNow
-                  ? isArabic
-                    ? "📦 منتج واحد جاهز للشراء"
-                    : "📦 1 item ready to purchase"
-                  : ` ${t.products}: ${activeItems.length}`
-                : t.fillDetailsBelow}
-            </p>
-          </div>
+          <h3 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+            {step === "cart"
+              ? isBuyNow
+                ? isArabic
+                  ? "قائمة الشراء السريع"
+                  : "Quick Buy List"
+                : t.cart
+              : t.shippingInfo}
+          </h3>
+          <p className="mt-1.5 text-sm text-gray-500 font-medium">
+            {step === "cart"
+              ? isBuyNow
+                ? isArabic
+                  ? "📦 منتج واحد جاهز للشراء"
+                  : "📦 1 item ready to purchase"
+                : `${t.products}: ${activeItems.length}`
+              : t.fillDetailsBelow}
+          </p>
         </div>
 
         {step === "cart" && (
@@ -574,7 +509,6 @@ export default function CartClientPage({ store }: Props) {
               onUpdateQty={handleUpdateActiveQty}
               onRemoveItem={handleRemoveActiveItem}
             />
-
             <OrderSummary
               t={t}
               currencySymbol={currencySymbol}
@@ -588,14 +522,16 @@ export default function CartClientPage({ store }: Props) {
               couponMessage={couponMessage}
               onCouponInputChange={setCouponInput}
               onApplyCoupon={handleApplyCoupon}
-              onRemoveCoupon={handleRemoveCoupon}
+              onRemoveCoupon={() => {
+                setAppliedCoupon(null);
+                setCouponMessage(null);
+              }}
               city={city}
               hasCityRates={hasCityRates}
               minRate={minRate}
               maxRate={maxRate}
               isArabic={isArabic}
             />
-
             <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-200 p-4 z-[100] pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
               <div className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-3">
                 <button
@@ -607,7 +543,7 @@ export default function CartClientPage({ store }: Props) {
                 </button>
                 <button
                   onClick={() => {
-                    clearBuyNowSession();
+                    if (isBuyNow) clearBuyNowSession();
                     router.back();
                   }}
                   className="w-full sm:flex-1 py-2 px-2 rounded-sm border border-gray-200 text-gray-700 bg-white font-medium text-xs hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm order-2 sm:order-1"

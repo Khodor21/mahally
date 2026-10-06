@@ -208,6 +208,8 @@ export interface StoreData {
 
   testimonials?: TestimonialsList;
   faq?: FaqList;
+  order_success_mes
+  category_display_style?: "grid" | "list";
 }
 
 export interface HeroBanner {

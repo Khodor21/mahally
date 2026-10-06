@@ -451,6 +451,36 @@ export default function AppearanceTab(props: AppearanceTabProps) {
                 : "Displays at the top of your storefront"}
             </p>
           </div>
+
+          {/* Order Success Message */}
+          <div>
+            <label className="block text-xs font-semibold text-[rgb(60_28_84)]/50 mb-1">
+              {lang === "ar" ? "رسالة تأكيد الطلب" : "Order Success Message"}
+            </label>
+
+            <input
+              type="text"
+              value={formData.order_success_message || ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  order_success_message: e.target.value,
+                })
+              }
+              placeholder={
+                lang === "ar"
+                  ? "مثال: شكراً لطلبك! سنتواصل معك قريباً 🎉"
+                  : "e.g. Thank you for your order! We'll be in touch soon 🎉"
+              }
+              className="w-full bg-[rgb(244_242_245)] rounded-sm px-4 py-2.5 text-sm text-[rgb(60_28_84)] outline-none border border-transparent focus:border-[rgb(207_195_223)] transition-all"
+              dir={dir}
+            />
+            <p className="text-xs text-[rgb(60_28_84)]/40 my-3">
+              {lang === "ar"
+                ? "تظهر للعميل في نافذة بعد إتمام الطلب — اختياري"
+                : "Shown to the customer in a popup after a successful order — optional"}
+            </p>
+          </div>
           {/* Delivery Fees */}
           <div>
             <div className="flex items-center justify-between mb-3">

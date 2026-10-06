@@ -281,30 +281,32 @@ export default function Navbar({
             </Link>
 
             {/* Categories Nav */}
+            {/* Categories Nav */}
             {!isMini && (
-              <nav className="hidden md:flex items-center justify-center gap-6 lg:gap-8 flex-1 px-4">
+              <nav className="hidden md:flex items-center justify-center gap-4 lg:gap-6 flex-1 min-w-0 px-2 overflow-hidden">
                 {loadingCategories ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <div
                       key={i}
-                      className="w-16 h-4 bg-gray-100 animate-pulse rounded-md"
+                      className="w-16 h-4 bg-gray-100 animate-pulse rounded-md flex-shrink-0"
                     />
                   ))
                 ) : (
                   <>
-                    {categories.slice(0, 6).map((cat) => (
+                    {categories.slice(0, 4).map((cat) => (
                       <Link
                         key={cat.id}
                         href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
-                        className="text-[18px] font-medium text-gray-800 hover:text-brand-primary transition-colors whitespace-nowrap"
+                        className="text-[16px] font-medium text-gray-800 hover:text-brand-primary transition-colors whitespace-nowrap flex-shrink-0 truncate max-w-[120px]"
+                        title={cat.title}
                       >
                         {cat.title}
                       </Link>
                     ))}
-                    {categories.length > 6 && (
+                    {categories.length > 4 && (
                       <Link
-                        href={"/categories"}
-                        className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors whitespace-nowrap"
+                        href="/categories"
+                        className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors whitespace-nowrap flex-shrink-0"
                       >
                         {t.shopAll}
                       </Link>

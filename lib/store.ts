@@ -104,7 +104,18 @@ export async function getStoreBySlug(slug: string) {
       payment_methods,
       plan_type,
       created_at,
-      is_active
+      is_active,
+      store_settings (
+        primary_color,
+        logo_url,
+        description,
+        promo_text,
+        order_success_message,
+        whatsapp_number,
+        instagram_url,
+        facebook_url,
+        category_display_style
+      )
     `,
     )
     .eq("slug", slug)
@@ -115,5 +126,24 @@ export async function getStoreBySlug(slug: string) {
     return null;
   }
 
-  return data ?? null;
+  if (!data) return null;
+
+  // Flatten settings into store object
+  const settings = Array.isArray(data.store_settings)
+    ? data.store_settings[0]
+    : data.store_settings;
+
+  return {
+    ...data,
+    store_settings: undefined,
+    primary_color: settings?.primary_color || null,
+    logo_url: settings?.logo_url || null,
+    description: settings?.description || null,
+    promo_text: settings?.promo_text || "",
+    order_success_message: settings?.order_success_message || "",
+    whatsapp_number: settings?.whatsapp_number || null,
+    instagram_url: settings?.instagram_url || null,
+    facebook_url: settings?.facebook_url || null,
+    category_display_style: settings?.category_display_style ?? "grid",
+  };
 }

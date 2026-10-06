@@ -71,6 +71,8 @@ export async function GET() {
     description: settings?.description || null,
     promo_text: settings?.promo_text || "",
 
+    order_success_message: settings?.order_success_message || "",
+
     // Policies
     privacy_policy: settings?.privacy_policy || null,
     shipping_policy: settings?.shipping_policy || null,
@@ -472,6 +474,7 @@ export async function PUT(request: NextRequest) {
       whatsapp_number,
       testimonials,
       promo_text,
+      order_success_message,
       faq,
       category_display_style,
     } = body;
@@ -557,6 +560,8 @@ export async function PUT(request: NextRequest) {
     if (primary_color !== undefined)
       settingsUpdate.primary_color = primary_color;
     if (promo_text !== undefined) settingsUpdate.promo_text = promo_text;
+    if (order_success_message !== undefined)
+      settingsUpdate.order_success_message = order_success_message;
     if (privacy_policy !== undefined)
       settingsUpdate.privacy_policy = privacy_policy;
     if (shipping_policy !== undefined)

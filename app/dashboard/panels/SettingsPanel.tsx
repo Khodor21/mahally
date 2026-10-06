@@ -103,6 +103,7 @@ export default function SettingsPanel() {
     snapchat_url: "",
     payment_methods: "[]",
     faq: "{}",
+    order_success_message: "",
   });
 
   const handleStoreSuccess = useCallback((data: StoreData) => {
@@ -145,6 +146,10 @@ export default function SettingsPanel() {
           ? data.payment_methods
           : JSON.stringify(data.payment_methods || []),
       faq: JSON.stringify(faqData),
+      order_success_message:
+        typeof data.order_success_message === "string"
+          ? data.order_success_message
+          : "",
     });
   }, []);
 
@@ -266,13 +271,7 @@ export default function SettingsPanel() {
           return { faqs: [] };
         }
       })();
-      console.log("FAQ data being sent:", faqData);
-      console.log("Complete payload:", {
-        ...formData,
-        id: store.id,
-        payment_methods: paymentMethods,
-        faq: faqData,
-      });
+
       await updateStore({
         ...formData,
         id: store.id,
