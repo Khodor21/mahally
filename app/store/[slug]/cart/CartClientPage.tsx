@@ -162,7 +162,35 @@ export default function CartClientPage({ store }: Props) {
   }, [isBuyNow, buyNowItem, cartTotal]);
 
   const subtotal = activeSubtotal;
+  const renderSuccessMessageWithWhatsApp = (
+    message: string,
+    isArabic: boolean,
+  ) => {
+    // Regex to match international or local phone numbers (e.g., +96171708103, 00961..., etc.)
+    // Adjust regex as needed depending on your store formats
+    const phoneRegex = /(\+?[0-9]{10,15})/g;
 
+    const parts = message.split(phoneRegex);
+
+    return parts.map((part, index) => {
+      if (phoneRegex.test(part)) {
+        // Clean the phone number for the WhatsApp link (remove spaces, plus signs, etc.)
+        const cleanPhone = part.replace(/[^\d]/g, "");
+        return (
+          <a
+            key={index}
+            href={`https://wa.me/${cleanPhone}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand-primary font-semibold underline hover:opacity-80 inline-flex items-center gap-1 mx-1"
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
   const cityRatesMap = Object.fromEntries(
     cityRates.map((r) => [r.governorate, r.delivery_cost]),
   );
@@ -428,11 +456,16 @@ export default function CartClientPage({ store }: Props) {
               {isArabic ? "تم تأكيد طلبك!" : "Order Confirmed!"}
               <Emoji unified="1f389" size={22} />
             </span>
+
             {store?.order_success_message && (
-              <p className="text-sm text-gray-500">
-                {store.order_success_message}
+              <p className="text-sm text-gray-500 leading-relaxed">
+                {renderSuccessMessageWithWhatsApp(
+                  store.order_success_message,
+                  isArabic,
+                )}
               </p>
             )}
+
             <button
               onClick={() => {
                 setSuccessModal(false);
