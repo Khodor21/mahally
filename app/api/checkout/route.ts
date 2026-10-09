@@ -299,8 +299,6 @@ export async function POST(request: NextRequest) {
     };
 
     // 2. طباعة البيانات في الـ Terminal الخاص بالـ Server لمعرفة ما الذي يتم إرساله بالضبط
-    console.log("=== DATA SENT TO SUPABASE ===", orderPayload);
-
     // 3. إرسال البيانات إلى قاعدة البيانات
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
@@ -309,7 +307,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (orderError || !order) {
-      console.error("Order creation error:", orderError);
       throw new Error(orderError?.message || "Failed to create order");
     }
 
@@ -415,7 +412,7 @@ export async function GET(req: NextRequest) {
       .select("*")
       .eq("store_id", storeId)
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (ordersError) throw ordersError;
 

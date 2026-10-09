@@ -81,13 +81,13 @@ export default function Footer() {
 
             {/* Tagline */}
             <p className="text-brand-dark text-[15px] font-medium mb-4 leading-[1.9]">
-              افتح متجرك من لبنان للعالم 🇱🇧
+              افتح متجرك لكل المناطق
             </p>
 
             {/* Description */}
             <p className="text-brand-dark/65 text-[13px] max-w-[320px] mb-7">
-              منصة لبنانية تساعدك تنشئ متجر إلكتروني احترافي بسهولة، بدون تعقيد
-              وبدون خبرة تقنية.
+              منصة عربية محلية تساعدك تنشئ متجر إلكتروني احترافي بسهولة، بدون
+              تعقيد وبدون خبرة تقنية.
             </p>
 
             {/* Socials */}

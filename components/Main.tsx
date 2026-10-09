@@ -29,7 +29,7 @@ export default function FinalCTA() {
         <div className="max-w-[900px] mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-brand-light text-brand-dark rounded-full px-4 py-2 mb-6">
             <span className="text-sm font-semibold">
-              🇱🇧 المنصة اللبنانية الأفضل للتجارة الإلكترونية
+              🇱🇧 المنصة العربية الأفضل للتجارة الإلكترونية
             </span>
           </div>
 
@@ -79,7 +79,7 @@ export default function FinalCTA() {
 
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-brand-light" />
-              <span>دعم لبناني مباشر</span>
+              <span>دعم عربي مباشر</span>
             </div>
 
             <div className="flex items-center gap-2">

@@ -131,12 +131,12 @@ export default function Pricing() {
             خطط تناسب كل متجر
           </h2>
 
-          <p className="text-brand-dark/90 text-[13px] md:text-[15px] mb-8 font-medium px-2">
+          {/* <p className="text-brand-dark/90 text-[13px] md:text-[15px] mb-8 font-medium px-2">
             ابدأ بالكتالوج وطوّر متجرك لما تكبر مبيعاتك
-          </p>
+          </p> */}
 
           {/* Discount Countdown Banner */}
-          {!showMonthly && isMounted && (
+          {/* {!showMonthly && isMounted && (
             <div className="max-w-md mx-auto mb-6 bg-red-50 border border-red-200 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-2 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-300 via-red-500 to-red-300 animate-pulse"></div>
               <div className="flex items-center gap-1.5 text-red-600 font-bold text-sm">
@@ -144,7 +144,6 @@ export default function Pricing() {
                 <span>عرض لفترة محدودة على الدفع السنوي!</span>
               </div>
 
-              {/* Added the dynamic counter here */}
               <div
                 dir="ltr"
                 className="flex items-center gap-2 text-red-700 font-bold text-lg tracking-widest font-mono"
@@ -159,9 +158,8 @@ export default function Pricing() {
                 وفّر حتى 50$ مقارنة بالدفع الشهري
               </span>
             </div>
-          )}
+          )} */}
 
-          {/* Toggle (Yearly first) */}
           <div className="inline-flex items-center gap-2 p-1.5 rounded-full border border-brand-light bg-brand-white shadow-sm">
             <button
               onClick={() => setShowMonthly(false)}

@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       .eq("store_id", storeId)
       .eq("is_active", true)
       .limit(500); // Increased for better filtering
-    console.log("First product:", JSON.stringify(products?.[0], null, 2));
+
     if (error) {
       console.error("Database error:", error);
       return NextResponse.json(

@@ -76,7 +76,7 @@ export default function FinalCTA() {
 
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-brand-light" />
-              <span>دعم لبناني مباشر</span>
+              <span>دعم محلي مباشر</span>
             </div>
 
             <div className="flex items-center gap-2">
