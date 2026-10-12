@@ -61,7 +61,7 @@ const navGroups: NavGroup[] = [
         id: "partnerships",
         icon: Handshake,
         labelKey: "partnerships",
-        soon: true,
+        // soon: true,
       },
       {
         id: "occasions",

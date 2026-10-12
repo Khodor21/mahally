@@ -465,15 +465,11 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     let body;
-
     try {
       body = await req.json();
     } catch {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid request body",
-        },
+        { success: false, message: "Invalid request body" },
         { status: 400 },
       );
     }
@@ -482,62 +478,98 @@ export async function PATCH(req: NextRequest) {
 
     if (!orderId) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Order ID required",
-        },
+        { success: false, message: "Order ID required" },
         { status: 400 },
       );
     }
 
     const allowedStatuses = ["pending", "processing", "completed", "cancelled"];
-
     if (!allowedStatuses.includes(status)) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid status",
-        },
+        { success: false, message: "Invalid status" },
         { status: 400 },
       );
     }
 
     const { data, error } = await supabaseAdmin
       .from("orders")
-      .update({
-        status,
-      })
+      .update({ status })
       .eq("id", orderId)
-      .select()
+      .select("id, store_id, status")
       .single();
 
     if (error) {
-      console.error("PATCH order error:", error);
-
       return NextResponse.json(
-        {
-          success: false,
-          message: error.message,
-        },
+        { success: false, message: error.message },
         { status: 500 },
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data,
-    });
-  } catch (err: any) {
-    console.error("PATCH checkout catch error:", err);
+    // ── Wholesale fulfillment (fire-and-forget) ──────────────────
+    if (status === "completed") {
+      fulfillWholesaleOrder(data.store_id, orderId).catch((err) =>
+        console.warn("Wholesale fulfill failed:", err),
+      );
+    }
 
+    return NextResponse.json({ success: true, data });
+  } catch (err: any) {
     return NextResponse.json(
-      {
-        success: false,
-        message: err.message || "Internal server error",
-      },
+      { success: false, message: err.message || "Internal server error" },
       { status: 500 },
     );
   }
+}
+
+// ── Helper ───────────────────────────────────────────────────────
+async function fulfillWholesaleOrder(storeId: string, orderId: string) {
+  const { data: links } = await supabaseAdmin
+    .from("wholesale_retail_links")
+    .select("wholesale_store_id")
+    .eq("retail_store_id", storeId);
+
+  if (!links?.length) return;
+
+  const wholesaleIds = links.map((l) => l.wholesale_store_id);
+
+  const { data: items } = await supabaseAdmin
+    .from("order_items")
+    .select("product_id, qty")
+    .eq("order_id", orderId);
+
+  if (!items?.length) return;
+
+  const { data: linkedProducts } = await supabaseAdmin
+    .from("store_products")
+    .select("wholesale_product_id, allocated_quantity")
+    .eq("retail_store_id", storeId)
+    .in(
+      "wholesale_product_id",
+      items.map((i) => i.product_id),
+    );
+
+  if (!linkedProducts?.length) return;
+
+  await Promise.all(
+    linkedProducts.map(async (lp) => {
+      const item = items.find((i) => i.product_id === lp.wholesale_product_id);
+      if (!item) return;
+
+      await Promise.all([
+        supabaseAdmin.rpc("decrement_stock", {
+          p_product_id: lp.wholesale_product_id,
+          p_qty: item.qty,
+        }),
+        supabaseAdmin
+          .from("store_products")
+          .update({
+            allocated_quantity: Math.max(0, lp.allocated_quantity - item.qty),
+          })
+          .eq("retail_store_id", storeId)
+          .eq("wholesale_product_id", lp.wholesale_product_id),
+      ]);
+    }),
+  );
 }
 
 export async function DELETE(req: NextRequest) {

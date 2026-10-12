@@ -52,6 +52,7 @@ export async function GET() {
   // 3. MERGE settings into store object for frontend consistency
   const mergedStore = {
     ...store,
+    store_tier: store.store_tier ?? "retail",
     language: store.language || "en",
     plan_type: store.plan_type || "Starter",
     delivery_cost: store.delivery_cost ?? 0,
@@ -60,12 +61,9 @@ export async function GET() {
         ? JSON.parse(store.payment_methods)
         : store.payment_methods
       : ["cash_on_delivery"],
-    // Contact info
     email: store.admin_email,
-    // Safely enforce lowercase to prevent UI breakage
     category_display_style:
       settings?.category_display_style?.toLowerCase() ?? "grid",
-    // Branding
     primary_color: settings?.primary_color || null,
     logo_url: settings?.logo_url || null,
     description: settings?.description || null,

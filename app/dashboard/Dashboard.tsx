@@ -118,7 +118,7 @@ export default function Dashboard({ store }: DashboardProps) {
       case "occasions":
         return <OccasionsPanel />;
       case "partnerships":
-        return <PartnershipsPanel />;
+        return <PartnershipsPanel store={store} />;
       default:
         return <HomePanel setActiveNav={setActiveNav} store={store} />;
     }

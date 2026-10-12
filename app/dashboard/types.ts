@@ -26,7 +26,8 @@ export interface StoreData {
   created_at: string;
   is_active: boolean;
   language?: Language;
-  payment_methods?: string[]; // <-- FIXED: Changed to string[] to match API
+  payment_methods?: string[];
+  store_tier?: "retail" | "wholesale";
 }
 
 export interface Order {

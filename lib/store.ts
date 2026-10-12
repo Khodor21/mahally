@@ -36,7 +36,8 @@ export async function getCurrentStore() {
       `
       id, admin_name, admin_email, store_name,
       slug, location, phone, store_type, created_at, is_active, payment_methods, plan_type,
-      store_settings (
+          store_tier,
+store_settings (
         category_display_style
       )
     `,

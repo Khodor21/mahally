@@ -37,91 +37,131 @@ function isValidVariantGroups(variantGroups: any): boolean {
 // ============================================
 // ROUTES
 // ============================================
+const PRODUCT_FIELDS = [
+  "id",
+  "store_id",
+  "title",
+  "description",
+  "price",
+  "discount_price",
+  "stock",
+  "images",
+  "is_active",
+  "pin",
+  "created_at",
+  "updated_at",
+  "category_id",
+  "variantGroups",
+  "sales_count",
+  "cost_price",
+  "preorder_enabled",
+  "preorder_label",
+  "gift",
+  "review",
+].join(", ");
+
+async function resolveStoreId(req: Request): Promise<string | null> {
+  const { searchParams } = new URL(req.url);
+  const fromParam = searchParams.get("store_id");
+  if (fromParam) return fromParam;
+
+  const host = req.headers.get("host") ?? "";
+  const subdomain = host.split(".")[0];
+  const isValidSubdomain =
+    subdomain &&
+    subdomain !== "localhost" &&
+    subdomain !== "www" &&
+    !subdomain.includes(":");
+
+  if (isValidSubdomain) {
+    const { data: bySubdomain } = await supabaseAdmin
+      .from("stores")
+      .select("id")
+      .eq("subdomain", subdomain)
+      .single();
+    if (bySubdomain) return bySubdomain.id;
+
+    const { data: bySlug } = await supabaseAdmin
+      .from("stores")
+      .select("id")
+      .eq("slug", subdomain)
+      .single();
+    if (bySlug) return bySlug.id;
+  }
+
+  try {
+    const user = await requireStoreSession();
+    return user.id;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    let store_id = searchParams.get("store_id");
     const category_id = searchParams.get("category_id");
 
+    const store_id = await resolveStoreId(req);
     if (!store_id) {
-      const host = req.headers.get("host") || "";
-      const subdomain = host.split(".")[0];
-
-      if (
-        subdomain &&
-        subdomain !== "localhost" &&
-        subdomain !== "www" &&
-        !subdomain.includes(":")
-      ) {
-        const { data: store } = await supabaseAdmin
-          .from("stores")
-          .select("id")
-          .eq("subdomain", subdomain)
-          .single();
-
-        if (store) {
-          store_id = store.id;
-        } else {
-          try {
-            const { data: storeBySlug } = await supabaseAdmin
-              .from("stores")
-              .select("id")
-              .eq("slug", subdomain)
-              .single();
-
-            if (storeBySlug) {
-              store_id = storeBySlug.id;
-            }
-          } catch {
-            // slug column may not exist — ignore safely
-          }
-        }
-      }
-    }
-
-    if (!store_id) {
-      try {
-        const user = await requireStoreSession();
-        store_id = user.id;
-      } catch (sessionError) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Store ID is required or invalid tenant subdomain",
-          },
-          { status: 400 },
-        );
-      }
-    }
-
-    let query = supabaseAdmin
-      .from("products")
-      .select(
-        "id, store_id, title, description, price, discount_price, stock, images, is_active, pin, created_at, updated_at, category_id, variantGroups, sales_count, cost_price, preorder_enabled, preorder_label, gift, review",
-      )
-      .eq("store_id", store_id);
-
-    if (category_id) {
-      query = query.eq("category_id", category_id);
-    }
-
-    const { data, error } = await query.order("created_at", {
-      ascending: false,
-    });
-
-    if (error) {
       return NextResponse.json(
-        { success: false, message: error.message },
+        {
+          success: false,
+          message: "Store ID is required or invalid tenant subdomain",
+        },
+        { status: 400 },
+      );
+    }
+
+    const [ownResult, importedResult] = await Promise.all([
+      (() => {
+        let q = supabaseAdmin
+          .from("products")
+          .select(PRODUCT_FIELDS)
+          .eq("store_id", store_id);
+        if (category_id) q = q.eq("category_id", category_id);
+        return q.order("created_at", { ascending: false });
+      })(),
+
+      supabaseAdmin
+        .from("store_products")
+        .select(
+          `
+    allocated_quantity,
+    products (
+      id, store_id, title, description, price, discount_price,
+      stock, images, is_active, pin, created_at, updated_at,
+      category_id, variantGroups, sales_count, cost_price,
+      preorder_enabled, preorder_label, gift, review
+    )
+  `,
+        )
+        .eq("retail_store_id", store_id),
+    ]);
+
+    if (ownResult.error) {
+      return NextResponse.json(
+        { success: false, message: ownResult.error.message },
         { status: 500 },
       );
     }
 
-    return NextResponse.json({ success: true, data });
+    const imported = (importedResult.data ?? [])
+      .filter((sp) => sp.products)
+      .map((sp) => ({
+        ...(sp.products as any),
+        stock: sp.allocated_quantity,
+        is_imported: true,
+      }));
+
+    return NextResponse.json({
+      success: true,
+      data: [...(ownResult.data ?? []), ...imported],
+    });
   } catch (err: any) {
-    const isAuth = err.message === "Unauthorized";
     return NextResponse.json(
       { success: false, message: err.message },
-      { status: isAuth ? 401 : 500 },
+      { status: err.message === "Unauthorized" ? 401 : 500 },
     );
   }
 }
