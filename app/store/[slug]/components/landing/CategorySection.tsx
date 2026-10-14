@@ -41,7 +41,9 @@ export default function CategoriesSection({
 }: CategoriesSectionProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const gridCarouselRef = useRef<HTMLDivElement>(null);
+
+  // غيرنا اسم الـ ref ليكون عاماً ويعمل مع الاثنين (Grid & Circle)
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   const t = content[lang] ?? content.en;
   const dir = lang === "ar" ? "rtl" : "ltr";
@@ -77,11 +79,11 @@ export default function CategoriesSection({
 
   const isCarousel = categories.length > 4;
 
-  // Auto-scroll logic for the grid carousel
+  // Auto-scroll logic for ANY active carousel
   useEffect(() => {
-    if (!isCarousel || normalizedStyle !== "grid") return;
+    const container = carouselRef.current;
+    if (!container) return;
 
-    const gridContainer = gridCarouselRef.current;
     let intervalId: NodeJS.Timeout;
     let isInteracting = false;
 
@@ -92,53 +94,52 @@ export default function CategoriesSection({
       isInteracting = false;
     };
 
-    if (gridContainer) {
-      intervalId = setInterval(() => {
-        if (!isInteracting && gridContainer) {
-          const firstChild = gridContainer.firstElementChild as HTMLElement;
-          if (firstChild) {
-            const itemWidth = firstChild.getBoundingClientRect().width;
-            const gap = window.innerWidth < 768 ? 16 : 24; // gap-4 (16px) or gap-6 (24px)
-            const scrollAmount = itemWidth + gap;
+    intervalId = setInterval(() => {
+      if (!isInteracting && container) {
+        // نتحقق إذا كان هناك مساحة فعلية للتمرير (مثلاً على الهواتف)
+        const maxScroll = container.scrollWidth - container.clientWidth;
 
-            const maxScroll =
-              gridContainer.scrollWidth - gridContainer.clientWidth;
-            const currentScroll = Math.abs(gridContainer.scrollLeft);
+        // إذا لم يكن هناك تمرير (مثل شاشات الكمبيوتر)، لا تقم بأي شيء
+        if (maxScroll <= 5) return;
 
-            // If reached the end, snap back to start. Otherwise, scroll to next.
-            if (currentScroll >= maxScroll - 10) {
-              gridContainer.scrollTo({ left: 0, behavior: "smooth" });
-            } else {
-              gridContainer.scrollBy({
-                left: dir === "rtl" ? -scrollAmount : scrollAmount,
-                behavior: "smooth",
-              });
-            }
+        const firstChild = container.firstElementChild as HTMLElement;
+        if (firstChild) {
+          const itemWidth = firstChild.getBoundingClientRect().width;
+          const gap = window.innerWidth < 768 ? 16 : 24; // gap-4 (16px) or gap-6 (24px)
+          const scrollAmount = itemWidth + gap;
+          const currentScroll = Math.abs(container.scrollLeft);
+
+          // If reached the end, snap back to start. Otherwise, scroll to next.
+          if (currentScroll >= maxScroll - 10) {
+            container.scrollTo({ left: 0, behavior: "smooth" });
+          } else {
+            container.scrollBy({
+              left: dir === "rtl" ? -scrollAmount : scrollAmount,
+              behavior: "smooth",
+            });
           }
         }
-      }, 3000); // Scrolls every 3 seconds
+      }
+    }, 3000); // Scrolls every 3 seconds
 
-      // Pause auto-scroll on interaction
-      gridContainer.addEventListener("mouseenter", setInteraction);
-      gridContainer.addEventListener("mouseleave", clearInteraction);
-      gridContainer.addEventListener("touchstart", setInteraction, {
-        passive: true,
-      });
-      gridContainer.addEventListener("touchend", clearInteraction, {
-        passive: true,
-      });
-    }
+    // Pause auto-scroll on interaction
+    container.addEventListener("mouseenter", setInteraction);
+    container.addEventListener("mouseleave", clearInteraction);
+    container.addEventListener("touchstart", setInteraction, {
+      passive: true,
+    });
+    container.addEventListener("touchend", clearInteraction, {
+      passive: true,
+    });
 
     return () => {
-      if (intervalId) clearInterval(intervalId);
-      if (gridContainer) {
-        gridContainer.removeEventListener("mouseenter", setInteraction);
-        gridContainer.removeEventListener("mouseleave", clearInteraction);
-        gridContainer.removeEventListener("touchstart", setInteraction);
-        gridContainer.removeEventListener("touchend", clearInteraction);
-      }
+      clearInterval(intervalId);
+      container.removeEventListener("mouseenter", setInteraction);
+      container.removeEventListener("mouseleave", clearInteraction);
+      container.removeEventListener("touchstart", setInteraction);
+      container.removeEventListener("touchend", clearInteraction);
     };
-  }, [isCarousel, normalizedStyle, dir]);
+  }, [dir, normalizedStyle, categories.length]);
 
   // ─── Skeleton ──────────────────────────────────────────────────────────────
   if (loading) {
@@ -199,7 +200,7 @@ export default function CategoriesSection({
           <>
             {isCarousel ? (
               <div
-                ref={gridCarouselRef}
+                ref={carouselRef}
                 className="flex overflow-x-auto gap-4 md:gap-6 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
               >
                 {categories.map((cat) => (
@@ -288,7 +289,10 @@ export default function CategoriesSection({
         {normalizedStyle === "circle" && (
           <>
             {isCarousel ? (
-              <div className="flex overflow-x-auto gap-4 md:gap-6 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-1 py-1">
+              <div
+                ref={carouselRef}
+                className="flex overflow-x-auto gap-4 md:gap-6 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-1 py-1"
+              >
                 {categories.map((cat) => (
                   <Link
                     key={cat.id}
@@ -319,12 +323,15 @@ export default function CategoriesSection({
                 ))}
               </div>
             ) : (
-              <div className="flex flex-wrap justify-center gap-6 md:gap-10">
+              <div
+                ref={carouselRef}
+                className="flex overflow-x-auto md:justify-center gap-4 md:gap-10 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-2 py-2"
+              >
                 {categories.map((cat) => (
                   <Link
                     key={cat.id}
                     href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
-                    className="group flex flex-col items-center gap-3 cursor-pointer"
+                    className="group flex flex-col items-center gap-3 cursor-pointer flex-none snap-start"
                   >
                     <div className="relative w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden border-2 border-gray-100 group-hover:border-[rgb(var(--color-brand-primary))] transition-colors duration-300 shadow-sm">
                       {cat.logo_url ? (
@@ -353,7 +360,7 @@ export default function CategoriesSection({
           </>
         )}
 
-        {/* See More Button - Removed store_id from href */}
+        {/* See More Button */}
         {categories.length > 0 && (
           <div className="mt-8 md:mt-12 flex justify-center">
             <Link
