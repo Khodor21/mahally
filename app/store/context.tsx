@@ -31,6 +31,7 @@ export interface VariantSelection {
 export interface CartItem {
   product: Product;
   qty: number;
+  cartKey: string;
   variantSelections?: Record<string, VariantSelection>;
 }
 
@@ -95,6 +96,22 @@ const CART_STORAGE_KEY = "shop_cart";
 const FAV_STORAGE_KEY = "shop_favorites";
 const BUY_NOW_STORAGE_KEY = "shop_buy_now";
 const GIFT_ORDER_STORAGE_KEY = "shop_gift_order"; // NEW
+
+function makeCartKey(
+  productId: string,
+  variantSelections?: Record<
+    string,
+    { id: string; value: string; stock?: number }
+  >,
+): string {
+  if (!variantSelections || Object.keys(variantSelections).length === 0)
+    return productId;
+  const sorted = Object.entries(variantSelections)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([gId, opt]) => `${gId}:${opt.id}`)
+    .join("|");
+  return `${productId}__${sorted}`;
+}
 
 export function ShopProvider({ children }: { children: React.ReactNode }) {
   // ── State ────────────────────────────────────────────────
@@ -213,50 +230,32 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
       qty: number = 1,
       variantSelections?: Record<string, VariantSelection>,
     ) => {
+      const key = makeCartKey(product.id, variantSelections);
       setCartItems((prev) => {
-        const existing = prev.find((i) => {
-          if (i.product.id !== product.id) return false;
-
-          if (
-            !variantSelections ||
-            Object.keys(variantSelections).length === 0
-          ) {
-            return (
-              !i.variantSelections ||
-              Object.keys(i.variantSelections).length === 0
-            );
-          }
-
-          return (
-            JSON.stringify(i.variantSelections) ===
-            JSON.stringify(variantSelections)
-          );
-        });
-
+        const existing = prev.find((i) => i.cartKey === key);
         if (existing) {
           return prev.map((i) =>
-            i === existing ? { ...i, qty: i.qty + qty } : i,
+            i.cartKey === key ? { ...i, qty: i.qty + qty } : i,
           );
         }
-
-        return [...prev, { product, qty, variantSelections }];
+        return [...prev, { product, qty, variantSelections, cartKey: key }];
       });
     },
     [],
   );
 
-  const removeFromCart = useCallback((productId: string) => {
-    setCartItems((prev) => prev.filter((i) => i.product.id !== productId));
+  const removeFromCart = useCallback((cartKey: string) => {
+    setCartItems((prev) => prev.filter((i) => i.cartKey !== cartKey));
   }, []);
 
   const updateCartQty = useCallback(
-    (productId: string, qty: number) => {
+    (cartKey: string, qty: number) => {
       if (qty <= 0) {
-        removeFromCart(productId);
+        removeFromCart(cartKey);
         return;
       }
       setCartItems((prev) =>
-        prev.map((i) => (i.product.id === productId ? { ...i, qty } : i)),
+        prev.map((i) => (i.cartKey === cartKey ? { ...i, qty } : i)),
       );
     },
     [removeFromCart],
@@ -273,7 +272,8 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
       qty: number = 1,
       variantSelections?: Record<string, VariantSelection>,
     ) => {
-      setBuyNowItemState({ product, qty, variantSelections });
+      const cartKey = makeCartKey(product.id, variantSelections);
+      setBuyNowItemState({ product, qty, variantSelections, cartKey });
     },
     [],
   );

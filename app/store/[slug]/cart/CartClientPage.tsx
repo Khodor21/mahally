@@ -166,6 +166,8 @@ export default function CartClientPage({ store }: Props) {
     message: string,
     isArabic: boolean,
   ) => {
+    if (!message || typeof message !== "string") return null;
+
     // Regex to match international or local phone numbers (e.g., +96171708103, 00961..., etc.)
     // Adjust regex as needed depending on your store formats
     const phoneRegex = /(\+?[0-9]{10,15})/g;
@@ -228,23 +230,19 @@ export default function CartClientPage({ store }: Props) {
     setIsBuyNow(false);
     setBuyNowItem(null);
   };
-
-  const handleUpdateActiveQty = (id: string | number, qty: number) => {
+  const handleUpdateActiveQty = (cartKey: string, qty: number) => {
     if (isBuyNow && buyNowItem) {
       const updated = { ...buyNowItem, qty };
       setBuyNowItem(updated);
       sessionStorage.setItem("TEMP_BUY_NOW_ITEM", JSON.stringify(updated));
     } else {
-      updateCartQty(String(id), qty);
+      updateCartQty(cartKey, qty); // ← was: String(id)
     }
   };
 
-  const handleRemoveActiveItem = (id: string | number) => {
-    if (isBuyNow) {
-      clearBuyNowSession();
-    } else {
-      removeFromCart(String(id));
-    }
+  const handleRemoveActiveItem = (cartKey: string) => {
+    if (isBuyNow) clearBuyNowSession();
+    else removeFromCart(cartKey); // ← was: String(id)
   };
 
   const handleApplyCoupon = async () => {

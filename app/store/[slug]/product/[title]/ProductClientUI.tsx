@@ -290,28 +290,21 @@ export default function ProductClientUI({
   const discountPercent = showDiscountUI
     ? calculateDiscount(basePriceNum, discountPriceNum)
     : 0;
-
-  const existingCartQty = useMemo(() => {
-    if (!cartItems || !Array.isArray(cartItems)) return 0;
-    return cartItems
-      .filter(
-        (item: any) =>
-          item?.product && String(item.product.id) === String(productId),
-      )
-      .reduce(
-        (sum: number, item: any) =>
-          sum + Number(item.qty || item.quantity || 0),
-        0,
-      );
-  }, [cartItems, productId]);
-
-  useEffect(() => {
-    if (existingCartQty > 0) {
-      setQuantity(existingCartQty);
-    } else {
-      setQuantity(1);
-    }
-  }, [existingCartQty]);
+  function makeCartKey(
+    productId: string,
+    variantSelections?: Record<
+      string,
+      { id: string; value: string; stock?: number }
+    >,
+  ): string {
+    if (!variantSelections || Object.keys(variantSelections).length === 0)
+      return productId;
+    const sorted = Object.entries(variantSelections)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([gId, opt]) => `${gId}:${opt.id}`)
+      .join("|");
+    return `${productId}__${sorted}`;
+  }
 
   const variantDescription = variantGroups
     .map(
@@ -334,7 +327,26 @@ export default function ProductClientUI({
       {} as Record<string, any>,
     );
   }, [selectedVariants]);
+  const cartKey = useMemo(
+    () => makeCartKey(productId, variantSelectionsForCart),
+    [productId, variantSelectionsForCart],
+  );
+  useEffect(() => {
+    setQuantity(1);
+  }, [cartKey]);
+  const existingCartQty = useMemo(() => {
+    if (!cartItems || !Array.isArray(cartItems)) return 0;
+    const item = cartItems.find((i) => i.cartKey === cartKey);
+    return item ? item.qty : 0;
+  }, [cartItems, cartKey]);
 
+  useEffect(() => {
+    if (existingCartQty > 0) {
+      setQuantity(existingCartQty);
+    } else {
+      setQuantity(1);
+    }
+  }, [existingCartQty]);
   const normalizedProduct = {
     ...product,
     id: productId,
@@ -352,9 +364,7 @@ export default function ProductClientUI({
   const increment = () => {
     setQuantity((prev) => {
       const newQty = Math.min(prev + 1, activeStock);
-      if (existingCartQty > 0) {
-        updateCartQty(productId, newQty);
-      }
+      if (existingCartQty > 0) updateCartQty(cartKey, newQty);
       return newQty;
     });
   };
@@ -363,11 +373,8 @@ export default function ProductClientUI({
     setQuantity((prev) => {
       const newQty = Math.max(prev - 1, 0);
       if (existingCartQty > 0) {
-        if (newQty === 0) {
-          removeFromCart(productId);
-        } else {
-          updateCartQty(productId, newQty);
-        }
+        if (newQty === 0) removeFromCart(cartKey);
+        else updateCartQty(cartKey, newQty);
       }
       return newQty;
     });
@@ -426,6 +433,7 @@ export default function ProductClientUI({
           product: normalizedProduct,
           qty: quantity,
           variantSelections: variantSelectionsForCart,
+          cartKey: cartKey,
         },
       ],
       senderName: "",
@@ -446,7 +454,7 @@ export default function ProductClientUI({
       return;
     }
     if (existingCartQty > 0) {
-      setAdded(true);
+      setAdded(true); // already in cart with this exact variant combo
     } else {
       addToCart(normalizedProduct, quantity, variantSelectionsForCart);
       setAdded(true);

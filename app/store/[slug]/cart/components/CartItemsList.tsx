@@ -15,6 +15,7 @@ type CartItem = {
     variantDescription?: string;
   };
   qty: number;
+  cartKey: string;
   variantSelections?: Record<string, any>;
 };
 
@@ -22,8 +23,8 @@ type Props = {
   items: CartItem[];
   currencySymbol: string;
   isArabic?: boolean;
-  onUpdateQty: (id: string | number, qty: number) => void;
-  onRemoveItem: (id: string | number) => void;
+  onUpdateQty: (cartKey: string, qty: number) => void;
+  onRemoveItem: (cartKey: string) => void;
 };
 
 export default function CartItemsList({
@@ -36,9 +37,9 @@ export default function CartItemsList({
   const [warningId, setWarningId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{
     show: boolean;
-    itemId: string | number | null;
+    cartKey: string | null;
     itemTitle: string;
-  }>({ show: false, itemId: null, itemTitle: "" });
+  }>({ show: false, cartKey: null, itemTitle: "" });
 
   const handleIncrement = (item: CartItem) => {
     const maxStock = item.product.stock ?? Infinity;
@@ -48,23 +49,23 @@ export default function CartItemsList({
       setTimeout(() => setWarningId(null), 3000);
     } else {
       setWarningId(null);
-      onUpdateQty(item.product.id, item.qty + 1);
+      onUpdateQty(item.cartKey, item.qty + 1);
     }
   };
 
   const handleDeleteClick = (item: CartItem) => {
     setDeleteConfirm({
       show: true,
-      itemId: item.product.id,
+      cartKey: item.cartKey,
       itemTitle: item.product.title,
     });
   };
 
   const handleConfirmDelete = () => {
-    if (deleteConfirm.itemId !== null) {
-      onRemoveItem(deleteConfirm.itemId);
+    if (deleteConfirm.cartKey !== null) {
+      onRemoveItem(deleteConfirm.cartKey);
     }
-    setDeleteConfirm({ show: false, itemId: null, itemTitle: "" });
+    setDeleteConfirm({ show: false, cartKey: null, itemTitle: "" });
   };
 
   return (
@@ -110,7 +111,11 @@ export default function CartItemsList({
                     <p className="font-medium text-gray-900 text-sm sm:text-base leading-snug line-clamp-2">
                       {item.product.title}
                     </p>
-
+                    {item.product.variantDescription && (
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {item.product.variantDescription}
+                      </p>
+                    )}
                     {/* Price with Premium Strikethrough UX */}
                     <div className="flex flex-col mt-2">
                       {hasDiscount && (
@@ -139,7 +144,7 @@ export default function CartItemsList({
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() =>
-                        onUpdateQty(item.product.id, Math.max(1, item.qty - 1))
+                        onUpdateQty(item.cartKey, Math.max(1, item.qty - 1))
                       }
                       className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-all text-gray-600 active:scale-95"
                     >
@@ -191,7 +196,11 @@ export default function CartItemsList({
               </div>
               <button
                 onClick={() =>
-                  setDeleteConfirm({ show: false, itemId: null, itemTitle: "" })
+                  setDeleteConfirm({
+                    show: false,
+                    cartKey: null,
+                    itemTitle: "",
+                  })
                 }
                 className="text-gray-400 hover:text-gray-700 transition-colors p-1"
               >
@@ -210,7 +219,11 @@ export default function CartItemsList({
             <div className="flex gap-3">
               <button
                 onClick={() =>
-                  setDeleteConfirm({ show: false, itemId: null, itemTitle: "" })
+                  setDeleteConfirm({
+                    show: false,
+                    cartKey: null,
+                    itemTitle: "",
+                  })
                 }
                 className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
               >
