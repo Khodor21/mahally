@@ -24,7 +24,6 @@ export async function GET(req: NextRequest) {
     const q = searchParams.get("q")?.trim() || "";
     const storeId = searchParams.get("store_id");
 
-    // Validation
     if (!isValidSearchQuery(q)) {
       return NextResponse.json({ success: true, data: [] });
     }
@@ -36,36 +35,42 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Fetch all active products with required fields
-    const { data: products, error } = await supabaseAdmin
-      .from("products")
-      .select("id, title, price, discount_price, images, variantGroups")
-      .eq("store_id", storeId)
-      .eq("is_active", true)
-      .limit(500); // Increased for better filtering
+    let allProducts: any[] = [];
+    let from = 0;
+    const pageSize = 1000;
 
-    if (error) {
-      console.error("Database error:", error);
-      return NextResponse.json(
-        { success: false, message: "Search failed" },
-        { status: 500 },
-      );
+    while (true) {
+      const { data, error } = await supabaseAdmin
+        .from("products")
+        .select("id, title, price, discount_price, images, variantGroups")
+        .eq("store_id", storeId)
+        .eq("is_active", true)
+        .range(from, from + pageSize - 1);
+
+      if (error) {
+        console.error("Database error:", error);
+        return NextResponse.json(
+          { success: false, message: "Search failed" },
+          { status: 500 },
+        );
+      }
+
+      if (!data || data.length === 0) break;
+      allProducts = allProducts.concat(data);
+      if (data.length < pageSize) break;
+      from += pageSize;
     }
 
-    if (!products || products.length === 0) {
+    if (allProducts.length === 0) {
       return NextResponse.json({ success: true, data: [] });
     }
 
-    // Process and score results
     const searchResults: SearchedProduct[] = [];
 
-    for (const product of products) {
+    for (const product of allProducts) {
       if (!product.title) continue;
 
-      // Parse variant groups safely
       const variantGroups = parseVariantGroups(product.variantGroups);
-
-      // Search across title and variant groups
       const match = searchProduct(product.title, variantGroups, q);
 
       if (match) {
@@ -75,22 +80,20 @@ export async function GET(req: NextRequest) {
           price: product.price,
           discount_price: product.discount_price,
           images: product.images,
-          variantGroups, // Include parsed variants for frontend
+          variantGroups,
           matchScore: match.score,
         });
       }
     }
 
-    // If no results with original query, try alternatives (fallback)
     if (searchResults.length === 0) {
       const alternatives = generateAlternativeSpellings(q);
-      const uniqueAlternativesSet = new Set(alternatives);
-      const uniqueAlternatives = Array.from(uniqueAlternativesSet).filter(
+      const uniqueAlternatives = Array.from(new Set(alternatives)).filter(
         (alt) => alt !== q && alt.length > 0,
       );
 
       for (const alt of uniqueAlternatives) {
-        for (const product of products) {
+        for (const product of allProducts) {
           if (!product.title) continue;
 
           const variantGroups = parseVariantGroups(product.variantGroups);
@@ -104,17 +107,15 @@ export async function GET(req: NextRequest) {
               discount_price: product.discount_price,
               images: product.images,
               variantGroups,
-              matchScore: match.score * 0.9, // Slightly lower score for fallback matches
+              matchScore: match.score * 0.9,
             });
           }
         }
 
-        // Stop after finding results with first alternative
         if (searchResults.length > 0) break;
       }
     }
 
-    // Remove duplicates (same product might match multiple variants)
     const uniqueResults = new Map<string, SearchedProduct>();
     for (const result of searchResults) {
       const existing = uniqueResults.get(result.id);
