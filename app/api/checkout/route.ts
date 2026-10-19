@@ -64,49 +64,19 @@ export async function POST(request: NextRequest) {
     }
 
     const parsed = CheckoutSchema.safeParse(rawBody);
-
     if (!parsed.success) {
       const firstError = parsed.error.issues[0];
       return NextResponse.json(
-        {
-          success: false,
-          message: firstError.message,
-          field:
-            typeof firstError.path[0] === "string"
-              ? firstError.path[0]
-              : undefined,
-        },
+        { success: false, message: firstError.message },
         { status: 422 },
       );
     }
 
-    const {
-      storeId,
-      customerName,
-      customerEmail,
-      customerPhone,
-      city,
-      address,
-      notes,
-      shipping,
-      couponCode,
-      paymentMethod,
-      items,
-      isGift,
-      senderName,
-      senderPhone,
-      recipientName,
-      recipientPhone,
-      recipientAddress,
-      recipientCity,
-      giftMessage,
-      giftOccasion,
-      deliveryDate,
-    } = parsed.data;
+    const { data } = parsed;
 
-    // GIFT VALIDATION
-    if (isGift) {
-      if (!senderName?.trim() || !senderPhone?.trim()) {
+    // Gift validation
+    if (data.isGift) {
+      if (!data.senderName?.trim() || !data.senderPhone?.trim()) {
         return NextResponse.json(
           {
             success: false,
@@ -116,11 +86,11 @@ export async function POST(request: NextRequest) {
         );
       }
       if (
-        !recipientName?.trim() ||
-        !recipientPhone?.trim() ||
-        !recipientAddress?.trim() ||
-        !recipientCity?.trim() ||
-        !giftOccasion?.trim()
+        !data.recipientName?.trim() ||
+        !data.recipientPhone?.trim() ||
+        !data.recipientAddress?.trim() ||
+        !data.recipientCity?.trim() ||
+        !data.giftOccasion?.trim()
       ) {
         return NextResponse.json(
           {
@@ -132,11 +102,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate payment method against store's allowed methods
+    // Payment method validation
     const { data: storeData, error: storeError } = await supabaseAdmin
       .from("stores")
       .select("payment_methods")
-      .eq("id", storeId)
+      .eq("id", data.storeId)
       .single();
 
     if (storeError || !storeData) {
@@ -146,246 +116,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let storePaymentMethods: string[] = [];
-    if (storeData.payment_methods) {
-      try {
-        const parsedMethods =
-          typeof storeData.payment_methods === "string"
-            ? JSON.parse(storeData.payment_methods)
-            : storeData.payment_methods;
+    const methods = Array.isArray(storeData.payment_methods)
+      ? storeData.payment_methods
+      : JSON.parse(storeData.payment_methods || "[]");
 
-        if (Array.isArray(parsedMethods)) {
-          storePaymentMethods = parsedMethods;
-        }
-      } catch (e) {
-        console.error("Failed to parse store payment methods:", e);
-      }
-    }
-
-    if (!storePaymentMethods.includes(paymentMethod)) {
+    if (!methods.includes(data.paymentMethod)) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid or unsupported payment method for this store",
-        },
+        { success: false, message: "Invalid payment method" },
         { status: 400 },
       );
     }
 
-    const productIds = items.map((i) => i.productId);
+    // 🔥 One call does everything
+    const { data: result, error } = await supabaseAdmin.rpc(
+      "process_checkout",
+      { payload: data },
+    );
 
-    const { data: products, error: productsError } = await supabaseAdmin
-      .from("products")
-      .select(
-        "id, title, price, discount_price, images, stock, store_id, preorder_enabled",
-      )
-      .in("id", productIds);
+    if (error || !result?.success) {
+      const code = result?.code || error?.message || "";
 
-    if (productsError || !products || products.length === 0) {
-      return NextResponse.json(
-        { success: false, message: "Failed to load products" },
-        { status: 404 },
-      );
-    }
-
-    const invalidStoreProduct = products.find((p) => p.store_id !== storeId);
-    if (invalidStoreProduct) {
-      return NextResponse.json(
-        { success: false, message: "Invalid product store relation" },
-        { status: 400 },
-      );
-    }
-
-    let subtotal = 0;
-    const orderItems = items.map((item) => {
-      const product = products.find((p) => p.id === item.productId);
-      if (!product) throw new Error("Product not found");
-
-      const isPreorder =
-        product.stock === 0 && Boolean(product.preorder_enabled);
-      const effectivePrice = product.discount_price
-        ? Number(product.discount_price)
-        : Number(product.price);
-
-      const itemTotal = effectivePrice * item.qty;
-      subtotal += itemTotal;
-
-      return {
-        product_id: product.id,
-        title: product.title,
-        image: product.images?.[0] || null,
-        price: effectivePrice,
-        original_price: Number(product.price),
-        qty: item.qty,
-        total: itemTotal,
-        is_preorder: isPreorder,
-        variant_json: item.variantSelections
-          ? JSON.stringify(item.variantSelections)
-          : null,
-      };
-    });
-
-    let discountAmount = 0;
-    let appliedCouponCode = null;
-    let couponId = null;
-    let currentCouponUsage = 0;
-
-    if (couponCode && couponCode.trim() !== "") {
-      const { data: coupon, error: couponError } = await supabaseAdmin
-        .from("coupons")
-        .select("*")
-        .eq("store_id", storeId)
-        .eq("code", couponCode.toUpperCase())
-        .single();
-
-      if (!couponError && coupon) {
-        if (
-          coupon.is_active &&
-          new Date() <= new Date(coupon.expiry_date) &&
-          coupon.used_count < coupon.max_uses &&
-          subtotal >= coupon.min_purchase
-        ) {
-          discountAmount =
-            coupon.type === "percentage"
-              ? (subtotal * coupon.discount) / 100
-              : Math.min(coupon.discount, subtotal);
-          appliedCouponCode = coupon.code;
-          couponId = coupon.id;
-          currentCouponUsage = coupon.used_count;
-        }
-      }
-    }
-
-    const total = Math.max(0, subtotal - discountAmount) + shipping;
-    const hasPreorder = items.some((item) => {
-      const product = products.find((p) => p.id === item.productId);
-      return product && product.stock === 0 && product.preorder_enabled;
-    });
-
-    // INSERT ORDER WITH GIFT FIELDS
-
-    // 1. تجهيز البيانات في متغير أولاً لتنظيفها وفحصها
-    const orderPayload = {
-      store_id: storeId,
-      customer_name: customerName,
-      customer_email: customerEmail || null,
-      customer_phone: customerPhone,
-      city: isGift ? null : city?.trim() || null,
-      address: isGift ? null : address?.trim() || null,
-      notes: notes?.trim() || null,
-      subtotal,
-      discount_amount: discountAmount,
-      coupon_code: appliedCouponCode,
-      shipping,
-      total,
-      payment_method: paymentMethod,
-      status: "pending",
-      has_preorder: hasPreorder,
-      // GIFT FIELDS
-      is_gift: isGift || false,
-      sender_name: isGift ? senderName?.trim() || null : null,
-      sender_phone: isGift ? senderPhone?.trim() || null : null,
-      recipient_name: isGift ? recipientName?.trim() || null : null,
-      recipient_phone: isGift ? recipientPhone?.trim() || null : null,
-      recipient_address: isGift ? recipientAddress?.trim() || null : null,
-      recipient_city: isGift ? recipientCity?.trim() || null : null,
-      gift_message: isGift ? giftMessage?.trim() || null : null,
-      gift_occasion: isGift ? giftOccasion?.trim() || null : null,
-      // تأكدنا هنا من استخدام trim() لحذف أي مسافات فارغة قد تسبب Invalid Input
-      delivery_date:
-        isGift && deliveryDate && deliveryDate.trim()
-          ? deliveryDate.trim()
-          : null,
-    };
-
-    // 2. طباعة البيانات في الـ Terminal الخاص بالـ Server لمعرفة ما الذي يتم إرساله بالضبط
-    // 3. إرسال البيانات إلى قاعدة البيانات
-    const { data: order, error: orderError } = await supabaseAdmin
-      .from("orders")
-      .insert(orderPayload)
-      .select()
-      .single();
-
-    if (orderError || !order) {
-      throw new Error(orderError?.message || "Failed to create order");
-    }
-
-    const { error: itemsError } = await supabaseAdmin
-      .from("order_items")
-      .insert(orderItems.map((item) => ({ order_id: order.id, ...item })));
-
-    if (itemsError) {
-      await supabaseAdmin.from("orders").delete().eq("id", order.id);
-      console.error("Order items creation error:", itemsError);
-      throw new Error(itemsError?.message || "Failed to create order items");
-    }
-    notifyAdminOrderSubmitted(storeId, order.id, customerName, total);
-
-    const regularItems = items.filter((item) => {
-      const product = products.find((p) => p.id === item.productId);
-      return product && (product.stock > 0 || !product.preorder_enabled);
-    });
-
-    const preorderItems = items.filter((item) => {
-      const product = products.find((p) => p.id === item.productId);
-      return product && product.stock === 0 && product.preorder_enabled;
-    });
-
-    if (regularItems.length > 0) {
-      const { error: stockError } = await supabaseAdmin.rpc(
-        "reduce_stock_securely",
-        {
-          items: regularItems.map((item) => ({
-            product_id: item.productId,
-            qty: item.qty,
-            variant_selections: item.variantSelections || null,
-          })),
-        },
-      );
-
-      if (stockError) {
-        await supabaseAdmin
-          .from("order_items")
-          .delete()
-          .eq("order_id", order.id);
-        await supabaseAdmin.from("orders").delete().eq("id", order.id);
-        throw new Error(
-          stockError?.message || "Failed to secure product stock.",
+      if (code.includes("OUT_OF_STOCK")) {
+        return NextResponse.json(
+          { success: false, message: "One or more items are out of stock" },
+          { status: 409 },
         );
       }
-    }
-
-    // Sales count increment (fire-and-forget)
-    items.forEach(async (item) => {
-      try {
-        const { error: incrementError } = await supabaseAdmin.rpc(
-          "increment_product_sales",
-          {
-            product_id: item.productId,
-            qty: item.qty,
-          },
+      if (code.includes("PRODUCT_NOT_FOUND")) {
+        return NextResponse.json(
+          { success: false, message: "Product not found" },
+          { status: 404 },
         );
-
-        if (incrementError) {
-          console.warn("Failed to increment sales count:", incrementError);
-        }
-      } catch (err) {
-        console.warn("Failed to increment sales count:", err);
       }
-    });
 
-    if (couponId) {
-      await supabaseAdmin
-        .from("coupons")
-        .update({
-          used_count: currentCouponUsage + 1,
-          last_used_at: new Date().toISOString(),
-        })
-        .eq("id", couponId);
+      throw new Error(code);
     }
+
+    // Fire-and-forget side effects
+    notifyAdminOrderSubmitted(
+      data.storeId,
+      result.orderId,
+      data.customerName,
+      0,
+    ).catch((err) => console.warn("Notify failed:", err));
 
     return NextResponse.json(
-      { success: true, orderId: order.id },
+      { success: true, orderId: result.orderId },
       { status: 201 },
     );
   } catch (err: any) {
@@ -491,6 +267,13 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    // Guard: جيب الـ status الحالي قبل التغيير
+    const { data: existing } = await supabaseAdmin
+      .from("orders")
+      .select("status")
+      .eq("id", orderId)
+      .single();
+
     const { data, error } = await supabaseAdmin
       .from("orders")
       .update({ status })
@@ -505,7 +288,26 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // ── Wholesale fulfillment (fire-and-forget) ──────────────────
+    // Stock restoration — بس إذا مش أصلاً cancelled
+    if (status === "cancelled" && existing?.status !== "cancelled") {
+      const { data: items } = await supabaseAdmin
+        .from("order_items")
+        .select("product_id, qty")
+        .eq("order_id", orderId);
+
+      if (items?.length) {
+        await Promise.all(
+          items.map((item) =>
+            supabaseAdmin.rpc("increment_product_stock", {
+              p_product_id: item.product_id,
+              p_qty: item.qty,
+            }),
+          ),
+        );
+      }
+    }
+
+    // Wholesale fulfillment
     if (status === "completed") {
       fulfillWholesaleOrder(data.store_id, orderId).catch((err) =>
         console.warn("Wholesale fulfill failed:", err),
