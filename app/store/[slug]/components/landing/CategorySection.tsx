@@ -42,7 +42,6 @@ export default function CategoriesSection({
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // غيرنا اسم الـ ref ليكون عاماً ويعمل مع الاثنين (Grid & Circle)
   const carouselRef = useRef<HTMLDivElement>(null);
 
   const t = content[lang] ?? content.en;
@@ -77,7 +76,11 @@ export default function CategoriesSection({
     fetchCategories();
   }, [storeId, lang]);
 
-  const isCarousel = categories.length > 4;
+  // Grid: carousel when > 4. Circle: carousel when > 6 (6 shows as 3×2 grid on mobile).
+  const isCarousel =
+    normalizedStyle === "circle"
+      ? categories.length > 6
+      : categories.length > 4;
 
   // Auto-scroll logic for ANY active carousel
   useEffect(() => {
@@ -96,20 +99,17 @@ export default function CategoriesSection({
 
     intervalId = setInterval(() => {
       if (!isInteracting && container) {
-        // نتحقق إذا كان هناك مساحة فعلية للتمرير (مثلاً على الهواتف)
         const maxScroll = container.scrollWidth - container.clientWidth;
 
-        // إذا لم يكن هناك تمرير (مثل شاشات الكمبيوتر)، لا تقم بأي شيء
         if (maxScroll <= 5) return;
 
         const firstChild = container.firstElementChild as HTMLElement;
         if (firstChild) {
           const itemWidth = firstChild.getBoundingClientRect().width;
-          const gap = window.innerWidth < 768 ? 16 : 24; // gap-4 (16px) or gap-6 (24px)
+          const gap = window.innerWidth < 768 ? 16 : 24;
           const scrollAmount = itemWidth + gap;
           const currentScroll = Math.abs(container.scrollLeft);
 
-          // If reached the end, snap back to start. Otherwise, scroll to next.
           if (currentScroll >= maxScroll - 10) {
             container.scrollTo({ left: 0, behavior: "smooth" });
           } else {
@@ -120,17 +120,12 @@ export default function CategoriesSection({
           }
         }
       }
-    }, 3000); // Scrolls every 3 seconds
+    }, 3000);
 
-    // Pause auto-scroll on interaction
     container.addEventListener("mouseenter", setInteraction);
     container.addEventListener("mouseleave", clearInteraction);
-    container.addEventListener("touchstart", setInteraction, {
-      passive: true,
-    });
-    container.addEventListener("touchend", clearInteraction, {
-      passive: true,
-    });
+    container.addEventListener("touchstart", setInteraction, { passive: true });
+    container.addEventListener("touchend", clearInteraction, { passive: true });
 
     return () => {
       clearInterval(intervalId);
@@ -176,6 +171,34 @@ export default function CategoriesSection({
   }
 
   if (!categories.length) return null;
+
+  // ─── Circle item (reusable) ────────────────────────────────────────────────
+  const CircleItem = ({ cat }: { cat: Category }) => (
+    <Link
+      key={cat.id}
+      href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
+      className="group flex flex-col items-center gap-3 cursor-pointer"
+    >
+      <div className="relative w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden border-2 border-gray-100 group-hover:border-[rgb(var(--color-brand-primary))] transition-colors duration-300 shadow-sm">
+        {cat.logo_url ? (
+          <Image
+            src={cat.logo_url}
+            alt={cat.title}
+            fill
+            sizes="(max-width: 768px) 80px, 112px"
+            className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+            <span className="text-gray-400 text-xs">No Image</span>
+          </div>
+        )}
+      </div>
+      <p className="text-xs md:text-sm font-medium text-gray-700 group-hover:text-[rgb(var(--color-brand-primary))] transition-colors text-center line-clamp-2 max-w-[90px] md:max-w-[120px] leading-snug">
+        {cat.title}
+      </p>
+    </Link>
+  );
 
   return (
     <section
@@ -289,71 +312,25 @@ export default function CategoriesSection({
         {normalizedStyle === "circle" && (
           <>
             {isCarousel ? (
+              // > 6 items: horizontal carousel on all screen sizes
               <div
                 ref={carouselRef}
                 className="flex overflow-x-auto gap-4 md:gap-6 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-1 py-1"
               >
                 {categories.map((cat) => (
-                  <Link
+                  <div
                     key={cat.id}
-                    href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
-                    className="group flex flex-col items-center gap-3 cursor-pointer flex-none w-[calc(25%-12px)] md:w-auto snap-start"
+                    className="flex-none w-[calc(25%-12px)] md:w-auto snap-start"
                   >
-                    <div className="relative mx-auto w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden border-2 border-gray-100 group-hover:border-[rgb(var(--color-brand-primary))] transition-colors duration-300 shadow-sm">
-                      {cat.logo_url ? (
-                        <Image
-                          src={cat.logo_url}
-                          alt={cat.title}
-                          fill
-                          sizes="(max-width: 768px) 80px, 112px"
-                          className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                          <span className="text-gray-400 text-xs">
-                            No Image
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs md:text-sm font-medium text-gray-700 group-hover:text-[rgb(var(--color-brand-primary))] transition-colors text-center line-clamp-2 max-w-[90px] md:max-w-[120px] leading-snug">
-                      {cat.title}
-                    </p>
-                  </Link>
+                    <CircleItem cat={cat} />
+                  </div>
                 ))}
               </div>
             ) : (
-              <div
-                ref={carouselRef}
-                className="flex overflow-x-auto md:justify-center gap-4 md:gap-10 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-2 py-2"
-              >
+              // ≤ 6 items: 3-col grid on mobile, centered row on desktop
+              <div className="grid grid-cols-3 md:flex md:flex-wrap md:justify-center gap-6 md:gap-10 px-2 py-2">
                 {categories.map((cat) => (
-                  <Link
-                    key={cat.id}
-                    href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
-                    className="group flex flex-col items-center gap-3 cursor-pointer flex-none snap-start"
-                  >
-                    <div className="relative w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden border-2 border-gray-100 group-hover:border-[rgb(var(--color-brand-primary))] transition-colors duration-300 shadow-sm">
-                      {cat.logo_url ? (
-                        <Image
-                          src={cat.logo_url}
-                          alt={cat.title}
-                          fill
-                          sizes="(max-width: 768px) 80px, 112px"
-                          className="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                          <span className="text-gray-400 text-xs">
-                            No Image
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs md:text-sm font-medium text-gray-700 group-hover:text-[rgb(var(--color-brand-primary))] transition-colors text-center line-clamp-2 max-w-[90px] md:max-w-[120px] leading-snug">
-                      {cat.title}
-                    </p>
-                  </Link>
+                  <CircleItem key={cat.id} cat={cat} />
                 ))}
               </div>
             )}
