@@ -1,8 +1,12 @@
 "use client";
 import { useMemo, useState, useEffect } from "react";
+import Link from "next/link";
+
 import { useRouter } from "next/navigation";
 import {
   ShoppingBag,
+  ChevronLeft,
+  ChevronRight,
   Loader2,
   ArrowRight,
   ArrowLeft,
@@ -19,11 +23,72 @@ import {
   type Language,
 } from "@/lib/checkout-translations";
 import { getStoreLanguage, type Store } from "@/lib/store-types";
-import EmptyCartState from "./components/EmptyCartState";
+import EmptyState from "../components/EmptyState";
 import CartItemsList from "./components/CartItemsList";
 import OrderSummary from "./components/OrderSummary";
 import ShippingForm from "./components/ShippingForm";
 import { Emoji } from "emoji-picker-react";
+
+const localTranslations = {
+  ar: {
+    home: "الرئيسية",
+    title: "صفحة المنتجات",
+    emptyTitle: "السلة فارغة",
+    emptyDesc: "لم تضف أي منتج للسلة بعد",
+    cartChanged: "تم تغيير السلة، يرجى تطبيق القسيمة مرة أخرى",
+    couponSuccess: "تم تطبيق القسيمة بنجاح",
+    couponInvalid: "القسيمة غير صالحة",
+    couponValidationFailed: "فشل التحقق من القسيمة",
+    continueShopping: "تصفح المتجر",
+    orderConfirmed: "تم تأكيد طلبك!",
+    backToHome: "العودة للصفحة الرئيسية",
+    quickBuyList: "قائمة الشراء السريع",
+    cartItems: "منتجات السلة",
+    shippingInfo: "معلومات الشحن",
+    fillDetailsBelow: "يرجى إدخال بيانات الشحن أدناه",
+    oneItemReady: "📦 منتج واحد جاهز للشراء",
+    products: "المنتجات",
+    proceedToDelivery: "المتابعة للتوصيل",
+    backToStore: "العودة للمتجر",
+    backToShopping: "العودة للتسوق",
+    completeOrder: "تأكيد وإتمام الطلب",
+    backToCart: "تعديل السلة",
+    storeNotFound: "المتجر غير موجود",
+    checkoutFailed: "فشل إتمام الطلب",
+    somethingWentWrong: "حدث خطأ ما",
+    outOfStockPrefix: 'عذراً، المنتج "',
+    outOfStockSuffix: '" غير متوفر بالكمية المطلوبة',
+  },
+  en: {
+    home: "Home",
+    title: "Title Page",
+    emptyTitle: "Your cart is empty",
+    emptyDesc: "You haven’t added anything yet",
+    cartChanged: "Your cart changed. Please apply the coupon again.",
+    couponSuccess: "Coupon applied successfully",
+    couponInvalid: "Invalid coupon",
+    couponValidationFailed: "Failed to validate coupon",
+    continueShopping: "Browse Store",
+    orderConfirmed: "Order Confirmed!",
+    backToHome: "Back to Home Page",
+    quickBuyList: "Quick Buy List",
+    cartItems: "Cart Items",
+    shippingInfo: "Shipping Information",
+    fillDetailsBelow: "Please enter your shipping details below",
+    oneItemReady: "📦 1 item ready to purchase",
+    products: "Products",
+    proceedToDelivery: "Proceed to Delivery",
+    backToStore: "Back to Store",
+    backToShopping: "Back To Shopping",
+    completeOrder: "Complete Order",
+    backToCart: "Back to Cart",
+    storeNotFound: "Store not found",
+    checkoutFailed: "Checkout failed",
+    somethingWentWrong: "Something went wrong",
+    outOfStockPrefix: 'Sorry, "',
+    outOfStockSuffix: '" is out of stock.',
+  },
+} as const;
 
 type Props = {
   store: Store | null;
@@ -32,7 +97,10 @@ type Props = {
 export default function CartClientPage({ store }: Props) {
   const router = useRouter();
   const language = getStoreLanguage(store) as Language;
-  const t = checkoutTranslations[language];
+  const baseTranslations =
+    checkoutTranslations[language] || checkoutTranslations.en;
+  const local = localTranslations[language === "ar" ? "ar" : "en"];
+  const t = { ...baseTranslations, ...local };
   const isArabic = language === "ar";
 
   const { cartItems, cartTotal, updateCartQty, removeFromCart, clearCart } =
@@ -48,6 +116,7 @@ export default function CartClientPage({ store }: Props) {
     : [];
 
   const { customer, loading: authLoading } = useAuth(store?.id);
+  const BreadcrumbIcon = isArabic ? ChevronLeft : ChevronRight;
 
   const [step, setStep] = useState<"cart" | "shipping">("cart");
   const [successModal, setSuccessModal] = useState(false);
@@ -168,15 +237,11 @@ export default function CartClientPage({ store }: Props) {
   ) => {
     if (!message || typeof message !== "string") return null;
 
-    // Regex to match international or local phone numbers (e.g., +96171708103, 00961..., etc.)
-    // Adjust regex as needed depending on your store formats
     const phoneRegex = /(\+?[0-9]{10,15})/g;
-
     const parts = message.split(phoneRegex);
 
     return parts.map((part, index) => {
       if (phoneRegex.test(part)) {
-        // Clean the phone number for the WhatsApp link (remove spaces, plus signs, etc.)
         const cleanPhone = part.replace(/[^\d]/g, "");
         return (
           <a
@@ -236,13 +301,13 @@ export default function CartClientPage({ store }: Props) {
       setBuyNowItem(updated);
       sessionStorage.setItem("TEMP_BUY_NOW_ITEM", JSON.stringify(updated));
     } else {
-      updateCartQty(cartKey, qty); // ← was: String(id)
+      updateCartQty(cartKey, qty);
     }
   };
 
   const handleRemoveActiveItem = (cartKey: string) => {
     if (isBuyNow) clearBuyNowSession();
-    else removeFromCart(cartKey); // ← was: String(id)
+    else removeFromCart(cartKey);
   };
 
   const handleApplyCoupon = async () => {
@@ -276,8 +341,7 @@ export default function CartClientPage({ store }: Props) {
 
   const handleCheckout = async () => {
     if (!store?.id) {
-      const msg =
-        t.storeNotFound || (isArabic ? "المتجر غير موجود" : "Store not found");
+      const msg = t.storeNotFound;
       setError(msg);
       showCustomToast("error", msg);
       return;
@@ -313,10 +377,7 @@ export default function CartClientPage({ store }: Props) {
       const data = await response.json();
 
       if (!response.ok) {
-        let errorMsg =
-          data.message ||
-          t.checkoutFailed ||
-          (isArabic ? "فشل إتمام الطلب" : "Checkout failed");
+        let errorMsg = data.message || t.checkoutFailed;
 
         if (
           typeof data.message === "string" &&
@@ -326,9 +387,7 @@ export default function CartClientPage({ store }: Props) {
             data.message.includes(String(i.product.id)),
           );
           if (item) {
-            errorMsg = isArabic
-              ? `عذراً، المنتج "${item.product.title}" غير متوفر بالكمية المطلوبة`
-              : `Sorry, "${item.product.title}" is out of stock.`;
+            errorMsg = `${t.outOfStockPrefix}${item.product.title}${t.outOfStockSuffix}`;
           }
         }
 
@@ -344,9 +403,7 @@ export default function CartClientPage({ store }: Props) {
 
       setSuccessModal(true);
     } catch {
-      const msg =
-        t.somethingWentWrong ||
-        (isArabic ? "حدث خطأ ما" : "Something went wrong");
+      const msg = t.somethingWentWrong;
       setError(msg);
       showCustomToast("error", msg);
       if (isBuyNow) clearBuyNowSession();
@@ -359,13 +416,24 @@ export default function CartClientPage({ store }: Props) {
 
   if (activeItems.length === 0 && !successModal) {
     return (
-      <EmptyCartState
-        title={t.emptyCartTitle}
-        description={t.emptyCartDesc}
-        continueShoppingLabel={t.continueShopping}
-        onContinueShopping={() => router.push("/")}
-        isArabic={isArabic}
-      />
+      <div className="min-h-screen bg-white px-2 py-6 sm:px-4 lg:px-8 mx-w-6xl mx-auto">
+        <p className="font-medium text-gray-400 flex items-center flex-wrap gap-1">
+          <Link href={`/`} className="hover:text-brand-black transition-colors">
+            {t.home}
+          </Link>
+          <BreadcrumbIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <span className="text-brand-black">{t.title}</span>
+        </p>
+
+        <EmptyState
+          variant="cart"
+          title={t.emptyTitle}
+          description={t.emptyDesc}
+          ctaLabel={t.continueShopping}
+          onCta={() => router.push("/")}
+          isArabic={isArabic}
+        />
+      </div>
     );
   }
 
@@ -451,7 +519,7 @@ export default function CartClientPage({ store }: Props) {
               <CheckCircle2 className="w-8 h-8 text-emerald-500" />
             </div>
             <span className="text-lg font-bold text-gray-900 flex items-center justify-center text-center gap-1">
-              {isArabic ? "تم تأكيد طلبك!" : "Order Confirmed!"}
+              {t.orderConfirmed}
               <Emoji unified="1f389" size={22} />
             </span>
 
@@ -471,7 +539,7 @@ export default function CartClientPage({ store }: Props) {
               }}
               className="w-full py-2 rounded-sm bg-brand-primary text-white text-sm font-semibold hover:opacity-90 transition-opacity"
             >
-              {isArabic ? "العودة للصغحة الرئيسية" : "Back to Home Page"}
+              {t.backToHome}
             </button>
           </div>
         </div>
@@ -490,9 +558,7 @@ export default function CartClientPage({ store }: Props) {
               }`}
             >
               <Zap className="w-4 h-4" />
-              {isArabic
-                ? `قائمة الشراء السريع (${buyNowItem?.qty || 1})`
-                : `Quick Buy List (${buyNowItem?.qty || 1})`}
+              {`${t.quickBuyList} (${buyNowItem?.qty || 1})`}
             </button>
             <button
               onClick={() => setIsBuyNow(false)}
@@ -503,9 +569,7 @@ export default function CartClientPage({ store }: Props) {
               }`}
             >
               <ShoppingCart className="w-4 h-4" />
-              {isArabic
-                ? `منتجات السلة (${cartItems.length})`
-                : `Cart Items (${cartItems.length})`}
+              {`${t.cartItems} (${cartItems.length})`}
             </button>
           </div>
         )}
@@ -514,19 +578,15 @@ export default function CartClientPage({ store }: Props) {
           <h3 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
             {step === "cart"
               ? isBuyNow
-                ? isArabic
-                  ? "قائمة الشراء السريع"
-                  : "Quick Buy List"
-                : t.cart
+                ? t.quickBuyList
+                : t.cartItems
               : t.shippingInfo}
           </h3>
           <p className="mt-1.5 text-sm text-gray-500 font-medium">
             {step === "cart"
               ? isBuyNow
-                ? isArabic
-                  ? "📦 منتج واحد جاهز للشراء"
-                  : "📦 1 item ready to purchase"
-                : `${t.products}: ${activeItems.length}`
+                ? t.oneItemReady
+                : `${t.products || (isArabic ? "المنتجات" : "Products")}: ${activeItems.length}`
               : t.fillDetailsBelow}
           </p>
         </div>
@@ -569,7 +629,7 @@ export default function CartClientPage({ store }: Props) {
                   onClick={() => setStep("shipping")}
                   className="w-full sm:flex-[2] py-3 px-4 rounded-sm bg-brand-primary text-white font-medium text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-sm order-1 sm:order-2"
                 >
-                  {isArabic ? "المتابعة للتوصيل" : "Proceed to Delivery"}
+                  {t.proceedToDelivery}
                   <ProceedIcon className="w-4 h-4" />
                 </button>
                 <button
@@ -580,13 +640,7 @@ export default function CartClientPage({ store }: Props) {
                   className="w-full sm:flex-1 py-2 px-2 rounded-sm border border-gray-200 text-gray-700 bg-white font-medium text-xs hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm order-2 sm:order-1"
                 >
                   <BackIcon className="w-3 h-3" />
-                  {isBuyNow
-                    ? isArabic
-                      ? "العودة للمتجر"
-                      : "Back to Store"
-                    : isArabic
-                      ? "العودة للتسوق"
-                      : "Back To Shopping"}
+                  {isBuyNow ? t.backToStore : t.backToShopping}
                 </button>
               </div>
             </div>
@@ -640,12 +694,12 @@ export default function CartClientPage({ store }: Props) {
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      {t.processing}
+                      {isArabic ? "جارٍ المعالجة..." : "Processing..."}
                     </>
                   ) : (
                     <>
                       <ShoppingBag className="w-4 h-4" />
-                      {isArabic ? "تأكيد وإتمام الطلب" : "Complete Order"}
+                      {t.completeOrder}
                     </>
                   )}
                 </button>
@@ -654,7 +708,7 @@ export default function CartClientPage({ store }: Props) {
                   className="w-full sm:flex-1 py-2 px-2 rounded-sm border border-brand-primary/20 text-brand-primary bg-brand-primary/5 font-medium text-xs hover:bg-brand-primary/10 transition-all flex items-center justify-center gap-2 order-2 sm:order-1"
                 >
                   <BackIcon className="w-3 h-3" />
-                  {isArabic ? "تعديل السلة" : "Back to Cart"}
+                  {t.backToCart}
                 </button>
               </div>
             </div>

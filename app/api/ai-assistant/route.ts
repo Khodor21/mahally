@@ -392,12 +392,25 @@ async function callAPI(
     body: method !== "DELETE" ? JSON.stringify(body) : undefined,
   });
 
-  const json = await res.json();
-  return {
-    ok: res.ok,
-    data: json.data ?? json,
-    message: json.message || json.error,
-  };
+ const contentType = res.headers.get("content-type") || "";
+if (!contentType.includes("application/json")) {
+  const text = await res.text();
+  console.error(`[callAPI] Non-JSON from ${endpoint}:`, text.slice(0, 200));
+  return { ok: false, message: `خطأ في الخادم (${res.status})` };
+}
+
+let json: any = {};
+try {
+  json = await res.json();
+} catch {
+  return { ok: false, message: "فشل قراءة الرد من الخادم" };
+}
+
+return {
+  ok: res.ok,
+  data: json.data ?? json,
+  message: json.message || json.error,
+};
 }
 
 // ==========================================
@@ -440,7 +453,7 @@ export async function POST(req: Request) {
     const normalizedMessage = normalizeMessage(message);
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.1-flash-lite",
       systemInstruction: `أنت 'مساعد محلي'، ذكاء اصطناعي متخصص حصرياً في إدارة المتجر الإلكتروني على منصة 'محلي'.
 مهمتك مساعدة التاجر في إدارة منتجاته وأقسامه وأقسام الواجهة (Storefront Sections) وكوبونات الخصم وتقارير التحليلات.
 

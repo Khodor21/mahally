@@ -1,26 +1,28 @@
 "use client";
 
-import { Heart, ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useShop } from "../../context";
 import ProductCard from "./components/ProductCard";
-import EmptyState from "./components/EmptyState";
-
+import EmptyState from "../components/EmptyState";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 const FAVORITES_TRANSLATIONS = {
   ar: {
     title: "المفضلة",
+    home: "الرئيسية",
     subtitle: "منتجاتك المفضلة",
-    emptyTitle: "لا توجد منتجات مفضلة",
-    emptyDesc: "ابدأ بإضافة منتجاتك المفضلة لحفظها هنا",
-    browseProducts: "تصفح المنتجات",
+    emptyTitle: "قائمة المفضلة فارغة",
+    emptyDesc: "لم تضف أي منتج للمفضلة بعد",
+    browseProducts: "تصفح المتجر",
     items: "منتجات",
   },
   en: {
     title: "Favorites",
+    home: "Home",
     subtitle: "Your favorite products",
-    emptyTitle: "No favorite products yet",
-    emptyDesc: "Start adding your favorite products to save them here",
-    browseProducts: "Browse Products",
+    emptyTitle: "Your wishlist is empty",
+    emptyDesc: "You haven’t saved any products yet",
+    browseProducts: "Browse Store",
     items: "items",
   },
 };
@@ -52,23 +54,28 @@ export default function FavoritesClient({ store, slug }: Props) {
     discount_price: item.discount_price ?? null,
     stock: item.stock ?? 1,
   }));
+  const BreadcrumbIcon = isArabic ? ChevronLeft : ChevronRight;
 
   // ── Unified Empty State ─────────────────────────────────────
   if (!mappedFavorites || mappedFavorites.length === 0) {
     return (
-      <div
-        dir={isArabic ? "rtl" : "ltr"}
-        className="min-h-[70vh] bg-gray-50/30 flex flex-col items-center justify-center py-12 px-4 sm:px-6 animate-in fade-in duration-500"
-      >
-        <div className="max-w-2xl mx-auto w-full bg-white p-8 sm:p-12 rounded-2xl border border-gray-100 shadow-sm">
-          <EmptyState
-            title={t.emptyTitle}
-            description={t.emptyDesc}
-            onContinueShopping={() => router.push("/")}
-            isArabic={isArabic}
-            continueShoppingLabel={t.browseProducts}
-          />
-        </div>
+      <div className="min-h-screen bg-white px-2 py-6 sm:px-4 lg:px-8 mx-w-6xl mx-auto">
+        <p className="font-medium text-gray-400 flex items-center flex-wrap gap-1">
+          <Link href={`/`} className="hover:text-brand-black transition-colors">
+            {t.home}
+          </Link>
+          <BreadcrumbIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <span className="text-brand-black">{t.title}</span>
+        </p>
+
+        <EmptyState
+          variant="wishlist"
+          title={t.emptyTitle}
+          description={t.emptyDesc}
+          ctaLabel={t.browseProducts}
+          onCta={() => router.push("/")}
+          isArabic={isArabic}
+        />
       </div>
     );
   }
@@ -80,25 +87,24 @@ export default function FavoritesClient({ store, slug }: Props) {
       className="min-h-screen bg-white py-10 px-4 sm:px-6 lg:px-8 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both"
     >
       <div className="max-w-6xl mx-auto">
-        {/* Premium Header Layout */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 mb-8 pb-6 border-b border-gray-100">
-          <div className="flex flex-col gap-1">
-            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-              {t.title}
-            </h3>
-            <p className="text-sm sm:text-base text-gray-500 font-medium">
-              {t.subtitle}
-            </p>
-          </div>
+        <div className="flex justify-between">
+          <p className="font-medium text-gray-400 flex items-center flex-wrap gap-1">
+            <Link
+              href={`/`}
+              className="hover:text-brand-black transition-colors"
+            >
+              {t.home}
+            </Link>
+            <BreadcrumbIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <span className="text-brand-black">{t.title}</span>
+          </p>
 
-          {/* Badge Pill for Item Count */}
           <div className="inline-flex items-center justify-center self-start sm:self-auto transition-colors hover:bg-brand-primary/10 cursor-default">
             <span className="text-xs font-nedium text-brand-primary tracking-wide">
               {mappedFavorites.length} {t.items}
             </span>
           </div>
         </div>
-
         {/* Responsive Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-7">
           {mappedFavorites.map((product: any, index: number) => (

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -10,8 +12,7 @@ import {
   Loader2,
 } from "lucide-react";
 import ProductCard from "../../components/landing/ProductCard";
-import { Emoji } from "emoji-picker-react";
-
+import EmptyState from "../../components/EmptyState";
 // --- Types ---
 interface BackendProduct {
   id: string;
@@ -188,6 +189,8 @@ export default function CategoryPageClient({
 }) {
   const dir = lang === "ar" ? "rtl" : "ltr";
   const [categoryData] = useState<CategoryData>(initialData);
+  const router = useRouter(); // ← ضيف هاد
+  const isArabic = lang === "ar";
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("default");
   const [inStockOnly, setInStockOnly] = useState(false);
@@ -196,8 +199,8 @@ export default function CategoryPageClient({
   const translations = {
     ar: {
       home: "الرئيسية",
-      back: "العودة للرئيسية",
-      emptyState: "لا توجد منتجات في هذا القسم حالياً.",
+      back: "تصفح المتجر",
+      emptyState: "هذا القسم فارغ حالياً",
       searchPlaceholder: "ابحث عن منتج في هذا القسم...",
       sortDefault: "تصفية وترتيب",
       sortPriceAsc: "السعر: من الأقل للأعلى",
@@ -205,11 +208,12 @@ export default function CategoryPageClient({
       inStockOnly: "متوفر في المخزون فقط",
       noSearchResults: "لا توجد نتائج مطابقة لبحثك.",
       clearFilters: "مسح التصفية",
+      emptyStateDesc: "سيتم إضافة منتجات هذا التصنيف قريباً",
     },
     en: {
       home: "Home",
-      back: "Back to Home",
-      emptyState: "No products available in this category yet.",
+      back: "Browse Store",
+      emptyState: "This category is empty",
       searchPlaceholder: "Search products in this category...",
       sortDefault: "Filter & Sort",
       sortPriceAsc: "Price: Low to High",
@@ -217,6 +221,7 @@ export default function CategoryPageClient({
       inStockOnly: "In Stock Only",
       noSearchResults: "No products match your search criteria.",
       clearFilters: "Clear Filters",
+      emptyStateDesc: "Products for this category will be added soon", // ← ضيف
     },
   };
   const t = translations[lang];
@@ -290,10 +295,14 @@ export default function CategoryPageClient({
         )}
 
         {categoryData.products.length === 0 ? (
-          <div className="flex items-center gap-1 justify-center pt-32 text-black">
-            <Emoji unified="1f4e6" size={24} />
-            <p className="text font-medium">{t.emptyState}</p>
-          </div>
+          <EmptyState
+            variant="category"
+            title={t.emptyState}
+            description={t.emptyStateDesc} // ضيف هاد المفتاح بالـ translations
+            ctaLabel={t.back}
+            onCta={() => router.push("/")}
+            isArabic={isArabic}
+          />
         ) : filteredProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-500">
             <Search className="w-12 h-12 mb-4 text-gray-300" />
