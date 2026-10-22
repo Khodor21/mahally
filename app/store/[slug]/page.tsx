@@ -1,4 +1,4 @@
-export const revalidate = 0;
+export const revalidate = 300;
 
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
@@ -39,14 +39,7 @@ export default async function StorePage({
   const storeSettings = actualSettings as any;
 
   // ===== MINI PLAN =====
-  // Use case-insensitive check to prevent mismatch errors
   if (String(activePlan).toLowerCase() === "mini") {
-    // 🔍 FETCH PRODUCTS FOR MINI PLAN
-    console.log(
-      "🔍 [page.tsx] Fetching products for Mini plan, storeId:",
-      (actualStore as any).id,
-    );
-
     const { data: products, error } = await supabaseAdmin
       .from("products")
       .select("*")
@@ -57,8 +50,6 @@ export default async function StorePage({
     if (error) {
       console.error("❌ [page.tsx] Error fetching products:", error);
     }
-
-    console.log("✅ [page.tsx] Fetched products count:", products?.length || 0);
 
     return (
       <MiniCatalogue
