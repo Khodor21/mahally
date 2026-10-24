@@ -41,6 +41,34 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
+// --- Utility: Stable Shuffle via sessionStorage ---
+function getOrShuffleCategories(
+  categories: BackendCategory[],
+  storeId: string,
+): BackendCategory[] {
+  const cacheKey = `categories_order_${storeId}`;
+
+  try {
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      const cachedIds: string[] = JSON.parse(cached);
+      const idToCategory = new Map(categories.map((c) => [c.id, c]));
+      const ordered = cachedIds
+        .map((id) => idToCategory.get(id))
+        .filter(Boolean) as BackendCategory[];
+      const orderedIds = new Set(cachedIds);
+      const newOnes = categories.filter((c) => !orderedIds.has(c.id));
+      return [...ordered, ...newOnes];
+    }
+  } catch {}
+
+  const shuffled = shuffleArray(categories);
+  try {
+    sessionStorage.setItem(cacheKey, JSON.stringify(shuffled.map((c) => c.id)));
+  } catch {}
+  return shuffled;
+}
+
 // --- Separate Component: Search Bar ---
 function SearchBar({
   searchQuery,
@@ -261,7 +289,6 @@ function CategoriesContent() {
 
   // --- 1. Robust Initialization (Lang & Invisible Store ID extraction) ---
   useEffect(() => {
-    // Determine language
     let resolvedLang: "ar" | "en" = "ar";
     const urlLang = searchParams.get("lang");
     if (urlLang === "en" || urlLang === "ar") {
@@ -275,14 +302,12 @@ function CategoriesContent() {
       }
     }
 
-    // Determine store ID without exposing it in the URL
     const urlStoreId = searchParams.get("store_id");
     let resolvedStoreId = urlStoreId;
     if (!resolvedStoreId) {
       resolvedStoreId = window.localStorage.getItem("store_id") || "";
     }
 
-    // Self-healing: if found in URL, save it to local storage to clean URL later
     if (resolvedStoreId) {
       window.localStorage.setItem("store_id", resolvedStoreId);
     }
@@ -361,9 +386,9 @@ function CategoriesContent() {
 
         if (Array.isArray(list)) {
           const categories = list as BackendCategory[];
-          const shuffled = shuffleArray(categories);
-          categoriesCache.current = shuffled;
-          setAllCategories(shuffled);
+          const ordered = getOrShuffleCategories(categories, activeStoreId);
+          categoriesCache.current = ordered;
+          setAllCategories(ordered);
         } else {
           throw new Error("Failed to load categories format");
         }
@@ -445,7 +470,7 @@ function CategoriesContent() {
 
   const BreadcrumbIcon = dir === "rtl" ? ChevronLeft : ChevronRight;
 
-  // --- Render Loading (Returns perfectly matched Skeleton) ---
+  // --- Render Loading ---
   if (!isClientReady || loading) {
     return <PageSkeleton dir={dir} />;
   }
@@ -609,7 +634,6 @@ export default function CategoriesPage() {
     setMounted(true);
   }, []);
 
-  // Guarantee that Server HTML and First-Pass Client HTML are identical
   if (!mounted) {
     return <PageSkeleton />;
   }
