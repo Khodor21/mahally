@@ -1,15 +1,38 @@
-import { notFound, redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 import CustomerAuth from "./CustomerAuth";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
 type Props = {
-  params: {
-    slug: string;
-  };
+  params:
+    | Promise<{
+        slug: string;
+      }>
+    | { slug: string };
 };
 
-export default async function AuthPage({ params }: Props) {
+export async function generateMetadata(props: Props) {
+  const params = await props.params;
+
+  const { data: store } = await supabaseAdmin
+    .from("stores")
+    .select("store_name, logo_url, language")
+    .eq("slug", params.slug)
+    .maybeSingle();
+
+  const lang = (store?.language as "en" | "ar") || "en";
+  const authTitle = lang === "ar" ? "تسجيل الدخول" : "Authentication";
+  const storeName = store?.store_name || "";
+  const logoUrl = store?.logo_url || "";
+
+  return {
+    title: storeName ? `${authTitle} | ${storeName}` : authTitle,
+    icons: logoUrl ? { icon: logoUrl, apple: logoUrl } : undefined,
+  };
+}
+
+export default async function AuthPage(props: Props) {
+  const params = await props.params;
+
   const { data: store } = await supabaseAdmin
     .from("stores")
     .select("id, language")

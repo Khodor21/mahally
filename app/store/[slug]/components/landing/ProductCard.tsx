@@ -33,6 +33,7 @@ type ProductCardProps = {
   product: Product;
   storeSlug?: string;
   lang: "en" | "ar";
+  index?: number;
 };
 
 const hasSelectableVariants = (variantGroups?: string | any[]): boolean => {
@@ -82,6 +83,7 @@ export default function ProductCard({
   product,
   storeSlug,
   lang,
+  index = 0,
 }: ProductCardProps) {
   const router = useRouter();
   const { addToCart, toggleFavorite, isFavorite, cartItems } = useShop();
@@ -279,6 +281,7 @@ export default function ProductCard({
               src={product.image}
               alt={product.title}
               fill
+              priority={index < 4}
               sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className={`object-contain p-2 mix-blend-multiply transition-transform duration-500 group-hover:scale-110 ${
                 isOutOfStock && !canPreorder ? "grayscale" : ""

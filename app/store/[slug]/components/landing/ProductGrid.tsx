@@ -210,7 +210,7 @@ export default function ProductGrid({
                 ref={scrollRefMono}
                 className="flex gap-4 overflow-x-auto pb-6 pt-2 px-2 md:px-0 items-stretch snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
               >
-                {mappedProducts.map((product) => (
+                {mappedProducts.map((product, index) => (
                   <div
                     key={product.id}
                     className="flex-none h-auto w-[42vw] sm:w-[35vw] md:w-[32vw] lg:w-[calc(28.5%-1rem)] snap-start"
@@ -219,6 +219,7 @@ export default function ProductGrid({
                       product={product}
                       storeSlug={storeSlug}
                       lang={lang}
+                      index={index}
                     />
                   </div>
                 ))}
@@ -277,7 +278,7 @@ export default function ProductGrid({
               ref={scrollRefWide}
               className="flex gap-2 md:gap-3 overflow-x-auto pb-4 items-stretch snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
             >
-              {mappedProducts.map((product) => (
+              {mappedProducts.map((product, index) => (
                 <div
                   key={product.id}
                   className="flex-none h-auto w-[42vw] sm:w-[35vw] md:w-[31vw] lg:w-[calc(22.22%-1rem)] snap-start"
@@ -286,6 +287,7 @@ export default function ProductGrid({
                     product={product}
                     storeSlug={storeSlug}
                     lang={lang}
+                    index={index}
                   />
                 </div>
               ))}

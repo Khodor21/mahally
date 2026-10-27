@@ -1,5 +1,24 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import CategoryPageClient from "./CategoryPageClient";
+import { getCachedStoreData } from "@/lib/store-queries";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string; title: string };
+}) {
+  const categoryTitle = decodeURIComponent(params.title).trim();
+  const data = await getCachedStoreData(params.slug);
+  const store = Array.isArray(data?.store) ? data.store[0] : data?.store || {};
+  const settings = Array.isArray(data?.settings) ? data.settings[0] : data?.settings || {};
+  const storeName = store.store_name || "";
+  const logoUrl = settings?.logo_url || "";
+
+  return {
+    title: categoryTitle,
+    icons: logoUrl ? { icon: logoUrl, apple: logoUrl } : undefined,
+  };
+}
 
 export default async function CategoryPage({
   params,

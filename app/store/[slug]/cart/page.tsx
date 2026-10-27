@@ -3,6 +3,25 @@ import { getStoreBySlug } from "@/lib/store";
 import CartClientPage from "./CartClientPage";
 import ProductRecommendations from "../components/RecommendationsProducts";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  const store = await getStoreBySlug(params.slug);
+
+  // Set language and title dynamically based on the store
+  const lang = (store?.language as "en" | "ar") || "en";
+  const cartTitle = lang === "ar" ? "السلة" : "Cart";
+  const storeName = store?.store_name || "";
+  const logoUrl = store?.logo_url || "";
+
+  return {
+    title: storeName ? `${cartTitle} | ${storeName}` : cartTitle,
+    icons: logoUrl ? { icon: logoUrl, apple: logoUrl } : undefined,
+  };
+}
+
 export default async function CartPage({
   params,
 }: {

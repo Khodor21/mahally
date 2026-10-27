@@ -1,10 +1,56 @@
-// app/[slug]/product/[title]/page.tsx
-
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import ProductClientUI from "./ProductClientUI";
 import ProductRecommendations from "../../components/RecommendationsProducts";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string; title: string };
+}) {
+  const decodedTitle = decodeURIComponent(params.title);
+
+  // 1. Fetch store including logo_url
+  const { data: store } = await supabaseAdmin
+    .from("stores")
+    .select("id, store_name, logo_url")
+    .eq("slug", params.slug)
+    .maybeSingle();
+
+  if (!store) return { title: decodedTitle };
+
+  // 2. Fetch product details for metadata
+  const { data: product } = await supabaseAdmin
+    .from("products")
+    .select("title, description, images")
+    .eq("store_id", store.id)
+    .ilike("title", decodedTitle)
+    .maybeSingle();
+
+  if (!product) return { title: decodedTitle };
+
+  const storeName = store.store_name || "";
+  const logoUrl = store.logo_url || "";
+  const pageTitle = storeName
+    ? `${product.title} | ${storeName}`
+    : product.title;
+  const primaryImage =
+    Array.isArray(product.images) && product.images.length > 0
+      ? product.images[0]
+      : null;
+
+  return {
+    title: pageTitle,
+    description: product.description || undefined,
+    icons: logoUrl ? { icon: logoUrl, apple: logoUrl } : undefined,
+    openGraph: {
+      title: pageTitle,
+      description: product.description || undefined,
+      images: primaryImage ? [{ url: primaryImage }] : [],
+    },
+  };
+}
 
 export default async function ProductPage({
   params,
