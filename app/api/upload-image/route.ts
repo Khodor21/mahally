@@ -1,10 +1,9 @@
-// app/api/upload-image/route.ts (or equivalent path)
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/server";
+import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { r2Client } from "@/lib/r2";
 import { requireStoreSession } from "@/lib/store";
 import crypto from "crypto";
 
-// ─── Security Constants ───────────────────────────────────────────────────────
 const MAX_FILE_SIZE = 400 * 1024;
 const MAX_FILES_PER_REQUEST = 7;
 const ALLOWED_MIME_TYPES = [
@@ -13,15 +12,12 @@ const ALLOWED_MIME_TYPES = [
   "image/webp",
   "image/gif",
 ] as const;
-
 const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif"] as const;
 
-// Rate limiting map (in-memory - use Redis in production)
 const uploadRateLimit = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const RATE_LIMIT_WINDOW = 60 * 1000;
 const MAX_UPLOADS_PER_MINUTE = 10;
 
-// ─── Image Validation ─────────────────────────────────────────────────────────
 function validateMimeType(mimeType: string): boolean {
   return ALLOWED_MIME_TYPES.includes(mimeType as any);
 }
@@ -32,18 +28,15 @@ function validateFileExtension(filename: string): boolean {
 }
 
 function sanitizeFilename(filename: string): string {
-  // Remove any path traversal attempts and special characters
   return filename
     .replace(/\.\./g, "")
     .replace(/[^a-zA-Z0-9.-]/g, "_")
-    .substring(0, 100); // Limit filename length
+    .substring(0, 100);
 }
 
-// ─── Rate Limiting ────────────────────────────────────────────────────────────
 function checkRateLimit(userId: string): boolean {
   const now = Date.now();
   const userLimit = uploadRateLimit.get(userId);
-
   if (!userLimit || now > userLimit.resetTime) {
     uploadRateLimit.set(userId, {
       count: 1,
@@ -51,22 +44,18 @@ function checkRateLimit(userId: string): boolean {
     });
     return true;
   }
-
-  if (userLimit.count >= MAX_UPLOADS_PER_MINUTE) {
-    return false;
-  }
-
+  if (userLimit.count >= MAX_UPLOADS_PER_MINUTE) return false;
   userLimit.count += 1;
   return true;
 }
 
-// ─── POST: Upload Images ──────────────────────────────────────────────────────
+const BUCKET = process.env.R2_BUCKET_NAME!;
+const PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL!;
+
 export async function POST(req: NextRequest) {
   try {
-    // 1. Authenticate user
     const user = await requireStoreSession();
 
-    // 2. Rate limiting
     if (!checkRateLimit(user.id)) {
       return NextResponse.json(
         {
@@ -77,16 +66,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Parse form data
     const formData = await req.formData();
+    const files = [
+      ...formData.getAll("file"),
+      ...formData.getAll("files"),
+    ] as File[];
 
-    // Support both "file" (singular, sent by current frontend) and "files" (plural)
-    const singularFiles = formData.getAll("file") as File[];
-    const pluralFiles = formData.getAll("files") as File[];
-    const files = [...singularFiles, ...pluralFiles];
-
-    // 4. Validate request
-    if (!files || files.length === 0) {
+    if (!files.length) {
       return NextResponse.json(
         { success: false, message: "No files provided" },
         { status: 400 },
@@ -97,45 +83,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: `Maximum ${MAX_FILES_PER_REQUEST} files allowed per request`,
+          message: `Maximum ${MAX_FILES_PER_REQUEST} files allowed`,
         },
         { status: 400 },
       );
     }
 
-    // 5. Process each file
     const uploadedUrls: string[] = [];
     const uploadedPaths: string[] = [];
 
     for (const file of files) {
-      // Validate file type
       if (!validateMimeType(file.type)) {
         return NextResponse.json(
-          {
-            success: false,
-            message: `Invalid file type: ${file.name}. Only JPEG, PNG, WebP, and GIF are allowed.`,
-          },
+          { success: false, message: `Invalid file type: ${file.name}` },
           { status: 400 },
         );
       }
 
-      // Validate file extension
       if (!validateFileExtension(file.name)) {
         return NextResponse.json(
-          {
-            success: false,
-            message: `Invalid file extension: ${file.name}`,
-          },
+          { success: false, message: `Invalid file extension: ${file.name}` },
           { status: 400 },
         );
       }
 
-      // Validate file size
       if (file.size > MAX_FILE_SIZE) {
         return NextResponse.json(
           {
             success: false,
-            message: `File too large: ${file.name}. Maximum size is 400KB.`,
+            message: `File too large: ${file.name}. Max 400KB.`,
           },
           { status: 400 },
         );
@@ -143,77 +119,57 @@ export async function POST(req: NextRequest) {
 
       if (file.size === 0) {
         return NextResponse.json(
-          {
-            success: false,
-            message: `Empty file: ${file.name}`,
-          },
+          { success: false, message: `Empty file: ${file.name}` },
           { status: 400 },
         );
       }
 
-      // Generate secure filename
       const fileExt = file.name.split(".").pop()?.toLowerCase();
       const randomBytes = crypto.randomBytes(16).toString("hex");
-      const timestamp = Date.now();
       const secureFileName = sanitizeFilename(
-        `${timestamp}-${randomBytes}.${fileExt}`,
+        `${Date.now()}-${randomBytes}.${fileExt}`,
       );
-
-      // Create path: {storeId}/{secureFileName}
       const filePath = `${user.id}/${secureFileName}`;
 
-      // Convert File to ArrayBuffer then to Buffer
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      const buffer = Buffer.from(await file.arrayBuffer());
 
-      // Upload to Supabase Storage (using admin client - bypasses RLS)
-      const { data, error } = await supabaseAdmin.storage
-        .from("Mahally Images") // Replace with your actual bucket name
-        .upload(filePath, buffer, {
-          contentType: file.type,
-          upsert: false,
-          cacheControl: "3600", // Cache for 1 hour
-        });
-
-      if (error) {
-        console.error("Supabase upload error:", error);
-
-        // Clean up any previously uploaded files in this batch
-        if (uploadedPaths.length > 0) {
-          await supabaseAdmin.storage
-            .from("Mahally Images")
-            .remove(uploadedPaths);
-        }
-
-        return NextResponse.json(
-          {
-            success: false,
-            message: `Failed to upload ${file.name}: ${error.message}`,
-          },
-          { status: 500 },
+      try {
+        await r2Client.send(
+          new PutObjectCommand({
+            Bucket: BUCKET,
+            Key: filePath,
+            Body: buffer,
+            ContentType: file.type,
+            CacheControl: "public, max-age=31536000", // 1 سنة — أحسن من Supabase
+          }),
         );
+      } catch (uploadErr) {
+        // cleanup ما رفع قبل
+        if (uploadedPaths.length > 0) {
+          await Promise.allSettled(
+            uploadedPaths.map((p) =>
+              r2Client.send(
+                new DeleteObjectCommand({ Bucket: BUCKET, Key: p }),
+              ),
+            ),
+          );
+        }
+        throw uploadErr;
       }
 
-      // Get public URL
-      const { data: urlData } = supabaseAdmin.storage
-        .from("Mahally Images")
-        .getPublicUrl(data.path);
-
-      uploadedUrls.push(urlData.publicUrl);
-      uploadedPaths.push(data.path);
+      uploadedUrls.push(`${PUBLIC_URL}/${filePath}`);
+      uploadedPaths.push(filePath);
     }
 
-    // 6. Return success response
     return NextResponse.json({
       success: true,
-      url: uploadedUrls[0], // Added for frontend compatibility (SettingsPanel.tsx expects data.url)
+      url: uploadedUrls[0],
       urls: uploadedUrls,
       paths: uploadedPaths,
       count: uploadedUrls.length,
     });
   } catch (err: any) {
     console.error("Upload error:", err);
-
     const isAuth = err.message === "Unauthorized";
     return NextResponse.json(
       {
@@ -225,15 +181,10 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ─── DELETE: Remove Image ─────────────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
   try {
-    // 1. Authenticate user
     const user = await requireStoreSession();
-
-    // 2. Get path from query params
-    const { searchParams } = new URL(req.url);
-    const path = searchParams.get("path");
+    const path = new URL(req.url).searchParams.get("path");
 
     if (!path) {
       return NextResponse.json(
@@ -242,7 +193,6 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // 3. Security check: ensure the file belongs to this store
     if (!path.startsWith(`${user.id}/`)) {
       return NextResponse.json(
         {
@@ -253,18 +203,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // 4. Delete from storage
-    const { error } = await supabaseAdmin.storage
-      .from("Mahally Images")
-      .remove([path]);
-
-    if (error) {
-      console.error("Delete error:", error);
-      return NextResponse.json(
-        { success: false, message: "Failed to delete image" },
-        { status: 500 },
-      );
-    }
+    await r2Client.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: path }));
 
     return NextResponse.json({
       success: true,

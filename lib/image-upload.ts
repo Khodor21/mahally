@@ -18,16 +18,67 @@ export interface UploadError {
 const MAX_FILE_SIZE = 400 * 1024; // 400KB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
+// ─── Client-Side Resize ───────────────────────────────────────────────────────
+const MAX_DIMENSION = 1200;
+const JPEG_QUALITY = 0.82;
+
+async function resizeImage(file: File): Promise<File> {
+  if (file.type === "image/gif") return file;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      const { width, height } = img;
+
+      if (width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
+        resolve(file);
+        return;
+      }
+
+      const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+      const newWidth = Math.round(width * ratio);
+      const newHeight = Math.round(height * ratio);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          resolve(new File([blob], file.name, { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        JPEG_QUALITY,
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+    img.src = url;
+  });
+}
+
 /**
  * Validate a single file before upload
  */
 function validateFile(file: File): string | null {
-  // Check file type
   if (!ALLOWED_TYPES.includes(file.type)) {
     return "Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.";
   }
 
-  // Check file size
   if (file.size > MAX_FILE_SIZE) {
     return `File "${file.name}" is too large. Maximum size is 400KB.`;
   }
@@ -36,7 +87,7 @@ function validateFile(file: File): string | null {
     return `File "${file.name}" is empty.`;
   }
 
-  return null; // Valid
+  return null;
 }
 
 /**
@@ -45,21 +96,18 @@ function validateFile(file: File): string | null {
  * @returns Promise with uploaded URLs and paths
  */
 export async function uploadImages(files: File[]): Promise<UploadResult> {
-  // Validate files before upload
-  for (const file of files) {
+  // Resize first
+  const resized = await Promise.all(files.map(resizeImage));
+
+  // Validate after resize
+  for (const file of resized) {
     const error = validateFile(file);
-    if (error) {
-      throw new Error(error);
-    }
+    if (error) throw new Error(error);
   }
 
-  // Create FormData
   const formData = new FormData();
-  files.forEach((file) => {
-    formData.append("files", file);
-  });
+  resized.forEach((file) => formData.append("files", file));
 
-  // Upload to server
   const res = await fetch("/api/upload-image", {
     method: "POST",
     body: formData,
@@ -111,7 +159,6 @@ export function extractPathFromUrl(
     const bucketIndex = pathSegments.indexOf(bucketName);
 
     if (bucketIndex !== -1 && bucketIndex < pathSegments.length - 1) {
-      // Join all segments after bucket name
       return pathSegments.slice(bucketIndex + 1).join("/");
     }
 
