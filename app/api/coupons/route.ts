@@ -62,13 +62,22 @@ type NewCouponData = z.infer<typeof CreateCouponSchema> & { storeId: string };
 
 // ==================== DATABASE INTERACTIONS ====================
 
-async function checkCouponExists(storeId: string, code: string) {
-  const { data, error } = await supabaseAdmin
+async function checkCouponExists(
+  storeId: string,
+  code: string,
+  excludeId?: string,
+) {
+  let query = supabaseAdmin
     .from("coupons")
     .select("id")
     .eq("store_id", storeId)
-    .eq("code", code)
-    .single();
+    .eq("code", code);
+
+  if (excludeId) {
+    query = query.neq("id", excludeId);
+  }
+
+  const { data, error } = await query.single();
 
   if (error && error.code !== "PGRST116") {
     throw new Error(`Database error: ${error.message}`);
@@ -143,7 +152,7 @@ async function updateCoupon(
   updates: z.infer<typeof UpdateCouponSchema>,
 ) {
   if (updates.code) {
-    const exists = await checkCouponExists(storeId, updates.code);
+    const exists = await checkCouponExists(storeId, updates.code, couponId);
     if (exists) {
       throw new Error("Coupon code already exists");
     }
