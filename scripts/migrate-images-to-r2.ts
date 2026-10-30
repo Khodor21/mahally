@@ -1,5 +1,4 @@
 import "dotenv/config";
-// scripts/migrate-images-to-r2.ts
 import { createClient } from "@supabase/supabase-js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
@@ -22,85 +21,64 @@ const PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL!;
 const SUPABASE_BUCKET = "Mahally Images";
 
 async function migrate() {
-  // جيب كل المنتجات اللي عندها صور
-  const { data: products } = await supabase
-    .from("products")
-    .select("id, images")
-    .not("images", "eq", "{}");
+  const { data: stores } = await supabase
+    .from("store_settings")
+    .select("id, logo_url")
+    .not("logo_url", "is", null);
 
-  if (!products?.length) {
-    console.log("No products found");
+  if (!stores?.length) {
+    console.log("No stores found");
     return;
   }
 
-  console.log(`Found ${products.length} products`);
+  console.log(`Found ${stores.length} stores`);
 
-  for (const product of products) {
-    if (!product.images?.length) continue;
+  for (const store of stores) {
+    if (!store.logo_url || store.logo_url.includes("r2.dev")) continue;
 
-    const newUrls: string[] = [];
+    try {
+      const url = new URL(store.logo_url);
+      const pathAfterBucket = url.pathname
+        .split(`/Mahally%20Images/`)[1]
+        ?.replace(/%20/g, " ");
 
-    for (const imageUrl of product.images) {
-      // تجاهل الصور اللي صارت على R2
-      if (imageUrl.includes("r2.dev")) {
-        newUrls.push(imageUrl);
+      if (!pathAfterBucket) {
+        console.warn("Could not extract path from:", store.logo_url);
         continue;
       }
 
-      try {
-        // استخرج الـ path من Supabase URL
-        const url = new URL(imageUrl);
-        const pathAfterBucket = url.pathname
-          .split(`/Mahally%20Images/`)[1]
-          ?.replace(/%20/g, " ");
+      const { data, error } = await supabase.storage
+        .from(SUPABASE_BUCKET)
+        .download(pathAfterBucket);
 
-        if (!pathAfterBucket) {
-          console.warn("Could not extract path from:", imageUrl);
-          newUrls.push(imageUrl);
-          continue;
-        }
-
-        // حمّل من Supabase
-        const { data, error } = await supabase.storage
-          .from(SUPABASE_BUCKET)
-          .download(pathAfterBucket);
-
-        if (error || !data) {
-          console.warn("Failed to download:", pathAfterBucket, error?.message);
-          newUrls.push(imageUrl);
-          continue;
-        }
-
-        const buffer = Buffer.from(await data.arrayBuffer());
-        const contentType = data.type || "image/jpeg";
-
-        // ارفع على R2 بنفس الـ path
-        await r2.send(
-          new PutObjectCommand({
-            Bucket: BUCKET,
-            Key: pathAfterBucket,
-            Body: buffer,
-            ContentType: contentType,
-            CacheControl: "public, max-age=31536000",
-          }),
-        );
-
-        const newUrl = `${PUBLIC_URL}/${pathAfterBucket}`;
-        newUrls.push(newUrl);
-        console.log("✅ Migrated:", pathAfterBucket);
-      } catch (err) {
-        console.error("Error migrating:", imageUrl, err);
-        newUrls.push(imageUrl); // خلي الـ URL القديم إذا فشل
+      if (error || !data) {
+        console.warn("Failed to download:", pathAfterBucket, error?.message);
+        continue;
       }
+
+      const buffer = Buffer.from(await data.arrayBuffer());
+
+      await r2.send(
+        new PutObjectCommand({
+          Bucket: BUCKET,
+          Key: pathAfterBucket,
+          Body: buffer,
+          ContentType: data.type || "image/png",
+          CacheControl: "public, max-age=31536000",
+        }),
+      );
+
+      const newUrl = `${PUBLIC_URL}/${pathAfterBucket}`;
+
+      await supabase
+        .from("store_settings")
+        .update({ logo_url: newUrl })
+        .eq("id", store.id);
+
+      console.log("✅ Logo migrated:", store.id);
+    } catch (err) {
+      console.error("Logo migration error:", store.id, err);
     }
-
-    // حدّث الـ DB بالـ URLs الجديدة
-    await supabase
-      .from("products")
-      .update({ images: newUrls })
-      .eq("id", product.id);
-
-    console.log(`Updated product ${product.id}`);
   }
 
   console.log("Migration complete!");

@@ -282,7 +282,7 @@ export default function ProductCard({
               alt={product.title}
               fill
               priority={index < 4}
-              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              sizes="(max-width: 768px) 50vw, 25vw"
               className={`object-contain p-2 mix-blend-multiply transition-transform duration-500 group-hover:scale-110 ${
                 isOutOfStock && !canPreorder ? "grayscale" : ""
               }`}
