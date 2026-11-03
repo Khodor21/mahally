@@ -24,7 +24,6 @@ const DEFAULT_SECTION_BANNER =
 // ==========================================
 // Message Normalization
 // ==========================================
-/** يحول صيغ طلبات مختلفة للمعنى الواحد */
 function normalizeMessage(message: string): string {
   const couponKeywords = [
     "كوبون",
@@ -35,18 +34,14 @@ function normalizeMessage(message: string): string {
     "بروموشن",
     "عرض ترويجي",
   ];
-
-  // التحقق من وجود كلمة مفتاحية للكوبون
-  const hasCouponKeyword = couponKeywords.some((kw) => message.includes(kw));
-  if (hasCouponKeyword) {
+  if (couponKeywords.some((kw) => message.includes(kw))) {
     message += "\n[السياق: الطلب يتعلق بإنشاء كوبون أو كود خصم]";
   }
-
   return message;
 }
 
 // ==========================================
-// Retry helper — handles 429 from Gemini
+// Retry helper
 // ==========================================
 async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
   let lastError: any;
@@ -57,19 +52,12 @@ async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
       lastError = err;
       const is429 =
         err?.status === 429 ||
-        err?.statusCode === 429 ||
         String(err?.message).includes("429") ||
         String(err?.message).toLowerCase().includes("quota") ||
         String(err?.message).toLowerCase().includes("rate");
-
       if (is429) throw err;
-
       if (attempt === maxAttempts - 1) throw err;
-      const waitMs = Math.pow(2, attempt) * 2000;
-      console.warn(
-        `[AI] Error — retrying in ${waitMs}ms (attempt ${attempt + 1})`,
-      );
-      await new Promise((r) => setTimeout(r, waitMs));
+      await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 2000));
     }
   }
   throw lastError;
@@ -123,10 +111,9 @@ const createProductTool: FunctionDeclaration = {
   },
 };
 
-// ✨ جديد: دالة إنشاء منتجات متعددة
 const createMultipleProductsTool: FunctionDeclaration = {
   name: "create_multiple_products",
-  description: "إضافة عدة منتجات دفعة واحدة. مثال: 3 منتجات بأسعار مختلفة",
+  description: "إضافة عدة منتجات دفعة واحدة.",
   parameters: {
     type: SchemaType.OBJECT,
     properties: {
@@ -136,17 +123,11 @@ const createMultipleProductsTool: FunctionDeclaration = {
         items: {
           type: SchemaType.OBJECT,
           properties: {
-            title: { type: SchemaType.STRING, description: "اسم المنتج" },
-            price: { type: SchemaType.NUMBER, description: "السعر" },
-            description: {
-              type: SchemaType.STRING,
-              description: "الوصف (اختياري)",
-            },
-            stock: { type: SchemaType.NUMBER, description: "الكمية" },
-            discount_price: {
-              type: SchemaType.NUMBER,
-              description: "سعر الخصم (اختياري)",
-            },
+            title: { type: SchemaType.STRING },
+            price: { type: SchemaType.NUMBER },
+            description: { type: SchemaType.STRING },
+            stock: { type: SchemaType.NUMBER },
+            discount_price: { type: SchemaType.NUMBER },
           },
           required: ["title", "price"],
         },
@@ -166,20 +147,11 @@ const updateProductTool: FunctionDeclaration = {
         type: SchemaType.STRING,
         description: "اسم المنتج المراد تعديله",
       },
-      title: { type: SchemaType.STRING, description: "الاسم الجديد (اختياري)" },
-      price: { type: SchemaType.NUMBER, description: "السعر الجديد (اختياري)" },
-      stock: {
-        type: SchemaType.NUMBER,
-        description: "الكمية الجديدة (اختياري)",
-      },
-      discount_price: {
-        type: SchemaType.NUMBER,
-        description: "سعر الخصم الجديد (اختياري)",
-      },
-      description: {
-        type: SchemaType.STRING,
-        description: "الوصف الجديد (اختياري)",
-      },
+      title: { type: SchemaType.STRING },
+      price: { type: SchemaType.NUMBER },
+      stock: { type: SchemaType.NUMBER },
+      discount_price: { type: SchemaType.NUMBER },
+      description: { type: SchemaType.STRING },
     },
     required: ["product_name"],
   },
@@ -191,10 +163,7 @@ const deleteProductTool: FunctionDeclaration = {
   parameters: {
     type: SchemaType.OBJECT,
     properties: {
-      product_name: {
-        type: SchemaType.STRING,
-        description: "اسم المنتج المراد حذفه",
-      },
+      product_name: { type: SchemaType.STRING },
     },
     required: ["product_name"],
   },
@@ -206,7 +175,7 @@ const createCategoryTool: FunctionDeclaration = {
   parameters: {
     type: SchemaType.OBJECT,
     properties: {
-      title: { type: SchemaType.STRING, description: "اسم القسم (مطلوب)" },
+      title: { type: SchemaType.STRING },
     },
     required: ["title"],
   },
@@ -218,11 +187,8 @@ const updateCategoryTool: FunctionDeclaration = {
   parameters: {
     type: SchemaType.OBJECT,
     properties: {
-      category_name: {
-        type: SchemaType.STRING,
-        description: "الاسم الحالي للقسم",
-      },
-      title: { type: SchemaType.STRING, description: "الاسم الجديد للقسم" },
+      category_name: { type: SchemaType.STRING },
+      title: { type: SchemaType.STRING },
     },
     required: ["category_name", "title"],
   },
@@ -234,10 +200,7 @@ const deleteCategoryTool: FunctionDeclaration = {
   parameters: {
     type: SchemaType.OBJECT,
     properties: {
-      category_name: {
-        type: SchemaType.STRING,
-        description: "اسم القسم المراد حذفه",
-      },
+      category_name: { type: SchemaType.STRING },
     },
     required: ["category_name"],
   },
@@ -246,19 +209,13 @@ const deleteCategoryTool: FunctionDeclaration = {
 const createSectionTool: FunctionDeclaration = {
   name: "create_section",
   description:
-    "إضافة قسم جديد لواجهة المتجر (Storefront). يحتاج عنوان القسم واسم التصنيف المرتبط به.",
+    "إضافة قسم جديد لواجهة المتجر. يحتاج عنوان القسم واسم التصنيف المرتبط به.",
   parameters: {
     type: SchemaType.OBJECT,
     properties: {
-      title: { type: SchemaType.STRING, description: "عنوان القسم (مطلوب)" },
-      category_name: {
-        type: SchemaType.STRING,
-        description: "اسم التصنيف المرتبط بهذا القسم (مطلوب)",
-      },
-      status: {
-        type: SchemaType.STRING,
-        description: "حالة القسم: 'active' أو 'draft' (افتراضي: active)",
-      },
+      title: { type: SchemaType.STRING },
+      category_name: { type: SchemaType.STRING },
+      status: { type: SchemaType.STRING, description: "'active' أو 'draft'" },
     },
     required: ["title", "category_name"],
   },
@@ -266,26 +223,14 @@ const createSectionTool: FunctionDeclaration = {
 
 const updateSectionTool: FunctionDeclaration = {
   name: "update_section",
-  description: "تعديل عنوان أو حالة قسم موجود في واجهة المتجر باستخدام اسمه.",
+  description: "تعديل عنوان أو حالة قسم موجود في واجهة المتجر.",
   parameters: {
     type: SchemaType.OBJECT,
     properties: {
-      section_name: {
-        type: SchemaType.STRING,
-        description: "العنوان الحالي للقسم",
-      },
-      title: {
-        type: SchemaType.STRING,
-        description: "العنوان الجديد (اختياري)",
-      },
-      status: {
-        type: SchemaType.STRING,
-        description: "الحالة الجديدة: 'active' أو 'draft' (اختياري)",
-      },
-      category_name: {
-        type: SchemaType.STRING,
-        description: "اسم التصنيف الجديد المرتبط (اختياري)",
-      },
+      section_name: { type: SchemaType.STRING },
+      title: { type: SchemaType.STRING },
+      status: { type: SchemaType.STRING },
+      category_name: { type: SchemaType.STRING },
     },
     required: ["section_name"],
   },
@@ -297,10 +242,7 @@ const deleteSectionTool: FunctionDeclaration = {
   parameters: {
     type: SchemaType.OBJECT,
     properties: {
-      section_name: {
-        type: SchemaType.STRING,
-        description: "عنوان القسم المراد حذفه",
-      },
+      section_name: { type: SchemaType.STRING },
     },
     required: ["section_name"],
   },
@@ -339,7 +281,7 @@ async function findProductByName(storeId: string, name: string) {
 async function findCategoryByName(storeId: string, name: string) {
   const { data } = await supabase
     .from("categories")
-    .select("id, title")
+    .select("id, title, display_order")
     .eq("store_id", storeId)
     .ilike("title", `%${name}%`)
     .limit(1)
@@ -368,49 +310,14 @@ async function getNextSectionOrder(storeId: string): Promise<number> {
   return data && data.length > 0 ? (data[0].section_order ?? 0) + 1 : 0;
 }
 
-// ==========================================
-// Internal API caller (preserves session)
-// ==========================================
-
-async function callAPI(
-  cookieHeader: string,
-  endpoint: string,
-  method: "POST" | "PUT" | "PATCH" | "DELETE",
-  body?: Record<string, any>,
-  queryParams?: Record<string, string>,
-): Promise<{ ok: boolean; data?: any; message?: string }> {
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  let url = `${baseUrl}${endpoint}`;
-  if (queryParams && Object.keys(queryParams).length > 0) {
-    const qs = new URLSearchParams(queryParams).toString();
-    url = `${url}?${qs}`;
-  }
-
-  const res = await fetch(url, {
-    method,
-    headers: { "Content-Type": "application/json", cookie: cookieHeader },
-    body: method !== "DELETE" ? JSON.stringify(body) : undefined,
-  });
-
- const contentType = res.headers.get("content-type") || "";
-if (!contentType.includes("application/json")) {
-  const text = await res.text();
-  console.error(`[callAPI] Non-JSON from ${endpoint}:`, text.slice(0, 200));
-  return { ok: false, message: `خطأ في الخادم (${res.status})` };
-}
-
-let json: any = {};
-try {
-  json = await res.json();
-} catch {
-  return { ok: false, message: "فشل قراءة الرد من الخادم" };
-}
-
-return {
-  ok: res.ok,
-  data: json.data ?? json,
-  message: json.message || json.error,
-};
+async function getNextCategoryOrder(storeId: string): Promise<number> {
+  const { data } = await supabase
+    .from("categories")
+    .select("display_order")
+    .eq("store_id", storeId)
+    .order("display_order", { ascending: false })
+    .limit(1);
+  return data && data.length > 0 ? (data[0].display_order ?? -1) + 1 : 0;
 }
 
 // ==========================================
@@ -419,8 +326,6 @@ return {
 
 export async function POST(req: Request) {
   try {
-    const cookieHeader = req.headers.get("cookie") || "";
-
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
@@ -428,6 +333,8 @@ export async function POST(req: Request) {
         { status: 401 },
       );
     }
+
+    const sessionStoreId = (session.user as any).id as string;
 
     let message: string;
     let storeId: string;
@@ -449,31 +356,38 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✨ تطبيع الرسالة لفهم صيغ مختلفة
+    // Security: ensure the session user owns this store
+    if (storeId !== sessionStoreId) {
+      return NextResponse.json(
+        { success: false, error: "غير مصرح." },
+        { status: 403 },
+      );
+    }
+
     const normalizedMessage = normalizeMessage(message);
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-3.1-flash-lite",
+      model: "gemini-1.5-flash",
       systemInstruction: `أنت 'مساعد محلي'، ذكاء اصطناعي متخصص حصرياً في إدارة المتجر الإلكتروني على منصة 'محلي'.
 مهمتك مساعدة التاجر في إدارة منتجاته وأقسامه وأقسام الواجهة (Storefront Sections) وكوبونات الخصم وتقارير التحليلات.
 
 🎯 **المرادفات التي تفهمها:**
 - "كوبون" = "كود خصم" = "كود ترويج" = "كود عرض" = "قسيمة خصم"
-- عند سؤالك عن أي من هذه، استدعِ دالة create_coupon
+- "خصم" أو "discount" على منتج = discount_price في update_product أو create_product
 
 📋 **القواعد:**
 - قاعدة المنتج: title وprice مطلوبان. اسأل عن الناقص قبل الإنشاء.
 - قاعدة القسم (category): title مطلوب فقط.
-- قاعدة قسم الواجهة (section): title واسم التصنيف المرتبط به مطلوبان.
-- عند طلب منتجات متعددة في أمر واحد، استخدم دالة create_multiple_products
-- لا تسأ عن الصور أبداً — تُستخدم صور افتراضية تلقائياً.
+- قاعدة قسم الواجهة (section): title واسم التصنيف مطلوبان.
+- عند طلب منتجات متعددة في أمر واحد، استخدم دالة create_multiple_products.
+- لا تسأل عن الصور أبداً — تُستخدم صور افتراضية تلقائياً.
 - إذا سألك المستخدم عن مواضيع خارج المتجر، ارفض بلباقة.`,
       tools: [
         {
           functionDeclarations: [
             createCouponTool,
             createProductTool,
-            createMultipleProductsTool, // ✨ جديد
+            createMultipleProductsTool,
             updateProductTool,
             deleteProductTool,
             createCategoryTool,
@@ -490,7 +404,7 @@ export async function POST(req: Request) {
 
     const response = await withRetry(async () => {
       const chat = model.startChat();
-      const result = await chat.sendMessage(normalizedMessage); // ✨ استخدم normalizedMessage
+      const result = await chat.sendMessage(normalizedMessage);
       return result.response;
     });
 
@@ -504,7 +418,8 @@ export async function POST(req: Request) {
         const { code, discount_percentage } = call.args as any;
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + 30);
-        const { error: dbError } = await supabase.from("coupons").insert({
+
+        const { error } = await supabase.from("coupons").insert({
           store_id: storeId,
           code: code.toUpperCase(),
           type: "percentage",
@@ -517,7 +432,8 @@ export async function POST(req: Request) {
           is_active: true,
           used_count: 0,
         });
-        if (dbError) throw dbError;
+
+        if (error) throw error;
         return NextResponse.json({
           success: true,
           reply: `✅ تم إنشاء كوبون **${code.toUpperCase()}** بخصم **${discount_percentage}%** بنجاح!`,
@@ -528,6 +444,7 @@ export async function POST(req: Request) {
       else if (call.name === "create_product") {
         const { title, price, description, stock, discount_price } =
           call.args as any;
+
         if (!title?.trim())
           return NextResponse.json({
             success: true,
@@ -539,7 +456,8 @@ export async function POST(req: Request) {
             reply: `كم سيكون سعر منتج "${title}"؟`,
           });
 
-        const result = await callAPI(cookieHeader, "/api/products", "POST", {
+        const { error } = await supabase.from("products").insert({
+          store_id: storeId,
           title: title.trim(),
           description: description?.trim() || "",
           price: Number(price),
@@ -548,95 +466,80 @@ export async function POST(req: Request) {
           images: [DEFAULT_PRODUCT_IMAGE],
           variantGroups: [],
           pin: false,
+          sales_count: 0,
         });
-        if (!result.ok)
+
+        if (error)
           return NextResponse.json({
             success: false,
-            reply: `❌ فشل إنشاء المنتج: ${result.message}`,
+            reply: `❌ فشل إنشاء المنتج: ${error.message}`,
           });
+
         return NextResponse.json({
           success: true,
           reply: `✅ تم إضافة المنتج **${title}** بسعر **${price}$** بنجاح!\n\n> 💡 يمكنك تعديل صورة المنتج من لوحة المنتجات.`,
         });
       }
 
-      // ── Create Multiple Products ✨ جديد ────────────────────────────────
+      // ── Create Multiple Products ───────────────────────────────────────
       else if (call.name === "create_multiple_products") {
         const { products } = call.args as any;
 
-        if (!Array.isArray(products) || products.length === 0) {
+        if (!Array.isArray(products) || products.length === 0)
           return NextResponse.json({
             success: true,
             reply: "لم أفهم قائمة المنتجات. يرجى تحديدها بوضوح.",
           });
-        }
 
-        const results: any[] = [];
-        let successCount = 0;
-        let failCount = 0;
+        const validRows: any[] = [];
+        const invalidTitles: string[] = [];
 
-        for (const product of products) {
-          // التحقق من البيانات المطلوبة
-          if (
-            !product.title?.trim() ||
-            !product.price ||
-            Number(product.price) <= 0
-          ) {
-            results.push({
-              title: product.title || "بدون اسم",
-              status: "❌",
-              reason: "اسم أو سعر ناقص",
-            });
-            failCount++;
+        for (const p of products) {
+          if (!p.title?.trim() || !p.price || Number(p.price) <= 0) {
+            invalidTitles.push(p.title || "بدون اسم");
             continue;
           }
-
-          const result = await callAPI(cookieHeader, "/api/products", "POST", {
-            title: product.title.trim(),
-            description: product.description?.trim() || "",
-            price: Number(product.price),
-            discount_price: product.discount_price
-              ? Number(product.discount_price)
-              : null,
-            stock: product.stock !== undefined ? Number(product.stock) : 0,
+          validRows.push({
+            store_id: storeId,
+            title: p.title.trim(),
+            description: p.description?.trim() || "",
+            price: Number(p.price),
+            discount_price: p.discount_price ? Number(p.discount_price) : null,
+            stock: p.stock !== undefined ? Number(p.stock) : 0,
             images: [DEFAULT_PRODUCT_IMAGE],
             variantGroups: [],
             pin: false,
+            sales_count: 0,
           });
-
-          if (result.ok) {
-            results.push({
-              title: product.title,
-              status: "✅",
-              price: `$${product.price}`,
-              stock: product.stock || 0,
-            });
-            successCount++;
-          } else {
-            results.push({
-              title: product.title,
-              status: "❌",
-              reason: result.message,
-            });
-            failCount++;
-          }
         }
 
-        const summary = results
-          .map((r) => {
-            let line = `${r.status} **${r.title}**`;
-            if (r.price) line += ` - ${r.price}`;
-            if (r.stock) line += ` (الكمية: ${r.stock})`;
-            if (r.reason) line += ` - ⚠️ ${r.reason}`;
-            return line;
-          })
+        if (validRows.length === 0)
+          return NextResponse.json({
+            success: false,
+            reply: "❌ جميع المنتجات تحتوي على بيانات ناقصة.",
+          });
+
+        const { error } = await supabase.from("products").insert(validRows);
+
+        if (error)
+          return NextResponse.json({
+            success: false,
+            reply: `❌ فشل إنشاء المنتجات: ${error.message}`,
+          });
+
+        const summary = validRows
+          .map((r) => `✅ **${r.title}** - $${r.price} (الكمية: ${r.stock})`)
           .join("\n");
+
+        const failSummary = invalidTitles.length
+          ? `\n\n❌ فشل (بيانات ناقصة): ${invalidTitles.map((t) => `**${t}**`).join("، ")}`
+          : "";
 
         return NextResponse.json({
           success: true,
           reply:
-            `📦 **تم معالجة ${products.length} منتج:**\n\n${summary}\n\n` +
-            `✅ نجح: ${successCount} | ❌ فشل: ${failCount}\n\n` +
+            `📦 **تم معالجة ${products.length} منتج:**\n\n${summary}${failSummary}\n\n` +
+            `✅ نجح: ${validRows.length}${invalidTitles.length ? ` | ❌ فشل: ${invalidTitles.length}` : ""}\n\n` +
             `> 💡 يمكنك تعديل الصور من لوحة المنتجات.`,
         });
       }
@@ -651,6 +554,7 @@ export async function POST(req: Request) {
           discount_price,
           description,
         } = call.args as any;
+
         const product = await findProductByName(storeId, product_name);
         if (!product)
           return NextResponse.json({
@@ -658,33 +562,47 @@ export async function POST(req: Request) {
             reply: `❌ لم أجد منتجاً باسم "${product_name}".`,
           });
 
-        const updates: Record<string, any> = { id: product.id };
+        const updates: Record<string, any> = {};
         if (title !== undefined) updates.title = title.trim();
         if (price !== undefined) updates.price = Number(price);
         if (stock !== undefined) updates.stock = Number(stock);
         if (discount_price !== undefined)
-          updates.discount_price = Number(discount_price);
+          updates.discount_price =
+            discount_price === 0 ? null : Number(discount_price);
         if (description !== undefined) updates.description = description.trim();
 
-        const result = await callAPI(
-          cookieHeader,
-          "/api/products",
-          "PATCH",
-          updates,
-        );
-        if (!result.ok)
+        if (Object.keys(updates).length === 0)
+          return NextResponse.json({
+            success: true,
+            reply: "لم تحدد أي تعديلات.",
+          });
+
+        const { error } = await supabase
+          .from("products")
+          .update(updates)
+          .eq("id", product.id)
+          .eq("store_id", storeId);
+
+        if (error)
           return NextResponse.json({
             success: false,
-            reply: `❌ فشل تحديث المنتج: ${result.message}`,
+            reply: `❌ فشل تحديث المنتج: ${error.message}`,
           });
 
         const changed: string[] = [];
-        if (title) changed.push(`الاسم: **${title}**`);
-        if (price) changed.push(`السعر: **${price}$**`);
-        if (stock !== undefined) changed.push(`المخزون: **${stock}**`);
-        if (discount_price !== undefined)
-          changed.push(`سعر الخصم: **${discount_price}$**`);
-        if (description) changed.push("الوصف");
+        if (updates.title) changed.push(`الاسم: **${updates.title}**`);
+        if (updates.price !== undefined)
+          changed.push(`السعر: **${updates.price}$**`);
+        if (updates.stock !== undefined)
+          changed.push(`المخزون: **${updates.stock}**`);
+        if (updates.discount_price !== undefined)
+          changed.push(
+            updates.discount_price
+              ? `سعر الخصم: **${updates.discount_price}$**`
+              : "إزالة الخصم",
+          );
+        if (updates.description !== undefined) changed.push("الوصف");
+
         return NextResponse.json({
           success: true,
           reply:
@@ -696,24 +614,26 @@ export async function POST(req: Request) {
       // ── Delete Product ─────────────────────────────────────────────────
       else if (call.name === "delete_product") {
         const { product_name } = call.args as any;
+
         const product = await findProductByName(storeId, product_name);
         if (!product)
           return NextResponse.json({
             success: true,
             reply: `❌ لم أجد منتجاً باسم "${product_name}".`,
           });
-        const result = await callAPI(
-          cookieHeader,
-          "/api/products",
-          "DELETE",
-          undefined,
-          { id: product.id },
-        );
-        if (!result.ok)
+
+        const { error } = await supabase
+          .from("products")
+          .delete()
+          .eq("id", product.id)
+          .eq("store_id", storeId);
+
+        if (error)
           return NextResponse.json({
             success: false,
-            reply: `❌ فشل حذف المنتج: ${result.message}`,
+            reply: `❌ فشل حذف المنتج: ${error.message}`,
           });
+
         return NextResponse.json({
           success: true,
           reply: `✅ تم حذف المنتج **${product.title}** بنجاح.`,
@@ -723,20 +643,28 @@ export async function POST(req: Request) {
       // ── Create Category ────────────────────────────────────────────────
       else if (call.name === "create_category") {
         const { title } = call.args as any;
+
         if (!title?.trim())
           return NextResponse.json({
             success: true,
             reply: "ما اسم القسم الذي تريد إضافته؟",
           });
-        const result = await callAPI(cookieHeader, "/api/categories", "POST", {
+
+        const nextOrder = await getNextCategoryOrder(storeId);
+
+        const { error } = await supabase.from("categories").insert({
           title: title.trim(),
           logo_url: DEFAULT_CATEGORY_IMAGE,
+          store_id: storeId,
+          display_order: nextOrder,
         });
-        if (!result.ok)
+
+        if (error)
           return NextResponse.json({
             success: false,
-            reply: `❌ فشل إنشاء القسم: ${result.message}`,
+            reply: `❌ فشل إنشاء القسم: ${error.message}`,
           });
+
         return NextResponse.json({
           success: true,
           reply: `✅ تم إضافة القسم **${title}** بنجاح!\n\n> 💡 يمكنك تعديل صورة القسم من لوحة الأقسام.`,
@@ -746,21 +674,26 @@ export async function POST(req: Request) {
       // ── Update Category ────────────────────────────────────────────────
       else if (call.name === "update_category") {
         const { category_name, title } = call.args as any;
+
         const category = await findCategoryByName(storeId, category_name);
         if (!category)
           return NextResponse.json({
             success: true,
             reply: `❌ لم أجد قسماً باسم "${category_name}".`,
           });
-        const result = await callAPI(cookieHeader, "/api/categories", "PUT", {
-          id: category.id,
-          title: title.trim(),
-        });
-        if (!result.ok)
+
+        const { error } = await supabase
+          .from("categories")
+          .update({ title: title.trim() })
+          .eq("id", category.id)
+          .eq("store_id", storeId);
+
+        if (error)
           return NextResponse.json({
             success: false,
-            reply: `❌ فشل تحديث القسم: ${result.message}`,
+            reply: `❌ فشل تحديث القسم: ${error.message}`,
           });
+
         return NextResponse.json({
           success: true,
           reply: `✅ تم تغيير اسم القسم من **${category.title}** إلى **${title}** بنجاح!`,
@@ -770,24 +703,38 @@ export async function POST(req: Request) {
       // ── Delete Category ────────────────────────────────────────────────
       else if (call.name === "delete_category") {
         const { category_name } = call.args as any;
+
         const category = await findCategoryByName(storeId, category_name);
         if (!category)
           return NextResponse.json({
             success: true,
             reply: `❌ لم أجد قسماً باسم "${category_name}".`,
           });
-        const result = await callAPI(
-          cookieHeader,
-          "/api/categories",
-          "DELETE",
-          undefined,
-          { id: category.id },
-        );
-        if (!result.ok)
+
+        // Delete products first (foreign key)
+        const { error: productsError } = await supabase
+          .from("products")
+          .delete()
+          .eq("category_id", category.id);
+
+        if (productsError)
           return NextResponse.json({
             success: false,
-            reply: `❌ فشل حذف القسم: ${result.message}`,
+            reply: `❌ فشل حذف منتجات القسم: ${productsError.message}`,
           });
+
+        const { error } = await supabase
+          .from("categories")
+          .delete()
+          .eq("id", category.id)
+          .eq("store_id", storeId);
+
+        if (error)
+          return NextResponse.json({
+            success: false,
+            reply: `❌ فشل حذف القسم: ${error.message}`,
+          });
+
         return NextResponse.json({
           success: true,
           reply: `✅ تم حذف القسم **${category.title}** وجميع منتجاته بنجاح.`,
@@ -810,16 +757,15 @@ export async function POST(req: Request) {
           });
 
         const category = await findCategoryByName(storeId, category_name);
-        if (!category) {
+        if (!category)
           return NextResponse.json({
             success: true,
             reply: `❌ لم أجد تصنيفاً باسم "${category_name}". تأكد من الاسم أو أضف التصنيف أولاً.`,
           });
-        }
 
         const sectionOrder = await getNextSectionOrder(storeId);
 
-        const result = await callAPI(cookieHeader, "/api/sections", "POST", {
+        const { error } = await supabase.from("storefront_sections").insert({
           title: title.trim(),
           banner_url: DEFAULT_SECTION_BANNER,
           category_id: category.id,
@@ -828,11 +774,12 @@ export async function POST(req: Request) {
           section_order: sectionOrder,
         });
 
-        if (!result.ok)
+        if (error)
           return NextResponse.json({
             success: false,
-            reply: `❌ فشل إنشاء قسم الواجهة: ${result.message}`,
+            reply: `❌ فشل إنشاء قسم الواجهة: ${error.message}`,
           });
+
         return NextResponse.json({
           success: true,
           reply:
@@ -854,45 +801,42 @@ export async function POST(req: Request) {
 
         let categoryId = section.category_id;
         let categoryTitle: string | undefined;
+
         if (category_name?.trim()) {
           const cat = await findCategoryByName(storeId, category_name);
-          if (!cat) {
+          if (!cat)
             return NextResponse.json({
               success: true,
-              reply: `❌ لم أجد تصنيفاً باسم "${category_name}". تأكد من الاسم وحاول مجدداً.`,
+              reply: `❌ لم أجد تصنيفاً باسم "${category_name}".`,
             });
-          }
           categoryId = cat.id;
           categoryTitle = cat.title;
         }
 
-        const result = await callAPI(
-          cookieHeader,
-          `/api/sections/${section.id}`,
-          "PUT",
-          {
-            title: title?.trim() || section.title,
-            banner_url: DEFAULT_SECTION_BANNER,
-            category_id: categoryId,
-            status:
-              status === "draft" || status === "active"
-                ? status
-                : section.status,
-            store_id: storeId,
-            section_order: section.section_order,
-          },
-        );
+        const updates: Record<string, any> = {
+          category_id: categoryId,
+        };
+        if (title?.trim()) updates.title = title.trim();
+        if (status === "active" || status === "draft") updates.status = status;
 
-        if (!result.ok)
+        const { error } = await supabase
+          .from("storefront_sections")
+          .update(updates)
+          .eq("id", section.id)
+          .eq("store_id", storeId);
+
+        if (error)
           return NextResponse.json({
             success: false,
-            reply: `❌ فشل تحديث قسم الواجهة: ${result.message}`,
+            reply: `❌ فشل تحديث قسم الواجهة: ${error.message}`,
           });
 
         const changed: string[] = [];
-        if (title) changed.push(`العنوان: **${title}**`);
-        if (status)
-          changed.push(`الحالة: **${status === "active" ? "نشط" : "مسودة"}**`);
+        if (updates.title) changed.push(`العنوان: **${updates.title}**`);
+        if (updates.status)
+          changed.push(
+            `الحالة: **${updates.status === "active" ? "نشط" : "مسودة"}**`,
+          );
         if (categoryTitle) changed.push(`التصنيف: **${categoryTitle}**`);
 
         return NextResponse.json({
@@ -914,19 +858,18 @@ export async function POST(req: Request) {
             reply: `❌ لم أجد قسم واجهة باسم "${section_name}".`,
           });
 
-        const result = await callAPI(
-          cookieHeader,
-          `/api/sections/${section.id}`,
-          "DELETE",
-          undefined,
-          { store_id: storeId },
-        );
+        const { error } = await supabase
+          .from("storefront_sections")
+          .delete()
+          .eq("id", section.id)
+          .eq("store_id", storeId);
 
-        if (!result.ok)
+        if (error)
           return NextResponse.json({
             success: false,
-            reply: `❌ فشل حذف قسم الواجهة: ${result.message}`,
+            reply: `❌ فشل حذف قسم الواجهة: ${error.message}`,
           });
+
         return NextResponse.json({
           success: true,
           reply: `✅ تم حذف قسم الواجهة **${section.title}** بنجاح.`,

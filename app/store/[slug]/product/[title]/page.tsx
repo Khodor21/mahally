@@ -1,8 +1,34 @@
-import { Suspense } from "react";
+import { Suspense, cache } from "react";
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import ProductClientUI from "./ProductClientUI";
 import ProductRecommendations from "../../components/RecommendationsProducts";
+
+export const revalidate = 3600;
+
+const getStore = cache(async (slug: string) => {
+  const { data } = await supabaseAdmin
+    .from("stores")
+    .select("id, store_name, logo_url, language")
+    .eq("slug", slug)
+    .maybeSingle();
+  return data;
+});
+
+const getProduct = cache(async (storeId: string, decodedTitle: string) => {
+  const { data } = await supabaseAdmin
+    .from("products")
+    .select(
+      `
+      id, title, description, price, discount_price, stock, images,
+      categories(title), variantGroups, preorder_enabled, preorder_label, gift, review
+    `,
+    )
+    .eq("store_id", storeId)
+    .ilike("title", decodedTitle)
+    .single();
+  return data;
+});
 
 export async function generateMetadata({
   params,
@@ -11,23 +37,10 @@ export async function generateMetadata({
 }) {
   const decodedTitle = decodeURIComponent(params.title);
 
-  // 1. Fetch store including logo_url
-  const { data: store } = await supabaseAdmin
-    .from("stores")
-    .select("id, store_name, logo_url")
-    .eq("slug", params.slug)
-    .maybeSingle();
-
+  const store = await getStore(params.slug);
   if (!store) return { title: decodedTitle };
 
-  // 2. Fetch product details for metadata
-  const { data: product } = await supabaseAdmin
-    .from("products")
-    .select("title, description, images")
-    .eq("store_id", store.id)
-    .ilike("title", decodedTitle)
-    .maybeSingle();
-
+  const product = await getProduct(store.id, decodedTitle);
   if (!product) return { title: decodedTitle };
 
   const storeName = store.store_name || "";
@@ -57,43 +70,13 @@ export default async function ProductPage({
 }: {
   params: { slug: string; title: string };
 }) {
-  // 1. Get the store by slug
-  const { data: store, error: storeError } = await supabaseAdmin
-    .from("stores")
-    .select("id, language")
-    .eq("slug", params.slug)
-    .single();
+  const store = await getStore(params.slug);
+  if (!store) return notFound();
 
-  if (storeError || !store) return notFound();
-
-  // 2. Decode the product title slug
   const decodedTitle = decodeURIComponent(params.title);
 
-  // 3. Find product by title (case-insensitive match)
-  const { data: product, error } = await supabaseAdmin
-    .from("products")
-    .select(
-      `
-      id, 
-      title, 
-      description, 
-      price,
-      discount_price,
-      stock, 
-      images, 
-      categories(title),
-      variantGroups,
-      preorder_enabled,
-      preorder_label,
-      gift,
-      review
-    `,
-    )
-    .eq("store_id", store.id)
-    .ilike("title", decodedTitle)
-    .single();
-
-  if (error || !product) return notFound();
+  const product = await getProduct(store.id, decodedTitle);
+  if (!product) return notFound();
 
   const productWithCategory = {
     ...product,

@@ -26,31 +26,22 @@ type Props = {
   lang: "en" | "ar";
 };
 
-export const getCachedRecommendations = async (storeId: string) => {
-  const fetchCached = unstable_cache(
-    async () => {
-      const { data } = await supabaseAdmin
-        .from("product_recommendations")
-        .select(
-          `
-          id,
-          product_id,
-          products!inner(id, title, images, price, stock, discount_price) 
-        `,
-        )
-        .eq("store_id", storeId)
-        .order("priority", { ascending: false })
-        .limit(5);
+export const getCachedRecommendations = unstable_cache(
+  async (storeId: string) => {
+    const { data } = await supabaseAdmin
+      .from("product_recommendations")
+      .select(
+        `id, product_id, products!inner(id, title, images, price, stock, discount_price)`,
+      )
+      .eq("store_id", storeId)
+      .order("priority", { ascending: false })
+      .limit(5);
 
-      return (data || []) as unknown as RecommendationRecord[];
-    },
-    ["store-recommendations", storeId], // ✅ storeId is now successfully in scope
-    { revalidate: 3600, tags: ["recommendations"] },
-  );
-
-  // Execute the cached function
-  return fetchCached();
-};
+    return (data || []) as unknown as RecommendationRecord[];
+  },
+  ["store-recommendations"],
+  { revalidate: 3600, tags: ["recommendations"] },
+);
 
 export default async function ProductRecommendations({
   storeId,
