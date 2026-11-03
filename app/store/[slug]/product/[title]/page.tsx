@@ -1,34 +1,10 @@
-import { Suspense, cache } from "react";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import ProductClientUI from "./ProductClientUI";
 import ProductRecommendations from "../../components/RecommendationsProducts";
 
 export const revalidate = 3600;
-
-const getStore = cache(async (slug: string) => {
-  const { data } = await supabaseAdmin
-    .from("stores")
-    .select("id, store_name, logo_url, language")
-    .eq("slug", slug)
-    .maybeSingle();
-  return data;
-});
-
-const getProduct = cache(async (storeId: string, decodedTitle: string) => {
-  const { data } = await supabaseAdmin
-    .from("products")
-    .select(
-      `
-      id, title, description, price, discount_price, stock, images,
-      categories(title), variantGroups, preorder_enabled, preorder_label, gift, review
-    `,
-    )
-    .eq("store_id", storeId)
-    .ilike("title", decodedTitle)
-    .single();
-  return data;
-});
 
 export async function generateMetadata({
   params,
@@ -37,10 +13,21 @@ export async function generateMetadata({
 }) {
   const decodedTitle = decodeURIComponent(params.title);
 
-  const store = await getStore(params.slug);
+  const { data: store } = await supabaseAdmin
+    .from("stores")
+    .select("id, store_name, logo_url")
+    .eq("slug", params.slug)
+    .maybeSingle();
+
   if (!store) return { title: decodedTitle };
 
-  const product = await getProduct(store.id, decodedTitle);
+  const { data: product } = await supabaseAdmin
+    .from("products")
+    .select("title, description, images")
+    .eq("store_id", store.id)
+    .ilike("title", decodedTitle)
+    .maybeSingle();
+
   if (!product) return { title: decodedTitle };
 
   const storeName = store.store_name || "";
@@ -70,13 +57,29 @@ export default async function ProductPage({
 }: {
   params: { slug: string; title: string };
 }) {
-  const store = await getStore(params.slug);
-  if (!store) return notFound();
+  const { data: store, error: storeError } = await supabaseAdmin
+    .from("stores")
+    .select("id, language")
+    .eq("slug", params.slug)
+    .single();
+
+  if (storeError || !store) return notFound();
 
   const decodedTitle = decodeURIComponent(params.title);
 
-  const product = await getProduct(store.id, decodedTitle);
-  if (!product) return notFound();
+  const { data: product, error } = await supabaseAdmin
+    .from("products")
+    .select(
+      `
+      id, title, description, price, discount_price, stock, images,
+      categories(title), variantGroups, preorder_enabled, preorder_label, gift, review
+    `,
+    )
+    .eq("store_id", store.id)
+    .ilike("title", decodedTitle)
+    .single();
+
+  if (error || !product) return notFound();
 
   const productWithCategory = {
     ...product,
