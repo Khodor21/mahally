@@ -5,6 +5,31 @@ import ProductClientUI from "./ProductClientUI";
 import ProductRecommendations from "../../components/RecommendationsProducts";
 
 export const revalidate = 3600;
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  const { data: stores } = await supabaseAdmin
+    .from("stores")
+    .select("slug, id");
+
+  if (!stores) return [];
+
+  const results = await Promise.all(
+    stores.map(async (store) => {
+      const { data: products } = await supabaseAdmin
+        .from("products")
+        .select("title")
+        .eq("store_id", store.id);
+
+      return (products || []).map((p) => ({
+        slug: store.slug,
+        title: p.title,
+      }));
+    }),
+  );
+
+  return results.flat();
+}
 
 export async function generateMetadata({
   params,
@@ -70,10 +95,8 @@ export default async function ProductPage({
   const { data: product, error } = await supabaseAdmin
     .from("products")
     .select(
-      `
-      id, title, description, price, discount_price, stock, images,
-      categories(title), variantGroups, preorder_enabled, preorder_label, gift, review
-    `,
+      `id, title, description, price, discount_price, stock, images,
+       categories(title), variantGroups, preorder_enabled, preorder_label, gift, review`,
     )
     .eq("store_id", store.id)
     .ilike("title", decodedTitle)
@@ -98,7 +121,7 @@ export default async function ProductPage({
         >
           <Suspense
             fallback={
-              <div className="h-40 w-full animate-pulse bg-gray-50 rounded-2xl mt-24"></div>
+              <div className="h-40 w-full animate-pulse bg-gray-50 rounded-2xl mt-24" />
             }
           >
             <ProductRecommendations
