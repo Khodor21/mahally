@@ -37,11 +37,11 @@ const plans = [
     name: "المتجر الكامل",
     nameEn: "Ecommerce",
     price: {
-      monthly: "$17",
-      baseYearly: "$204",
-      yearlyDiscounted: "$154",
+      monthly: "$18",
+      baseYearly: "$216",
+      yearlyDiscounted: "$160",
     },
-    savings: "$50",
+    savings: "$56",
     yearlyNote: "شهرين مجاناً!",
     popular: true,
     badge: "الأكثر اختياراً",
@@ -283,7 +283,7 @@ export default function Pricing() {
                         </div>
                       )}
 
-                      {isYearly && plan.yearlyNote && (
+                      {/* {isYearly && plan.yearlyNote && (
                         <div
                           className={`text-[11px] md:text-[12px] font-bold w-fit ${
                             isPopular ? "text-green-300" : "text-green-600"
@@ -291,7 +291,7 @@ export default function Pricing() {
                         >
                           <span>{plan.yearlyNote}</span>
                         </div>
-                      )}
+                      )} */}
 
                       <div className="flex items-end gap-1.5 md:gap-2 mt-1 md:mt-2">
                         <span

@@ -40,11 +40,11 @@ const plans = [
     name: "المتجر الكامل",
     nameEn: "Ecommerce",
     price: {
-      monthly: "$17",
-      baseYearly: "$204",
-      yearlyDiscounted: "$154",
+      monthly: "$18",
+      baseYearly: "$216",
+      yearlyDiscounted: "$160",
     },
-    savings: "$50",
+    savings: "$56",
     yearlyNote: "شهرين مجاناً!",
     popular: true,
     badge: "الأكثر اختياراً",
@@ -187,7 +187,7 @@ export default function Pricing() {
           </p>
 
           {/* Discount Countdown Banner */}
-          {!showMonthly && (
+          {/* {!showMonthly && (
             <div className="max-w-md mx-auto mb-6 bg-red-50 border border-red-200 rounded-2xl p-3.5 flex flex-col items-center justify-center gap-2 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-300 via-red-500 to-red-300 animate-pulse"></div>
               <div className="flex items-center gap-1.5 text-red-600 font-bold text-sm">
@@ -215,7 +215,7 @@ export default function Pricing() {
                 وفّر حتى 50$ مقارنة بالدفع الشهري
               </span>
             </div>
-          )}
+          )} */}
 
           {/* Toggle (Yearly first) */}
           <div className="inline-flex items-center gap-2 p-1.5 rounded-full border border-brand-light bg-brand-white shadow-sm">
@@ -341,7 +341,7 @@ export default function Pricing() {
                         </div>
                       )}
 
-                      {isYearly && plan.yearlyNote && (
+                      {/* {isYearly && plan.yearlyNote && (
                         <div
                           className={`text-[11px] md:text-[12px] font-bold w-fit ${
                             isPopular ? "text-green-300" : "text-green-600"
@@ -349,7 +349,7 @@ export default function Pricing() {
                         >
                           <span>{plan.yearlyNote}</span>
                         </div>
-                      )}
+                      )} */}
 
                       <div className="flex items-end gap-1.5 md:gap-2 mt-1 md:mt-2">
                         <span
