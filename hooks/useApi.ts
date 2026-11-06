@@ -213,46 +213,48 @@ function useOrdersRealtime(
   const [loading, setLoading] = useState(!options.skip);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetcherRef = useRef(() => getOrders(storeId));
-
+  const optionsRef = useRef(options);
   useEffect(() => {
-    fetcherRef.current = () => getOrders(storeId);
-  }, [storeId]);
+    optionsRef.current = options;
+  }, [options]);
 
   const execute = useCallback(async () => {
-    if (!storeId || options.skip) return;
+    if (!storeId || optionsRef.current.skip) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const result = await fetcherRef.current();
+      const result = await getOrders(storeId);
       setData(result);
-      options.onSuccess?.(result);
+      optionsRef.current.onSuccess?.(result);
     } catch (err) {
       const error = err instanceof Error ? err : new Error("Unknown error");
       setError(error);
-      options.onError?.(error);
+      optionsRef.current.onError?.(error);
     } finally {
       setLoading(false);
     }
-  }, [storeId, options.skip, options.onSuccess, options.onError]);
+  }, [storeId]);
 
   useEffect(() => {
+    if (!storeId || options.skip) return;
     execute();
-  }, [execute]);
+  }, [storeId, options.skip, execute]);
 
-  // Setup Supabase Realtime subscription with unique channel naming to prevent duplicate collisions
   useEffect(() => {
     if (!storeId || options.skip) return;
 
-    const uniqueChannelName = `orders-realtime-${storeId}-${Math.random().toString(36).substring(2, 9)}`;
-    console.log(
-      `[Orders Realtime] Subscribing via channel: ${uniqueChannelName}`,
-    );
+    const channelName = `orders-realtime-${storeId}`;
+
+    supabase.getChannels().forEach((c) => {
+      if (c.topic.includes(channelName)) {
+        supabase.removeChannel(c);
+      }
+    });
 
     const channel = supabase
-      .channel(uniqueChannelName)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -262,51 +264,34 @@ function useOrdersRealtime(
           filter: `store_id=eq.${storeId}`,
         },
         async (payload) => {
-          console.log("[Orders Realtime] Event payload received:", payload);
-
           if (payload.eventType === "INSERT") {
-            const newOrder = payload.new as Order;
             try {
               const freshOrders = await getOrders(storeId);
               setData(freshOrders);
             } catch {
-              setData((prev) => [newOrder, ...(prev || [])]);
+              setData((prev) => [payload.new as Order, ...(prev || [])]);
             }
           } else if (payload.eventType === "UPDATE") {
-            const updatedOrder = payload.new as Order;
+            const updated = payload.new as Order;
             setData((prev) =>
               (prev || []).map((o) =>
-                o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o,
+                o.id === updated.id ? { ...o, ...updated } : o,
               ),
             );
           } else if (payload.eventType === "DELETE") {
-            const deletedOrder = payload.old as { id: string };
-            setData((prev) =>
-              (prev || []).filter((o) => o.id !== deletedOrder.id),
-            );
+            const deleted = payload.old as { id: string };
+            setData((prev) => (prev || []).filter((o) => o.id !== deleted.id));
           }
         },
       )
-      .subscribe((status, err) => {
-        console.log(`[Orders Realtime] Status: ${status}`, err || "");
-      });
-
-    const backupInterval = setInterval(() => {
-      fetcherRef
-        .current()
-        .then((res) => setData(res))
-        .catch(() => {});
-    }, 60000);
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(backupInterval);
     };
   }, [storeId, options.skip]);
 
-  const retry = useCallback(() => execute(), [execute]);
-
-  return { data, loading, error, execute, retry };
+  return { data, loading, error, execute, retry: execute };
 }
 
 export function useOrderStatusUpdate() {

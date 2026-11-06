@@ -183,52 +183,16 @@ export async function GET(req: NextRequest) {
         { status: 400 },
       );
 
-    const { data: orders, error: ordersError } = await supabaseAdmin
+    const { data: orders, error } = await supabaseAdmin
       .from("orders")
-      .select("*")
+      .select("*, order_items(*)")
       .eq("store_id", storeId)
       .order("created_at", { ascending: false })
       .limit(100);
 
-    if (ordersError) throw ordersError;
+    if (error) throw error;
 
-    if (!orders || orders.length === 0) {
-      return NextResponse.json({ success: true, data: [] });
-    }
-
-    const batchSize = 10;
-    const orderIds = orders.map((o: any) => o.id);
-    let allOrderItems: any[] = [];
-
-    for (let i = 0; i < orderIds.length; i += batchSize) {
-      const batch = orderIds.slice(i, i + batchSize);
-
-      const { data: batchItems, error: itemsError } = await supabaseAdmin
-        .from("order_items")
-        .select("*")
-        .in("order_id", batch);
-
-      if (itemsError) {
-        console.warn(
-          "Failed to fetch batch items, continuing without items:",
-          itemsError,
-        );
-        continue;
-      }
-
-      if (batchItems) {
-        allOrderItems = [...allOrderItems, ...batchItems];
-      }
-    }
-
-    const ordersWithItems = orders.map((order: any) => ({
-      ...order,
-      order_items: allOrderItems.filter(
-        (item: any) => item.order_id === order.id,
-      ),
-    }));
-
-    return NextResponse.json({ success: true, data: ordersWithItems });
+    return NextResponse.json({ success: true, data: orders || [] });
   } catch (err: any) {
     console.error("GET orders error:", err);
     return NextResponse.json(
