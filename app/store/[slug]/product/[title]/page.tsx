@@ -38,11 +38,11 @@ export async function generateMetadata({
 }) {
   const decodedTitle = decodeURIComponent(params.title);
 
-  const { data: store } = await supabaseAdmin
-    .from("stores")
-    .select("id, store_name, logo_url")
-    .eq("slug", params.slug)
-    .maybeSingle();
+ const { data: store } = await supabaseAdmin
+  .from("stores")
+  .select("id, store_name, store_settings(logo_url)")
+  .eq("slug", params.slug)
+  .maybeSingle();
 
   if (!store) return { title: decodedTitle };
 
