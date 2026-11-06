@@ -8,16 +8,20 @@ export async function getStoreData(storeId: string) {
   try {
     const { data: store, error } = await supabaseAdmin
       .from("stores")
-      .select("*")
+      .select("*, store_settings(logo_url)")
       .eq("id", storeId)
       .single();
 
-    if (error || !store) {
-      console.error("Failed to fetch store:", error);
-      return null;
-    }
+    if (error || !store) return null;
 
-    return store;
+    const settings = Array.isArray(store.store_settings)
+      ? store.store_settings[0]
+      : store.store_settings;
+
+    return {
+      ...store,
+      logo_url: settings?.logo_url || null,
+    };
   } catch (err) {
     console.error("Error fetching store data:", err);
     return null;

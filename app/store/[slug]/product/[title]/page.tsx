@@ -38,11 +38,11 @@ export async function generateMetadata({
 }) {
   const decodedTitle = decodeURIComponent(params.title);
 
- const { data: store } = await supabaseAdmin
-  .from("stores")
-  .select("id, store_name, store_settings(logo_url)")
-  .eq("slug", params.slug)
-  .maybeSingle();
+  const { data: store } = await supabaseAdmin
+    .from("stores")
+    .select("id, store_name, store_settings(logo_url)")
+    .eq("slug", params.slug)
+    .maybeSingle();
 
   if (!store) return { title: decodedTitle };
 
@@ -55,11 +55,14 @@ export async function generateMetadata({
 
   if (!product) return { title: decodedTitle };
 
-  const storeName = store.store_name || "";
-  const logoUrl = store.logo_url || "";
-  const pageTitle = storeName
-    ? `${product.title} | ${storeName}`
+  const logoUrl = Array.isArray(store.store_settings)
+    ? store.store_settings[0]?.logo_url || ""
+    : (store.store_settings as any)?.logo_url || "";
+
+  const pageTitle = store.store_name
+    ? `${product.title} | ${store.store_name}`
     : product.title;
+
   const primaryImage =
     Array.isArray(product.images) && product.images.length > 0
       ? product.images[0]
