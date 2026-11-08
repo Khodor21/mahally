@@ -243,9 +243,7 @@ export default function ProductCard({
           aria-label={`View ${product.title}`}
         />
 
-        {/* IMAGE CONTAINER */}
         <div className="relative w-full aspect-[3/4] sm:h-80 overflow-hidden rounded-xl bg-[rgb(244_242_245)]/[0.7] transition-all duration-300">
-          {/* DISCOUNT BADGE */}
           {hasDiscount && (
             <div className="absolute top-3 left-3 z-30 bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded-sm">
               -{discountPercent}%
