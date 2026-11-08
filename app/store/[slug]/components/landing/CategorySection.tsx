@@ -176,6 +176,7 @@ export default function CategoriesSection({
   const CircleItem = ({ cat }: { cat: Category }) => (
     <Link
       key={cat.id}
+      prefetch={false}
       href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
       className="group flex flex-col items-center gap-3 cursor-pointer"
     >
@@ -229,6 +230,7 @@ export default function CategoriesSection({
                 {categories.map((cat) => (
                   <Link
                     key={cat.id}
+                    prefetch={false}
                     href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
                     className="group relative flex-none w-[calc(50%-8px)] md:w-[calc(25%-18px)] aspect-[1/1.3] rounded-xl overflow-hidden cursor-pointer snap-start"
                   >
@@ -269,6 +271,7 @@ export default function CategoriesSection({
                 {categories.map((cat) => (
                   <Link
                     key={cat.id}
+                    prefetch={false}
                     href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
                     className="group relative w-full aspect-[1/1.3] rounded-xl overflow-hidden cursor-pointer"
                   >
@@ -342,6 +345,7 @@ export default function CategoriesSection({
           <div className="mt-8 md:mt-12 flex justify-center">
             <Link
               href={`/categories?lang=${lang}`}
+              prefetch={false}
               className="inline-flex items-center justify-center underline text-sm font-medium text-brand-black/80 hover:text-[#111827] transition-colors duration-200"
             >
               {t.seeMore}
