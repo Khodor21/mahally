@@ -238,6 +238,7 @@ export default function ProductCard({
       >
         <Link
           href={productUrl}
+          prefetch={false}
           className="absolute inset-0 z-10"
           aria-label={`View ${product.title}`}
         />

@@ -8,27 +8,14 @@ export const revalidate = 3600;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const { data: stores } = await supabaseAdmin
-    .from("stores")
-    .select("slug, id");
+  const { data: products } = await supabaseAdmin
+    .from("products")
+    .select("title, stores(slug)");
 
-  if (!stores) return [];
-
-  const results = await Promise.all(
-    stores.map(async (store) => {
-      const { data: products } = await supabaseAdmin
-        .from("products")
-        .select("title")
-        .eq("store_id", store.id);
-
-      return (products || []).map((p) => ({
-        slug: store.slug,
-        title: p.title,
-      }));
-    }),
-  );
-
-  return results.flat();
+  return (products || []).map((p) => ({
+    slug: (p.stores as any).slug,
+    title: p.title,
+  }));
 }
 
 export async function generateMetadata({
