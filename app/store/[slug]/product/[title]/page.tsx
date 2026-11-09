@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import ProductClientUI from "./ProductClientUI";
@@ -7,6 +8,34 @@ import ProductRecommendations from "../../components/RecommendationsProducts";
 export const revalidate = 3600;
 export const dynamicParams = true;
 
+// --- Shared cached fetcher (runs once per request even if called from metadata + page) ---
+const getStoreAndProduct = cache(async (slug: string, encodedTitle: string) => {
+  const decodedTitle = decodeURIComponent(encodedTitle);
+
+  const { data: store } = await supabaseAdmin
+    .from("stores")
+    .select("id, language, store_name, store_settings(logo_url)")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (!store) return null;
+
+  const { data: product } = await supabaseAdmin
+    .from("products")
+    .select(
+      `id, title, description, price, discount_price, stock, images,
+         categories(title), variantGroups, preorder_enabled, preorder_label, gift, review`,
+    )
+    .eq("store_id", store.id)
+    .ilike("title", decodedTitle)
+    .maybeSingle();
+
+  if (!product) return null;
+
+  return { store, product };
+});
+
+// --- Static Params ---
 export async function generateStaticParams() {
   const { data: products } = await supabaseAdmin
     .from("products")
@@ -18,29 +47,17 @@ export async function generateStaticParams() {
   }));
 }
 
+// --- Metadata ---
 export async function generateMetadata({
   params,
 }: {
   params: { slug: string; title: string };
 }) {
-  const decodedTitle = decodeURIComponent(params.title);
+  const data = await getStoreAndProduct(params.slug, params.title);
 
-  const { data: store } = await supabaseAdmin
-    .from("stores")
-    .select("id, store_name, store_settings(logo_url)")
-    .eq("slug", params.slug)
-    .maybeSingle();
+  if (!data) return { title: decodeURIComponent(params.title) };
 
-  if (!store) return { title: decodedTitle };
-
-  const { data: product } = await supabaseAdmin
-    .from("products")
-    .select("title, description, images")
-    .eq("store_id", store.id)
-    .ilike("title", decodedTitle)
-    .maybeSingle();
-
-  if (!product) return { title: decodedTitle };
+  const { store, product } = data;
 
   const logoUrl = Array.isArray(store.store_settings)
     ? store.store_settings[0]?.logo_url || ""
@@ -67,32 +84,17 @@ export async function generateMetadata({
   };
 }
 
+// --- Page ---
 export default async function ProductPage({
   params,
 }: {
   params: { slug: string; title: string };
 }) {
-  const { data: store, error: storeError } = await supabaseAdmin
-    .from("stores")
-    .select("id, language")
-    .eq("slug", params.slug)
-    .single();
+  const data = await getStoreAndProduct(params.slug, params.title);
 
-  if (storeError || !store) return notFound();
+  if (!data) return notFound();
 
-  const decodedTitle = decodeURIComponent(params.title);
-
-  const { data: product, error } = await supabaseAdmin
-    .from("products")
-    .select(
-      `id, title, description, price, discount_price, stock, images,
-       categories(title), variantGroups, preorder_enabled, preorder_label, gift, review`,
-    )
-    .eq("store_id", store.id)
-    .ilike("title", decodedTitle)
-    .single();
-
-  if (error || !product) return notFound();
+  const { store, product } = data;
 
   const productWithCategory = {
     ...product,
