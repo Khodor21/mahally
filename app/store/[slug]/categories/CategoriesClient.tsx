@@ -25,6 +25,8 @@ interface BackendCategory {
   id: string;
   title: string;
   logo_url: string | null;
+  has_children?: boolean;
+  parent_id?: string | null;
 }
 
 type SortOption = "default" | "name-asc" | "name-desc";
@@ -577,7 +579,11 @@ function CategoriesContent() {
               {paginatedCategories.map((cat) => (
                 <Link
                   key={cat.id}
-                  href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
+                  href={
+                    (cat as any).has_children
+                      ? `/categories/${encodeURIComponent(cat.title)}?lang=${lang}`
+                      : `/category/${encodeURIComponent(cat.title)}?lang=${lang}`
+                  }
                   className="group relative w-full aspect-[1/1.3] rounded-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300 bg-white block animate-in fade-in zoom-in-95 duration-500"
                 >
                   {cat.logo_url ? (
