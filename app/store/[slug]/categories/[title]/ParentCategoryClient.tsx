@@ -68,9 +68,9 @@ export default function ParentCategoryClient({
               <Link
                 key={child.id}
                 href={
-                  (cat as any).has_children
-                    ? `/categories/${encodeURIComponent(cat.title)}?lang=${lang}`
-                    : `/category/${encodeURIComponent(cat.title)}?lang=${lang}`
+                  (child as any).has_children
+                    ? `/categories/${encodeURIComponent(child.title)}?lang=${lang}`
+                    : `/category/${encodeURIComponent(child.title)}?lang=${lang}`
                 }
                 prefetch={false}
                 className="group relative w-full aspect-[1/1.3] rounded-xl overflow-hidden cursor-pointer"
