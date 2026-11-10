@@ -385,7 +385,9 @@ function CategoriesContent() {
         const list = json?.data || json?.categories || json || [];
 
         if (Array.isArray(list)) {
-          const categories = list as BackendCategory[];
+          const categories = (list as any[]).filter(
+            (c) => !c.parent_id,
+          ) as BackendCategory[];
           const ordered = getOrShuffleCategories(categories, activeStoreId);
           categoriesCache.current = ordered;
           setAllCategories(ordered);
@@ -393,7 +395,6 @@ function CategoriesContent() {
           throw new Error("Failed to load categories format");
         }
       } catch (err) {
-        console.error(err);
         setError(
           lang === "ar"
             ? "حدث خطأ أثناء تحميل الأقسام. يرجى المحاولة مرة أخرى."

@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import CategoryPageClient from "./CategoryPageClient";
 import { getCachedStoreData } from "@/lib/store-queries";
+import { redirect } from "next/navigation";
 
 export async function generateMetadata({
   params,
@@ -10,7 +11,9 @@ export async function generateMetadata({
   const categoryTitle = decodeURIComponent(params.title).trim();
   const data = await getCachedStoreData(params.slug);
   const store = Array.isArray(data?.store) ? data.store[0] : data?.store || {};
-  const settings = Array.isArray(data?.settings) ? data.settings[0] : data?.settings || {};
+  const settings = Array.isArray(data?.settings)
+    ? data.settings[0]
+    : data?.settings || {};
   const storeName = store.store_name || "";
   const logoUrl = settings?.logo_url || "";
 
@@ -43,12 +46,25 @@ export default async function CategoryPage({
   // fetch الـ category
   const { data: category } = await supabaseAdmin
     .from("categories")
-    .select("id, title, logo_url")
+    .select("id, title, logo_url, parent_id")
     .ilike("title", categoryTitle)
     .eq("store_id", store.id)
     .maybeSingle();
 
   if (!category) return <div>Category not found</div>;
+  if (!category.parent_id) {
+    const { count } = await supabaseAdmin
+      .from("categories")
+      .select("id", { count: "exact", head: true })
+      .eq("parent_id", category.id);
+
+    if (count && count > 0) {
+      redirect(
+        `/${slug}/categories/${encodeURIComponent(category.title)}?lang=${lang}`,
+      );
+    }
+    // standalone → ما في redirect، كمّل عادي
+  }
 
   // fetch الـ products
   const { data: products } = await supabaseAdmin

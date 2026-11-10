@@ -54,13 +54,14 @@ export const t = {
     addCategory: "إضافة ",
     editCategory: "تعديل التصنيف",
     logo: "الشعار",
+    type: "النوع",
     logoUrl: "رابط الشعار (اختياري)",
     productsCount: "عدد المنتجات",
 
     // Storefront
     storefront: "أقسام الصفحة الرئيسية",
     addSection: "إضافة قسم",
-storefrontDesc: "إدارة أقسام واجهة العرض واللافتات الإعلانية",
+    storefrontDesc: "إدارة أقسام واجهة العرض واللافتات الإعلانية",
     // Form / Modal
     addProductTitle: "إضافة منتج جديد",
     editProductTitle: "تعديل المنتج",
@@ -272,6 +273,7 @@ storefrontDesc: "إدارة أقسام واجهة العرض واللافتات 
     addCategory: "Add",
     editCategory: "Edit Category",
     logo: "Logo",
+    type: "Type",
     logoUrl: "Logo URL (Optional)",
     productsCount: "Products Count",
 

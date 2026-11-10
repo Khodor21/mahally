@@ -12,15 +12,14 @@ const UpdateCategorySchema = z.object({
     .optional()
     .or(z.literal(""))
     .nullable(),
+  parent_id: z.string().uuid("Invalid parent ID").optional().nullable(),
 });
 
-// ── Update (PUT) ────────────────────────────────────────────────────────────
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
   const session = await getServerSession(authOptions);
-
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -39,39 +38,74 @@ export async function PUT(
       );
     }
 
-    const { title, logo_url } = parsed.data;
+    const { title, logo_url, parent_id } = parsed.data;
 
-    // 1. PREVENT REPEATS: Check if another category already uses this title
-    if (title) {
-      const { data: existingCategory, error: checkError } = await supabaseAdmin
-        .from("categories")
-        .select("id")
-        .eq("store_id", storeId)
-        .eq("title", title)
-        .neq("id", categoryId) // Exclude the current category being updated
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-
-      if (existingCategory) {
+    // Validate parent_id if provided
+    if (parent_id) {
+      // Prevent self-reference
+      if (parent_id === categoryId) {
         return NextResponse.json(
-          { error: "A category with this exact title already exists." },
-          { status: 409 }, // 409 Conflict
+          { error: "Category cannot be its own parent" },
+          { status: 400 },
+        );
+      }
+
+      // Verify parent exists and belongs to same store
+      const { data: parentCheck } = await supabaseAdmin
+        .from("categories")
+        .select("id, parent_id")
+        .eq("id", parent_id)
+        .eq("store_id", storeId)
+        .single();
+
+      if (!parentCheck) {
+        return NextResponse.json(
+          { error: "Parent category not found" },
+          { status: 404 },
+        );
+      }
+
+      // Prevent nesting beyond one level
+      if (parentCheck.parent_id) {
+        return NextResponse.json(
+          { error: "Cannot nest subcategories more than one level" },
+          { status: 400 },
         );
       }
     }
 
-    // 2. UPDATE: Apply changes securely
+    // Check duplicate title (excluding self)
+    if (title) {
+      const { data: existingCategory } = await supabaseAdmin
+        .from("categories")
+        .select("id")
+        .eq("store_id", storeId)
+        .eq("title", title)
+        .neq("id", categoryId)
+        .maybeSingle();
+
+      if (existingCategory) {
+        return NextResponse.json(
+          { error: "A category with this exact title already exists." },
+          { status: 409 },
+        );
+      }
+    }
+
+    const updatePayload: any = {};
+    if (title !== undefined) updatePayload.title = title;
+    if (logo_url !== undefined) updatePayload.logo_url = logo_url;
+    updatePayload.parent_id = parent_id ?? null;
+
     const { data, error } = await supabaseAdmin
       .from("categories")
-      .update({ title, logo_url })
+      .update(updatePayload)
       .eq("id", categoryId)
-      .eq("store_id", storeId) // SECURITY: Ensure they own this category
+      .eq("store_id", storeId)
       .select()
       .single();
 
     if (error) {
-      // Handle Supabase unique constraint violations gracefully
       if (error.code === "23505") {
         return NextResponse.json(
           { error: "Title already exists." },
@@ -83,14 +117,12 @@ export async function PUT(
 
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error("PUT /categories/[id] Error:", error);
     return NextResponse.json(
       { error: "Failed to update category. Please try again." },
       { status: 500 },
     );
   }
 }
-
 // ── Delete (DELETE) ─────────────────────────────────────────────────────────
 export async function DELETE(
   req: NextRequest,
@@ -116,7 +148,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, message: "Category deleted" });
   } catch (error: any) {
-    console.error("DELETE /categories/[id] Error:", error);
     return NextResponse.json(
       {
         error:

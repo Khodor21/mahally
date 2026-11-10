@@ -167,7 +167,9 @@ export interface Coupon {
 }
 
 export interface Category {
+  has_children: boolean;
   id: string;
+  parent_id: string | null;
   store_id?: string;
   title: string;
   logo_url?: string;

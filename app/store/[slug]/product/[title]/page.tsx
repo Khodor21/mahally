@@ -35,18 +35,6 @@ const getStoreAndProduct = cache(async (slug: string, encodedTitle: string) => {
   return { store, product };
 });
 
-// --- Static Params ---
-export async function generateStaticParams() {
-  const { data: products } = await supabaseAdmin
-    .from("products")
-    .select("title, stores(slug)");
-
-  return (products || []).map((p) => ({
-    slug: (p.stores as any).slug,
-    title: p.title,
-  }));
-}
-
 // --- Metadata ---
 export async function generateMetadata({
   params,

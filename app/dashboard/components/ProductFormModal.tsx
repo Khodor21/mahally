@@ -139,7 +139,9 @@ export default function ProductFormModal({
 
   const { data: allProducts } = useProducts();
   const existingTitles = (allProducts ?? [])
-    .filter((p: Product) => mode === "edit" && p.id !== product?.id ? true : mode === "create")
+    .filter((p: Product) =>
+      mode === "edit" && p.id !== product?.id ? true : mode === "create",
+    )
     .map((p: Product) => p.title.toLowerCase());
 
   useEffect(() => {
@@ -228,11 +230,15 @@ export default function ProductFormModal({
     if (!title) {
       errs.title = tr.titleRequired;
     } else if (existingTitles.includes(title.toLowerCase())) {
-      errs.title = dir === "rtl" ? "هذا العنوان موجود بالفعل" : "This title already exists";
+      errs.title =
+        dir === "rtl"
+          ? "هذا العنوان موجود بالفعل"
+          : "This title already exists";
     }
 
     if (!form.category_id) {
-      errs.category_id = dir === "rtl" ? "الفئة مطلوبة" : "Category is required";
+      errs.category_id =
+        dir === "rtl" ? "الفئة مطلوبة" : "Category is required";
     }
 
     const p = parseFloat(form.price);
@@ -334,14 +340,16 @@ export default function ProductFormModal({
       // Scroll to first error field
       setTimeout(() => {
         const errorElement = document.querySelector('[data-error="true"]');
-        const formContainer = document.querySelector('form#product-form')?.parentElement;
+        const formContainer =
+          document.querySelector("form#product-form")?.parentElement;
         if (errorElement && formContainer) {
           const elementRect = errorElement.getBoundingClientRect();
           const containerRect = formContainer.getBoundingClientRect();
           const scrollTop = formContainer.scrollTop;
-          const targetScroll = scrollTop + (elementRect.top - containerRect.top) - 100;
-          
-          formContainer.scrollTo({ top: targetScroll, behavior: 'smooth' });
+          const targetScroll =
+            scrollTop + (elementRect.top - containerRect.top) - 100;
+
+          formContainer.scrollTo({ top: targetScroll, behavior: "smooth" });
         }
       }, 0);
       return;
@@ -608,14 +616,21 @@ export default function ProductFormModal({
                 <option value="">
                   {dir === "rtl" ? "اختر فئة" : "Select a category"}
                 </option>
-                {categories.map((cat: any) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.title}
-                  </option>
-                ))}
+                {categories
+                  .filter((cat: any) => !cat.has_children)
+                  .map((cat: any) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.title}
+                      {cat.parent_id
+                        ? ` (${categories.find((c: any) => c.id === cat.parent_id)?.title || ""})`
+                        : ""}
+                    </option>
+                  ))}
               </select>
               {errors.category_id && (
-                <p className="text-xs text-red-600 mt-1">{errors.category_id}</p>
+                <p className="text-xs text-red-600 mt-1">
+                  {errors.category_id}
+                </p>
               )}
             </div>
 

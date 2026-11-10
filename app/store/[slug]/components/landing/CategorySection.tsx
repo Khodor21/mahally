@@ -8,6 +8,8 @@ interface Category {
   id: string;
   title: string;
   logo_url: string | null;
+  parent_id: string | null;
+  has_children: boolean;
 }
 
 // Loosened type to allow Title Case inputs safely without TS errors
@@ -65,9 +67,11 @@ export default function CategoriesSection({
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
         const list = data?.data || data?.categories || data || [];
-        setCategories(Array.isArray(list) ? list : []);
+        const filtered = Array.isArray(list)
+          ? list.filter((c: any) => !c.parent_id)
+          : [];
+        setCategories(filtered);
       } catch (error) {
-        console.error("Failed to fetch categories:", error);
         setCategories([]);
       } finally {
         setLoading(false);
@@ -76,6 +80,12 @@ export default function CategoriesSection({
     fetchCategories();
   }, [storeId, lang]);
 
+  const getCategoryHref = (cat: Category) => {
+    if (cat.has_children) {
+      return `/categories/${encodeURIComponent(cat.title)}?lang=${lang}`;
+    }
+    return `/category/${encodeURIComponent(cat.title)}?lang=${lang}`;
+  };
   // Grid: carousel when > 4. Circle: carousel when > 6 (6 shows as 3×2 grid on mobile).
   const isCarousel =
     normalizedStyle === "circle"
@@ -177,7 +187,7 @@ export default function CategoriesSection({
     <Link
       key={cat.id}
       prefetch={false}
-      href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
+      href={getCategoryHref(cat)}
       className="group flex flex-col items-center gap-3 cursor-pointer"
     >
       <div className="relative w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden border-2 border-gray-100 group-hover:border-[rgb(var(--color-brand-primary))] transition-colors duration-300 shadow-sm">
@@ -231,7 +241,7 @@ export default function CategoriesSection({
                   <Link
                     key={cat.id}
                     prefetch={false}
-                    href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
+                    href={getCategoryHref(cat)}
                     className="group relative flex-none w-[calc(50%-8px)] md:w-[calc(25%-18px)] aspect-[1/1.3] rounded-xl overflow-hidden cursor-pointer snap-start"
                   >
                     {cat.logo_url ? (
@@ -272,7 +282,7 @@ export default function CategoriesSection({
                   <Link
                     key={cat.id}
                     prefetch={false}
-                    href={`/category/${encodeURIComponent(cat.title)}?lang=${lang}`}
+                    href={getCategoryHref(cat)}
                     className="group relative w-full aspect-[1/1.3] rounded-xl overflow-hidden cursor-pointer"
                   >
                     {cat.logo_url ? (

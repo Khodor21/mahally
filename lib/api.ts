@@ -289,6 +289,7 @@ export async function getCategories(storeId: string): Promise<Category[]> {
 export interface CategoryFormData {
   title: string;
   logo_url?: string;
+  parent_id?: string | null;
 }
 
 export async function createCategory(
@@ -302,6 +303,7 @@ export async function createCategory(
       title: data.title,
       logo_url: data.logo_url,
       store_id: storeId,
+      parent_id: data.parent_id || null,
     }),
   });
 
@@ -316,7 +318,11 @@ export async function updateCategory(
   const res = await fetch(`/api/categories/${categoryId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      title: data.title,
+      logo_url: data.logo_url,
+      parent_id: data.parent_id || null,
+    }),
   });
 
   if (!res.ok) throw new Error("Failed to update category");
@@ -351,7 +357,6 @@ export async function getStore(): Promise<StoreData> {
 export async function updateStore(
   updates: Partial<StoreData>,
 ): Promise<StoreData> {
-  console.log("📤 Sending to PUT /api/stores:", updates);
   const res = await fetch("/api/stores", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },

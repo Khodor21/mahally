@@ -1,5 +1,16 @@
 "use client";
-import { useMemo, useState, useEffect, useCallback } from "react";
+import {
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+  AwaitedReactNode,
+  JSXElementConstructor,
+  Key,
+  ReactElement,
+  ReactNode,
+  ReactPortal,
+} from "react";
 import { uploadImages } from "@/lib/image-upload";
 import {
   Search,
@@ -20,7 +31,7 @@ import {
   useCategories,
   useCategoryCreate,
   useCategoryUpdate,
-  useCategoryDelete as useApiCategoryDelete, // Aliased to prevent collision with bottom hook
+  useCategoryDelete as useApiCategoryDelete,
 } from "@/hooks/useApi";
 
 interface ToastState {
@@ -28,7 +39,6 @@ interface ToastState {
   type: "success" | "error";
 }
 
-// 👉 UPDATED: Added store prop to access plan_type and category_display_style
 export default function CategoriesPanel({
   storeId,
   isMini = false,
@@ -129,7 +139,11 @@ export default function CategoriesPanel({
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null,
   );
-  const [formData, setFormData] = useState({ title: "", logo: "" });
+  const [formData, setFormData] = useState({
+    title: "",
+    logo: "",
+    parent_id: "",
+  });
   const [uploading, setUploading] = useState(false);
 
   // 👉 NEW: Drag-to-reorder state
@@ -196,6 +210,7 @@ export default function CategoriesPanel({
       const payload: any = {
         title: formData.title,
         logo_url: formData.logo,
+        parent_id: formData.parent_id || null,
       };
 
       if (formMode === "create") {
@@ -239,7 +254,7 @@ export default function CategoriesPanel({
   // Animation Handlers for Form Modal
   const openCreate = () => {
     setFormMode("create");
-    setFormData({ title: "", logo: "" });
+    setFormData({ title: "", logo: "", parent_id: "" });
     setSelectedCategory(null);
     setFormMounted(true);
     setTimeout(() => setFormVisible(true), 10);
@@ -248,7 +263,11 @@ export default function CategoriesPanel({
   const openEdit = (cat: Category) => {
     setFormMode("edit");
     setSelectedCategory(cat);
-    setFormData({ title: cat.title, logo: cat.logo_url || "" });
+    setFormData({
+      title: cat.title,
+      logo: cat.logo_url || "",
+      parent_id: cat.parent_id || "",
+    });
     setFormMounted(true);
     setTimeout(() => setFormVisible(true), 10);
   };
@@ -458,6 +477,9 @@ export default function CategoriesPanel({
                 {tr.productsCount}
               </th>
               <th className="p-4 font-bold text-gray-400 text-xs uppercase tracking-wider">
+                {tr.type}
+              </th>
+              <th className="p-4 font-bold text-gray-400 text-xs uppercase tracking-wider">
                 {tr.actions}
               </th>
             </tr>
@@ -517,7 +539,21 @@ export default function CategoriesPanel({
                       {cat.product_count !== undefined ? cat.product_count : 0}
                     </span>
                   </td>
-
+                  <td className="p-4">
+                    {cat.parent_id ? (
+                      <span className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
+                        Child
+                      </span>
+                    ) : cat.has_children ? (
+                      <span className="text-xs bg-purple-50 text-purple-600 px-2 py-1 rounded-full">
+                        Parent
+                      </span>
+                    ) : (
+                      <span className="text-xs bg-gray-50 text-gray-500 px-2 py-1 rounded-full">
+                        Standalone
+                      </span>
+                    )}
+                  </td>
                   <td className="p-4">
                     <div className="flex justify-center gap-2">
                       <button
@@ -595,7 +631,60 @@ export default function CategoriesPanel({
                   }
                 />
               </div>
-
+              {/* PARENT CATEGORY SELECTOR */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-gray-500">
+                  {lang === "ar"
+                    ? "القسم الرئيسي (اختياري)"
+                    : "Parent Category (optional)"}
+                </label>
+                <select
+                  className="w-full p-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(60_28_84)]/20 focus:border-[rgb(60_28_84)] transition-all text-sm font-medium bg-white"
+                  value={formData.parent_id}
+                  onChange={(e) =>
+                    setFormData({ ...formData, parent_id: e.target.value })
+                  }
+                >
+                  <option value="">
+                    {lang === "ar" ? "— بدون قسم رئيسي —" : "— No parent —"}
+                  </option>
+                  {categories
+                    .filter(
+                      (c: { parent_id: any; id: string | undefined }) =>
+                        !c.parent_id && c.id !== selectedCategory?.id,
+                    )
+                    .map(
+                      (c: {
+                        id: Key | readonly string[] | null | undefined;
+                        title:
+                          | string
+                          | number
+                          | bigint
+                          | boolean
+                          | ReactElement<
+                              any,
+                              string | JSXElementConstructor<any>
+                            >
+                          | Iterable<ReactNode>
+                          | ReactPortal
+                          | Promise<AwaitedReactNode>
+                          | null
+                          | undefined;
+                      }) => (
+                        <option key={String(c.id)} value={String(c.id ?? "")}>
+                          {c.title}
+                        </option>
+                      ),
+                    )}
+                </select>
+                {formData.parent_id && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    {lang === "ar"
+                      ? "هذا القسم سيظهر تحت القسم الرئيسي المختار"
+                      : "This category will appear under the selected parent"}
+                  </p>
+                )}
+              </div>
               {!isMini && (
                 <div className="space-y-2">
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">
@@ -693,9 +782,13 @@ export default function CategoriesPanel({
             </h3>
             {/* 👉 UPDATED: Bilingual Warning Message */}
             <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-              {lang === "ar"
-                ? "هل أنت متأكد من حذف هذا القسم؟ سيتم أيضاً حذف كافة المنتجات التابعة له نهائياً. لا يمكن التراجع عن هذا الإجراء."
-                : "Are you sure you want to delete this category? All associated products will also be permanently deleted. This action cannot be undone."}
+              {selectedCategory.has_children
+                ? lang === "ar"
+                  ? "هذا قسم رئيسي. سيتم حذف جميع أقسامه الفرعية والمنتجات التابعة لها نهائياً. لا يمكن التراجع عن هذا الإجراء."
+                  : "This is a parent category. All its subcategories and their products will be permanently deleted. This action cannot be undone."
+                : lang === "ar"
+                  ? "هل أنت متأكد من حذف هذا القسم؟ سيتم أيضاً حذف كافة المنتجات التابعة له نهائياً. لا يمكن التراجع عن هذا الإجراء."
+                  : "Are you sure you want to delete this category? All associated products will also be permanently deleted. This action cannot be undone."}
             </p>
             <div className="flex gap-3 justify-center">
               <button

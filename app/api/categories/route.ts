@@ -15,6 +15,7 @@ const CategorySchema = z.object({
     .optional()
     .or(z.literal(""))
     .nullable(),
+  parent_id: z.string().uuid("Invalid parent ID").optional().nullable(),
 });
 
 const UpdateCategorySchema = CategorySchema.extend({
@@ -23,7 +24,6 @@ const UpdateCategorySchema = CategorySchema.extend({
 });
 
 // ── Read (GET) ──────────────────────────────────────────────────────────────
-// PUBLIC route: Anyone can fetch a store's categories if they pass the store_id
 export async function GET(req: NextRequest) {
   const store_id = req.nextUrl.searchParams.get("store_id");
   if (!store_id) {
@@ -34,7 +34,6 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 👉 UPDATED: Select display_order for sorting
     const { data: categories, error } = await supabaseAdmin
       .from("categories")
       .select(
@@ -43,6 +42,7 @@ export async function GET(req: NextRequest) {
         title,
         logo_url,
         display_order,
+        parent_id,
         products(id)
       `,
       )
@@ -51,18 +51,36 @@ export async function GET(req: NextRequest) {
 
     if (error) throw error;
 
-    // 👉 ADDED: Calculate product_count for each category
-    const enrichedCategories = (categories || []).map((cat: any) => ({
-      id: cat.id,
-      title: cat.title,
-      logo_url: cat.logo_url,
-      display_order: cat.display_order || 0,
-      product_count: cat.products?.length || 0,
-    }));
+    const rawList = categories || [];
+    const childProductCounts: Record<string, number> = {};
+    for (const cat of rawList) {
+      if (cat.parent_id) {
+        childProductCounts[cat.parent_id] =
+          (childProductCounts[cat.parent_id] || 0) +
+          (cat.products?.length || 0);
+      }
+    }
+
+    const enrichedCategories = rawList.map((cat: any) => {
+      const isParent = !cat.parent_id;
+      const hasChildren =
+        isParent && rawList.some((c: any) => c.parent_id === cat.id);
+
+      return {
+        id: cat.id,
+        title: cat.title,
+        logo_url: cat.logo_url,
+        display_order: cat.display_order || 0,
+        parent_id: cat.parent_id ?? null,
+        has_children: hasChildren,
+        product_count: isParent
+          ? childProductCounts[cat.id] || 0
+          : cat.products?.length || 0,
+      };
+    });
 
     return NextResponse.json(enrichedCategories);
   } catch (error: any) {
-    console.error("GET Categories Error:", error);
     return NextResponse.json(
       { error: "Failed to fetch categories" },
       { status: 500 },
@@ -71,7 +89,6 @@ export async function GET(req: NextRequest) {
 }
 
 // ── Create (POST) ───────────────────────────────────────────────────────────
-// PROTECTED: Only the authenticated admin can create a category for their store
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -91,9 +108,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { title, logo_url } = parsed.data;
+    const { title, logo_url, parent_id } = parsed.data;
 
-    // 👉 ADDED: Get the next display_order (max + 1)
+    // If parent_id provided, verify it belongs to same store
+    if (parent_id) {
+      const { data: parentCheck, error: parentError } = await supabaseAdmin
+        .from("categories")
+        .select("id, parent_id")
+        .eq("id", parent_id)
+        .eq("store_id", storeId)
+        .single();
+
+      if (parentError || !parentCheck) {
+        return NextResponse.json(
+          { error: "Parent category not found" },
+          { status: 404 },
+        );
+      }
+
+      // Prevent nesting beyond one level
+      if (parentCheck.parent_id) {
+        return NextResponse.json(
+          { error: "Cannot create a subcategory of a subcategory" },
+          { status: 400 },
+        );
+      }
+    }
+
     const { data: existingCategories } = await supabaseAdmin
       .from("categories")
       .select("display_order")
@@ -112,7 +153,8 @@ export async function POST(req: NextRequest) {
         title,
         logo_url,
         store_id: storeId,
-        display_order: nextDisplayOrder, // 👉 ADDED: Auto-increment order
+        display_order: nextDisplayOrder,
+        parent_id: parent_id || null,
       })
       .select()
       .single();
@@ -121,13 +163,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(data, { status: 201 });
   } catch (error: any) {
-    console.error("POST Category Error:", error);
     return NextResponse.json({ error: "Creation failed" }, { status: 500 });
   }
 }
 
 // ── Update (PUT) ────────────────────────────────────────────────────────────
-// PROTECTED: Only the authenticated admin can edit their own categories
 export async function PUT(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -147,10 +187,45 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const { id, title, logo_url, display_order } = parsed.data;
+    const { id, title, logo_url, display_order, parent_id } = parsed.data;
 
-    // 👉 UPDATED: Include display_order in update if provided
-    const updatePayload: any = { title, logo_url };
+    // If changing to a child, validate parent
+    if (parent_id) {
+      const { data: parentCheck, error: parentError } = await supabaseAdmin
+        .from("categories")
+        .select("id, parent_id")
+        .eq("id", parent_id)
+        .eq("store_id", storeId)
+        .single();
+
+      if (parentError || !parentCheck) {
+        return NextResponse.json(
+          { error: "Parent category not found" },
+          { status: 404 },
+        );
+      }
+
+      if (parentCheck.parent_id) {
+        return NextResponse.json(
+          { error: "Cannot nest subcategories more than one level" },
+          { status: 400 },
+        );
+      }
+
+      // Prevent setting a parent to be its own child
+      if (parent_id === id) {
+        return NextResponse.json(
+          { error: "Category cannot be its own parent" },
+          { status: 400 },
+        );
+      }
+    }
+
+    const updatePayload: any = {
+      title,
+      logo_url,
+      parent_id: parent_id || null,
+    };
     if (display_order !== undefined) {
       updatePayload.display_order = display_order;
     }
@@ -167,13 +242,11 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error("PUT Category Error:", error);
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }
 }
 
 // ── Reorder (PATCH) ─────────────────────────────────────────────────────────
-// 👉 NEW: Dedicated endpoint for reordering categories
 export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -184,7 +257,7 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { orders } = body; // Array of { id, display_order }
+    const { orders } = body;
 
     if (!Array.isArray(orders) || orders.length === 0) {
       return NextResponse.json(
@@ -193,18 +266,11 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // 👉 BATCH UPDATE: Update all categories at once
-    const updates = orders.map((order: any) => ({
-      id: order.id,
-      display_order: order.display_order,
-    }));
-
-    // Perform individual updates (Supabase doesn't have a true batch update)
-    for (const update of updates) {
+    for (const order of orders) {
       const { error } = await supabaseAdmin
         .from("categories")
-        .update({ display_order: update.display_order })
-        .eq("id", update.id)
+        .update({ display_order: order.display_order })
+        .eq("id", order.id)
         .eq("store_id", storeId);
 
       if (error) throw error;
@@ -215,13 +281,11 @@ export async function PATCH(req: NextRequest) {
       message: "Categories reordered",
     });
   } catch (error: any) {
-    console.error("PATCH Categories Error:", error);
     return NextResponse.json({ error: "Reorder failed" }, { status: 500 });
   }
 }
 
 // ── Delete (DELETE) ─────────────────────────────────────────────────────────
-// PROTECTED: Only the authenticated admin can delete their own categories
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -239,11 +303,10 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    // 1. SECURITY CHECK: Ensure the category belongs to the authenticated admin's store
-    // before performing any deletion, preventing IDOR attacks on the products table.
+    // 1. Verify ownership
     const { data: categoryCheck, error: checkError } = await supabaseAdmin
       .from("categories")
-      .select("id")
+      .select("id, parent_id")
       .eq("id", categoryId)
       .eq("store_id", storeId)
       .single();
@@ -255,15 +318,37 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // 2. CHILD DELETION: Delete all associated products first to clear foreign key dependencies
-    const { error: productsError } = await supabaseAdmin
-      .from("products")
-      .delete()
-      .eq("category_id", categoryId);
+    const isParent = !categoryCheck.parent_id;
 
-    if (productsError) throw productsError;
+    if (isParent) {
+      // 2a. Get all children IDs
+      const { data: children } = await supabaseAdmin
+        .from("categories")
+        .select("id")
+        .eq("parent_id", categoryId)
+        .eq("store_id", storeId);
 
-    // 3. PARENT DELETION: Now safe to delete the category itself
+      if (children && children.length > 0) {
+        const childIds = children.map((c) => c.id);
+
+        // 2b. Delete all products belonging to children
+        await supabaseAdmin
+          .from("products")
+          .delete()
+          .in("category_id", childIds);
+
+        // 2c. Delete children categories
+        await supabaseAdmin.from("categories").delete().in("id", childIds);
+      }
+    } else {
+      // 2. Child: delete its products first
+      await supabaseAdmin
+        .from("products")
+        .delete()
+        .eq("category_id", categoryId);
+    }
+
+    // 3. Delete the category itself
     const { error: categoryError } = await supabaseAdmin
       .from("categories")
       .delete()
@@ -274,10 +359,11 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Category and associated products deleted",
+      message: isParent
+        ? "Parent category, its subcategories, and all associated products deleted"
+        : "Category and associated products deleted",
     });
   } catch (error: any) {
-    console.error("DELETE Category Error:", error);
     return NextResponse.json({ error: "Deletion failed" }, { status: 500 });
   }
 }
