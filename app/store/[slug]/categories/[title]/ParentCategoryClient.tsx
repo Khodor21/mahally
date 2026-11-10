@@ -67,7 +67,11 @@ export default function ParentCategoryClient({
             {initialData.children.map((child) => (
               <Link
                 key={child.id}
-                href={`/category/${encodeURIComponent(child.title)}?lang=${lang}`}
+                href={
+                  (cat as any).has_children
+                    ? `/categories/${encodeURIComponent(cat.title)}?lang=${lang}`
+                    : `/category/${encodeURIComponent(cat.title)}?lang=${lang}`
+                }
                 prefetch={false}
                 className="group relative w-full aspect-[1/1.3] rounded-xl overflow-hidden cursor-pointer"
               >
