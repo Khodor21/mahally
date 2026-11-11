@@ -1,4 +1,4 @@
-export const revalidate = 0;
+export const revalidate = 3600;
 
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
@@ -38,11 +38,28 @@ export default async function StorePage({
   // Cast settings to any to bypass the restricted type inference
   const storeSettings = actualSettings as any;
 
+  const { data: categoriesRaw } = await supabaseAdmin
+    .from("categories")
+    .select("id, title, logo_url, parent_id, display_order, products(id)")
+    .eq("store_id", actualStore.id)
+    .order("display_order", { ascending: true });
+
+  const categories = (categoriesRaw || [])
+    .map((cat: any) => {
+      const hasChildren =
+        categoriesRaw?.some((c: any) => c.parent_id === cat.id) ?? false;
+      return {
+        id: cat.id,
+        title: cat.title,
+        logo_url: cat.logo_url ?? null,
+        parent_id: cat.parent_id ?? null,
+        has_children: hasChildren,
+      };
+    })
+    .filter((c: any) => !c.parent_id);
   // ===== MINI PLAN =====
   // Use case-insensitive check to prevent mismatch errors
   if (String(activePlan).toLowerCase() === "mini") {
-  
-
     const { data: products, error } = await supabaseAdmin
       .from("products")
       .select("*")
@@ -53,7 +70,6 @@ export default async function StorePage({
     if (error) {
       console.error("❌ [page.tsx] Error fetching products:", error);
     }
-
 
     return (
       <MiniCatalogue
@@ -90,12 +106,12 @@ export default async function StorePage({
       <CategorySection
         storeId={(actualStore as any).id}
         lang={lang}
-        // Defensive check applied: look in storeSettings, fallback to actualStore, then fallback to "grid"
         displayStyle={
           storeSettings?.category_display_style ||
           (actualStore as any)?.category_display_style ||
           "grid"
         }
+        initialCategories={categories}
       />
 
       <div className="w-full flex flex-col gap-10">

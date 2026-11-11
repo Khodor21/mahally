@@ -1,10 +1,10 @@
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
-export const getCachedStoreData = (slug: string) =>
+const _getCachedStoreData = (slug: string) =>
   unstable_cache(
     async () => {
-      // 1. جلب بيانات المتجر
       const { data: store, error: storeError } = await supabaseAdmin
         .from("stores")
         .select(
@@ -15,7 +15,6 @@ export const getCachedStoreData = (slug: string) =>
 
       if (storeError || !store) return null;
 
-      // SAFE PARSING: Prevent React crashes by ensuring payment_methods is ALWAYS a valid array
       let parsedPaymentMethods: string[] = [];
       if (store.payment_methods) {
         try {
@@ -29,12 +28,10 @@ export const getCachedStoreData = (slug: string) =>
         }
       }
 
-      // Assign the cleanly parsed array back to the store object
       store.payment_methods = Array.isArray(parsedPaymentMethods)
         ? parsedPaymentMethods
         : [];
 
-      // 2. جلب إعدادات المتجر
       const { data: settings } = await supabaseAdmin
         .from("store_settings")
         .select(
@@ -43,7 +40,6 @@ export const getCachedStoreData = (slug: string) =>
         .eq("store_id", store.id)
         .maybeSingle();
 
-      // MERGE: Attach settings properties directly to the store object
       const enrichedStore = {
         ...store,
         category_display_style: settings?.category_display_style || "grid",
@@ -58,13 +54,14 @@ export const getCachedStoreData = (slug: string) =>
 
       return { store: enrichedStore, settings };
     },
-    // slug is in scope here via the outer function closure
     ["store-data-by-slug", slug],
     {
-      revalidate: 60,
+      revalidate: 3600,
       tags: [`store-${slug}`],
     },
   )();
+
+export const getCachedStoreData = cache(_getCachedStoreData);
 
 export const getCachedSectionsAndProducts = (storeId: string) =>
   unstable_cache(
@@ -82,7 +79,6 @@ export const getCachedSectionsAndProducts = (storeId: string) =>
 
       const categoryIds = sections.map((s) => s.category_id);
 
-      // Categories
       const { data: categories } = await supabaseAdmin
         .from("categories")
         .select("id, title")
@@ -91,12 +87,12 @@ export const getCachedSectionsAndProducts = (storeId: string) =>
       const categoryMap = new Map(
         categories?.map((cat) => [cat.id, cat.title]) || [],
       );
+
       const sectionsWithCategoryNames = sections.map((section) => ({
         ...section,
         category_title: categoryMap.get(section.category_id) || section.title,
       }));
 
-      // 👇 جيب النوعين بشكل منفصل وادمجهم
       const specificProductIds = sections
         .flatMap((s) => s.product_ids ?? [])
         .filter(Boolean);
@@ -135,7 +131,7 @@ export const getCachedSectionsAndProducts = (storeId: string) =>
     },
     ["store-sections-products", storeId],
     {
-      revalidate: 60,
+      revalidate: 3600,
       tags: [`store-sections-${storeId}`, `store-products-${storeId}`],
     },
   )();

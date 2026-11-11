@@ -35,14 +35,19 @@ const content = {
     seeMore: "See All",
   },
 };
-
+interface CategoriesSectionProps {
+  storeId: string;
+  lang: "en" | "ar";
+  displayStyle?: string;
+  initialCategories: Category[];
+}
 export default function CategoriesSection({
   storeId,
   lang,
   displayStyle = "grid",
+  initialCategories,
 }: CategoriesSectionProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categories] = useState<Category[]>(initialCategories);
 
   const carouselRef = useRef<HTMLDivElement>(null);
 
@@ -52,33 +57,6 @@ export default function CategoriesSection({
   // Safely normalize the display style to handle "Grid" or "Circle" inputs
   const normalizedStyle =
     String(displayStyle).toLowerCase() === "circle" ? "circle" : "grid";
-
-  useEffect(() => {
-    // Silently sync the storeId to localStorage to keep URLs clean on navigation
-    if (storeId) {
-      window.localStorage.setItem("store_id", storeId);
-    }
-
-    async function fetchCategories() {
-      try {
-        const res = await fetch(
-          `/api/categories?store_id=${storeId}&lang=${lang}`,
-        );
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const data = await res.json();
-        const list = data?.data || data?.categories || data || [];
-        const filtered = Array.isArray(list)
-          ? list.filter((c: any) => !c.parent_id)
-          : [];
-        setCategories(filtered);
-      } catch (error) {
-        setCategories([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchCategories();
-  }, [storeId, lang]);
 
   const getCategoryHref = (cat: Category) => {
     if (cat.has_children) {
@@ -145,40 +123,6 @@ export default function CategoriesSection({
       container.removeEventListener("touchend", clearInteraction);
     };
   }, [dir, normalizedStyle, categories.length]);
-
-  // ─── Skeleton ──────────────────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <section className="w-full py-8 md:py-12 px-4 md:px-10 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col items-center justify-center mb-8 md:mb-12">
-            <div className="h-8 md:h-10 w-48 bg-gray-200 animate-pulse rounded-md mb-3" />
-            <div className="h-4 md:h-5 w-64 bg-gray-200 animate-pulse rounded-md" />
-            <div className="w-12 h-[3px] bg-gray-300 mx-auto rounded-full mt-4" />
-          </div>
-          {normalizedStyle === "circle" ? (
-            <div className="flex flex-wrap justify-center gap-6 md:gap-10">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex flex-col items-center gap-3">
-                  <div className="w-20 h-20 md:w-28 md:h-28 rounded-full bg-gray-200 animate-pulse" />
-                  <div className="w-16 h-3 rounded bg-gray-200 animate-pulse" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="w-full aspect-[1/1.3] rounded-xl bg-gray-200 animate-pulse"
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-    );
-  }
 
   if (!categories.length) return null;
 

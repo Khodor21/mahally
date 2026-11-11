@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import bcrypt from "bcryptjs";
+import { revalidateTag } from "next/cache";
 
 /* ─────────────────────────────────────────────
     VALIDATION SCHEMAS FOR NEW FIELDS
@@ -641,6 +642,16 @@ export async function PUT(request: NextRequest) {
         { error: settingsError.message },
         { status: 500 },
       );
+    }
+
+    const { data: slugData } = await supabaseAdmin
+      .from("stores")
+      .select("slug")
+      .eq("id", storeId)
+      .single();
+
+    if (slugData?.slug) {
+      revalidateTag(`store-${slugData.slug}`);
     }
 
     return NextResponse.json({

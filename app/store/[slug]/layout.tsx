@@ -1,5 +1,4 @@
-// app/store/[slug]/layout.tsx
-export const revalidate = 60; // Changed from 3600 - revalidate every 60 seconds instead of 1 hour
+export const revalidate = 3600;
 
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
