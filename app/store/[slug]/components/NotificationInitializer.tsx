@@ -25,11 +25,41 @@ export default function NotificationInitializer() {
 
     const checkAuth = async () => {
       try {
+        // إذا عنده push مسجل بأي account
+        const alreadyRegistered = Object.keys(localStorage).some((key) =>
+          key.startsWith("push_reg_"),
+        );
+        if (alreadyRegistered) return;
+
+        // إذا تحققنا بآخر 24 ساعة وكان غير مسجل
+        const lastCheck = localStorage.getItem("customer_auth_last_check");
+        if (lastCheck) {
+          const elapsed = Date.now() - parseInt(lastCheck);
+          if (elapsed < 24 * 60 * 60 * 1000) return;
+        }
+
         const res = await fetch("/api/customer/auth-status");
-        if (!res.ok) return;
+
+        if (!res.ok) {
+          localStorage.setItem(
+            "customer_auth_last_check",
+            Date.now().toString(),
+          );
+          return;
+        }
+
         const data = await res.json();
 
-        if (!data.authenticated || !data.customerId) return;
+        if (!data.authenticated || !data.customerId) {
+          localStorage.setItem(
+            "customer_auth_last_check",
+            Date.now().toString(),
+          );
+          return;
+        }
+
+        // logged in — امسح الـ timestamp لأنو المستخدم مسجل
+        localStorage.removeItem("customer_auth_last_check");
 
         const isRegistered = localStorage.getItem(
           `push_reg_${data.customerId}`,
@@ -40,14 +70,11 @@ export default function NotificationInitializer() {
 
         if (isIOS()) {
           if (!isInStandaloneMode()) {
-            // iOS but not installed as PWA — show install instructions
             setTimeout(() => setIosState("show-install"), 1500);
           } else {
-            // iOS + installed as PWA — show notification prompt
             setTimeout(() => setIosState("show-notify"), 1500);
           }
         } else {
-          // Android / Desktop
           setTimeout(() => setShowBanner(true), 1500);
         }
       } catch (e) {
@@ -150,7 +177,6 @@ export default function NotificationInitializer() {
     </>
   );
 
-  // iOS — show install instructions
   if (iosState === "show-install") {
     return (
       <Modal>
@@ -161,7 +187,6 @@ export default function NotificationInitializer() {
         <p className="text-sm text-gray-500 text-center leading-relaxed">
           {text.installMsg}
         </p>
-        {/* Visual arrow pointing to Safari share button */}
         <div className="text-center text-2xl animate-bounce">
           {text.installIcon}
         </div>
@@ -175,7 +200,6 @@ export default function NotificationInitializer() {
     );
   }
 
-  // iOS PWA — show notification prompt
   if (iosState === "show-notify") {
     return (
       <Modal>
@@ -198,7 +222,6 @@ export default function NotificationInitializer() {
     );
   }
 
-  // Android / Desktop
   if (!showBanner) return null;
   return (
     <Modal>
