@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
         .select("id, title, price, discount_price, images, variantGroups")
         .eq("store_id", storeId)
         .eq("is_active", true)
+        .order("id")
         .range(from, from + pageSize - 1);
 
       if (error) {
