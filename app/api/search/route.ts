@@ -64,6 +64,21 @@ export async function GET(req: NextRequest) {
     if (allProducts.length === 0) {
       return NextResponse.json({ success: true, data: [] });
     }
+    console.log("Products found:", allProducts.length);
+    console.log("First product title:", allProducts[0]?.title);
+    console.log("Query:", q);
+    console.log(
+      "Normalized title:",
+      normalizeArabicText(allProducts[0]?.title),
+    );
+    console.log("Normalized query:", normalizeArabicText(q));
+
+    const targetProduct = allProducts.find((p) => p.title.includes("رجل"));
+    console.log("Target product:", targetProduct?.title);
+    console.log(
+      "Target normalized:",
+      normalizeArabicText(targetProduct?.title || ""),
+    );
 
     const searchResults: SearchedProduct[] = [];
 
