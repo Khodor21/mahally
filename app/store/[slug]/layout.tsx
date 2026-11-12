@@ -1,4 +1,4 @@
-export const revalidate = 3600;
+export const revalidate = 60;
 
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
@@ -7,7 +7,7 @@ import { ShopProvider } from "@/app/store/context";
 import Navbar from "./components/landing/Navbar";
 import BottomNavbar from "./components/landing/BottomNavbar";
 import Footer from "./components/landing/Footer";
-import CatalogueFooter from "./components/catalogue/CatalogueFooter"; // Added Mini Footer
+import CatalogueFooter from "./components/catalogue/CatalogueFooter";
 import LangDomSetter from "./LangSetter";
 import ThemeClient from "./components/ThemeClient";
 import VisitorTracker from "./components/VisitorTracker";
