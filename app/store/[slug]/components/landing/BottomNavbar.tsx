@@ -33,10 +33,8 @@ export default function BottomNavbar({
   const { cartCount } = useShop();
   const t = translations[lang];
 
-  // 👉 FIX 1: Root-level URL generation (removing /store/${storeSlug})
   const base = (path: string) => {
     if (path === "") return `/?lang=${lang}`;
-    // 👉 FIX 2: Ensure hash links append properly after the query string
     if (path.startsWith("#")) return `/?lang=${lang}${path}`;
     return `${path}?lang=${lang}`;
   };
@@ -48,10 +46,8 @@ export default function BottomNavbar({
     e.preventDefault();
     window.dispatchEvent(new CustomEvent("open-search-modal"));
   };
-
-  // 👉 FIX 3: Update isActive for root-level and hash-based navigation
   const isActive = (path: string) => {
-    if (path.startsWith("#")) return false; // Ignore hash and search modal for routing active states
+    if (path.startsWith("#")) return false;
 
     if (!path || path === "/") {
       return normalizedPath === "/";

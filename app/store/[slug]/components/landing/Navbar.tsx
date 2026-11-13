@@ -5,12 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, Heart, ShoppingBag, X, User } from "lucide-react";
 import { useShop } from "@/app/store/context";
-import {
-  normalizeArabicText,
-  extractVariantSearchTexts,
-  parseVariantGroups,
-  highlightMatch,
-} from "@/lib/arabicSearchEngine";
+import { parseVariantGroups } from "@/lib/arabicSearchEngine";
 
 interface VariantOption {
   id: string;
@@ -151,7 +146,6 @@ export default function Navbar({
         const list = data?.data || data?.categories || data || [];
         setCategories(Array.isArray(list) ? list : []);
       } catch (error) {
-        console.error("Failed to fetch categories:", error);
         setCategories([]);
       } finally {
         setLoadingCategories(false);
@@ -164,7 +158,6 @@ export default function Navbar({
   // Debounced product search
   useEffect(() => {
     if (!searchOpen) return;
-
     if (searchQuery.trim() === "") {
       setSearchResults([]);
       setSearchLoading(false);
@@ -198,12 +191,11 @@ export default function Navbar({
           setSearchResults([]);
         }
       } catch (error) {
-        console.error("Search error:", error);
         setSearchResults([]);
       } finally {
         setSearchLoading(false);
       }
-    }, 300); // 300ms debounce
+    }, 600);
 
     return () => clearTimeout(timer);
   }, [searchQuery, searchOpen, storeId]);

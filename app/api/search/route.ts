@@ -2,22 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import {
   normalizeArabicText,
-  searchProduct,
   parseVariantGroups,
   isValidSearchQuery,
-  generateAlternativeSpellings,
 } from "@/lib/arabicSearchEngine";
 
-interface SearchedProduct {
-  id: string;
-  title: string;
-  price: number;
-  discount_price: number | null;
-  images: string[] | null;
-  variantGroups: any[];
-  matchScore: number;
-}
 export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -35,115 +25,28 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    let allProducts: any[] = [];
-    let from = 0;
-    const pageSize = 1000;
+    const normalizedQ = normalizeArabicText(q);
 
-    while (true) {
-      const { data, error } = await supabaseAdmin
-        .from("products")
-        .select("id, title, price, discount_price, images, variantGroups")
-        .eq("store_id", storeId)
-        .eq("is_active", true)
-        .order("id")
-        .range(from, from + pageSize - 1);
+    const { data, error } = await supabaseAdmin
+      .from("products")
+      .select("id, title, price, discount_price, images, variantGroups")
+      .eq("store_id", storeId)
+      .eq("is_active", true)
+      .ilike("title_normalized", `%${normalizedQ}%`)
+      .limit(15);
 
-      if (error) {
-        console.error("Database error:", error);
-        return NextResponse.json(
-          { success: false, message: "Search failed" },
-          { status: 500 },
-        );
-      }
-
-      if (!data || data.length === 0) break;
-      allProducts = allProducts.concat(data);
-      if (data.length < pageSize) break;
-      from += pageSize;
-    }
-
-    if (allProducts.length === 0) {
-      return NextResponse.json({ success: true, data: [] });
-    }
-    console.log("Products found:", allProducts.length);
-    console.log("First product title:", allProducts[0]?.title);
-    console.log("Query:", q);
-    console.log(
-      "Normalized title:",
-      normalizeArabicText(allProducts[0]?.title),
-    );
-    console.log("Normalized query:", normalizeArabicText(q));
-
-    const targetProduct = allProducts.find((p) => p.title.includes("رجل"));
-    console.log("Target product:", targetProduct?.title);
-    console.log(
-      "Target normalized:",
-      normalizeArabicText(targetProduct?.title || ""),
-    );
-
-    const searchResults: SearchedProduct[] = [];
-
-    for (const product of allProducts) {
-      if (!product.title) continue;
-
-      const variantGroups = parseVariantGroups(product.variantGroups);
-      const match = searchProduct(product.title, variantGroups, q);
-
-      if (match) {
-        searchResults.push({
-          id: product.id,
-          title: product.title,
-          price: product.price,
-          discount_price: product.discount_price,
-          images: product.images,
-          variantGroups,
-          matchScore: match.score,
-        });
-      }
-    }
-
-    if (searchResults.length === 0) {
-      const alternatives = generateAlternativeSpellings(q);
-      const uniqueAlternatives = Array.from(new Set(alternatives)).filter(
-        (alt) => alt !== q && alt.length > 0,
+    if (error) {
+      console.error("Database error:", error);
+      return NextResponse.json(
+        { success: false, message: "Search failed" },
+        { status: 500 },
       );
-
-      for (const alt of uniqueAlternatives) {
-        for (const product of allProducts) {
-          if (!product.title) continue;
-
-          const variantGroups = parseVariantGroups(product.variantGroups);
-          const match = searchProduct(product.title, variantGroups, alt);
-
-          if (match) {
-            searchResults.push({
-              id: product.id,
-              title: product.title,
-              price: product.price,
-              discount_price: product.discount_price,
-              images: product.images,
-              variantGroups,
-              matchScore: match.score * 0.9,
-            });
-          }
-        }
-
-        if (searchResults.length > 0) break;
-      }
     }
 
-    const uniqueResults = new Map<string, SearchedProduct>();
-    for (const result of searchResults) {
-      const existing = uniqueResults.get(result.id);
-      if (!existing || result.matchScore > existing.matchScore) {
-        uniqueResults.set(result.id, result);
-      }
-    }
-
-    const finalResults = Array.from(uniqueResults.values())
-      .sort((a, b) => b.matchScore - a.matchScore)
-      .slice(0, 15)
-      .map(({ matchScore, ...product }) => product);
+    const finalResults = (data || []).map((product: any) => ({
+      ...product,
+      variantGroups: parseVariantGroups(product.variantGroups),
+    }));
 
     return NextResponse.json({
       success: true,
